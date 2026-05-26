@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useState, useMemo } from "react";
 import { Search, Music2 } from "lucide-react";
@@ -204,6 +204,3 @@ function ArtistsPanel({ query }: { query: string }) {
     </div>
   );
 }
-
-// silence unused link import (kept for future use)
-void Link;
