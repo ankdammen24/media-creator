@@ -76,11 +76,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: "Soundloom Core — Media Rosenqvist" },
       { name: "description", content: "Soundloom Core: music catalog and live radio for Media Rosenqvist." },
       { name: "author", content: "Media Rosenqvist" },
-      { property: "og:title", content: "Soundloom Core" },
-      { property: "og:description", content: "Music catalog and live radio for Media Rosenqvist." },
+      { property: "og:title", content: "Soundloom Core — Media Rosenqvist" },
+      { property: "og:description", content: "Soundloom Core: music catalog and live radio for Media Rosenqvist." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "Soundloom Core — Media Rosenqvist" },
+      { name: "twitter:description", content: "Soundloom Core: music catalog and live radio for Media Rosenqvist." },
+      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/cf1b1c6f-fcbb-48b0-8ab7-7e7ba8156e70" },
+      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/cf1b1c6f-fcbb-48b0-8ab7-7e7ba8156e70" },
     ],
     links: [
       {
