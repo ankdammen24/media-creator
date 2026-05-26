@@ -4,7 +4,7 @@ import { Link } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
 import { NowPlaying } from "@/components/NowPlaying";
 import { TrackCard } from "@/components/TrackCard";
-import { CardSkeleton, EmptyState, ErrorState } from "@/components/StateViews";
+import { EmptyState, ErrorState } from "@/components/StateViews";
 import { tracksQuery } from "@/lib/queries";
 
 export const Route = createFileRoute("/")({
@@ -92,6 +92,3 @@ function FeaturedTracks() {
     </div>
   );
 }
-
-// silence unused suspense skeleton import lint
-void CardSkeleton;
