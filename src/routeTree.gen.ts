@@ -9,10 +9,16 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as CatalogRouteImport } from './routes/catalog'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as TracksTrackIdRouteImport } from './routes/tracks.$trackId'
 
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CatalogRoute = CatalogRouteImport.update({
   id: '/catalog',
   path: '/catalog',
@@ -32,35 +38,46 @@ const TracksTrackIdRoute = TracksTrackIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/catalog': typeof CatalogRoute
+  '/login': typeof LoginRoute
   '/tracks/$trackId': typeof TracksTrackIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/catalog': typeof CatalogRoute
+  '/login': typeof LoginRoute
   '/tracks/$trackId': typeof TracksTrackIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/catalog': typeof CatalogRoute
+  '/login': typeof LoginRoute
   '/tracks/$trackId': typeof TracksTrackIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/catalog' | '/tracks/$trackId'
+  fullPaths: '/' | '/catalog' | '/login' | '/tracks/$trackId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/catalog' | '/tracks/$trackId'
-  id: '__root__' | '/' | '/catalog' | '/tracks/$trackId'
+  to: '/' | '/catalog' | '/login' | '/tracks/$trackId'
+  id: '__root__' | '/' | '/catalog' | '/login' | '/tracks/$trackId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CatalogRoute: typeof CatalogRoute
+  LoginRoute: typeof LoginRoute
   TracksTrackIdRoute: typeof TracksTrackIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/catalog': {
       id: '/catalog'
       path: '/catalog'
@@ -88,6 +105,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CatalogRoute: CatalogRoute,
+  LoginRoute: LoginRoute,
   TracksTrackIdRoute: TracksTrackIdRoute,
 }
 export const routeTree = rootRouteImport
