@@ -41,7 +41,7 @@ function Index() {
             Media Rosenqvist
           </span>
           <h1 className="mt-4 text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
-            Media Rosenqvist's <span className="text-primary">music & podcast catalog</span>
+            Music & Podcast Catalog
           </h1>
           <p className="mt-4 max-w-xl text-base text-muted-foreground">
             Discover approved music and podcasts, or submit your own work for review.
