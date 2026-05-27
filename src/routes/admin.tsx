@@ -5,6 +5,8 @@ import { ShieldCheck, CheckCircle2, XCircle, Music2, Mic, Loader2 } from "lucide
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
+import { useServerFn } from "@tanstack/react-start";
+import { notifySubmissionDecision } from "@/lib/notifications.functions";
 import {
   EditButton,
   EditSubmissionDialog,
@@ -85,6 +87,7 @@ function AdminPage() {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [filter, setFilter] = useState<"pending_review" | "approved" | "rejected">("pending_review");
+  const notify = useServerFn(notifySubmissionDecision);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["admin-submissions", filter],
@@ -122,6 +125,11 @@ function AdminPage() {
     if (error) {
       window.alert(error.message);
       return;
+    }
+    try {
+      await notify({ data: { submissionId: id, status, comment: reason } });
+    } catch (e) {
+      console.error("notifySubmissionDecision failed", e);
     }
     await refetch();
     qc.invalidateQueries({ queryKey: ["catalog"] });
