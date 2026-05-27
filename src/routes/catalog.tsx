@@ -9,12 +9,12 @@ import { supabase } from "@/integrations/supabase/client";
 export const Route = createFileRoute("/catalog")({
   head: () => ({
     meta: [
-      { title: "Catalog — Soundloom Core" },
+      { title: "Catalog — Media Rosenqvist" },
       {
         name: "description",
         content: "Browse the Media Rosenqvist catalog: approved music and podcasts.",
       },
-      { property: "og:title", content: "Catalog — Soundloom Core" },
+      { property: "og:title", content: "Catalog — Media Rosenqvist" },
       {
         property: "og:description",
         content: "Browse approved music and podcasts in the Media Rosenqvist catalog.",

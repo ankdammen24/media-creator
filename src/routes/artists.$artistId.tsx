@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 export const Route = createFileRoute("/artists/$artistId")({
   head: () => ({
     meta: [
-      { title: "Artist — Soundloom Core" },
+      { title: "Artist — Media Rosenqvist" },
       { name: "description", content: "Approved music and podcasts from this artist." },
     ],
   }),

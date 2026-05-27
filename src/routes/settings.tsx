@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 export const Route = createFileRoute("/settings")({
   head: () => ({
     meta: [
-      { title: "Settings — Soundloom Core" },
+      { title: "Settings — Media Rosenqvist" },
       { name: "robots", content: "noindex" },
     ],
   }),

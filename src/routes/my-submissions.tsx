@@ -16,7 +16,7 @@ import {
 export const Route = createFileRoute("/my-submissions")({
   head: () => ({
     meta: [
-      { title: "My submissions — Soundloom Core" },
+      { title: "My submissions — Media Rosenqvist" },
       { name: "robots", content: "noindex" },
     ],
   }),

@@ -7,13 +7,13 @@ import { supabase } from "@/integrations/supabase/client";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Soundloom Core — Music catalog & live radio" },
+      { title: "Media Rosenqvist — Music catalog & podcasts" },
       {
         name: "description",
         content:
-          "Browse the Media Rosenqvist catalog and listen to Radio Uppsala live, powered by Soundloom Core.",
+          "Browse the Media Rosenqvist catalog, powered by Media Rosenqvist.",
       },
-      { property: "og:title", content: "Soundloom Core" },
+      { property: "og:title", content: "Media Rosenqvist" },
       {
         property: "og:description",
         content: "Music catalog and live radio for Media Rosenqvist.",
@@ -38,7 +38,7 @@ function Index() {
       <section className="mb-12">
         <div>
           <span className="inline-block rounded-full border border-border bg-card px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-            Soundloom Core
+            Media Rosenqvist
           </span>
           <h1 className="mt-4 text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
             Media Rosenqvist's <span className="text-primary">music & podcast catalog</span>
