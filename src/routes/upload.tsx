@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useState, type FormEvent, type ChangeEvent, type ReactNode } from "react";
 import {
   Upload as UploadIcon,
   X,
@@ -55,6 +55,10 @@ function formatBytes(n: number) {
 function extOf(name: string) {
   const i = name.lastIndexOf(".");
   return i >= 0 ? name.slice(i + 1).toLowerCase() : "";
+}
+
+function sanitize(name: string) {
+  return name.replace(/[^a-zA-Z0-9._-]+/g, "_").slice(0, 120);
 }
 
 function UploadPage() {
