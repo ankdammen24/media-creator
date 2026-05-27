@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ShieldCheck, CheckCircle2, XCircle, Music2, Mic, Loader2 } from "lucide-react";
+import { ShieldCheck, CheckCircle2, XCircle, Music2, Mic, Loader2, Users } from "lucide-react";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
@@ -70,6 +70,110 @@ function AdminGate() {
   return <AdminPage />;
 }
 
+function ArtistsAdmin() {
+  const qc = useQueryClient();
+  const { data: artists, isLoading, refetch } = useQuery({
+    queryKey: ["admin-artists"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("artist_profiles")
+        .select("id, name, bio, user_id")
+        .order("name");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+  const { data: users } = useQuery({
+    queryKey: ["admin-users"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("user_id, display_name")
+        .order("display_name");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  async function reassign(artistId: string, newUserId: string) {
+    const { error } = await supabase
+      .from("artist_profiles")
+      .update({ user_id: newUserId })
+      .eq("id", artistId);
+    if (error) {
+      window.alert(error.message);
+      return;
+    }
+    await refetch();
+    qc.invalidateQueries({ queryKey: ["catalog"] });
+  }
+
+  async function rename(artistId: string, current: string) {
+    const next = window.prompt("New artist name:", current);
+    if (!next || next.trim() === current) return;
+    const { error } = await supabase
+      .from("artist_profiles")
+      .update({ name: next.trim() })
+      .eq("id", artistId);
+    if (error) {
+      window.alert(error.message);
+      return;
+    }
+    await refetch();
+    qc.invalidateQueries({ queryKey: ["catalog"] });
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Loader2 className="h-4 w-4 animate-spin" /> Loading…
+      </div>
+    );
+  }
+
+  return (
+    <ul className="space-y-3">
+      {(artists ?? []).map((a) => (
+        <li
+          key={a.id}
+          className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <div className="min-w-0">
+            <h3 className="truncate text-base font-semibold">{a.name}</h3>
+            <p className="text-xs text-muted-foreground">
+              Owner: {users?.find((u) => u.user_id === a.user_id)?.display_name ?? a.user_id}
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => rename(a.id, a.name)}
+              className="rounded-md border border-border px-3 py-1.5 text-xs font-medium hover:bg-secondary"
+            >
+              Rename
+            </button>
+            <select
+              value={a.user_id}
+              onChange={(e) => {
+                if (e.target.value !== a.user_id) reassign(a.id, e.target.value);
+              }}
+              className="rounded-md border border-border bg-background px-2 py-1.5 text-xs"
+            >
+              {(users ?? []).map((u) => (
+                <option key={u.user_id} value={u.user_id}>
+                  {u.display_name ?? u.user_id}
+                </option>
+              ))}
+            </select>
+          </div>
+        </li>
+      ))}
+      {(artists ?? []).length === 0 && (
+        <p className="text-sm text-muted-foreground">No artist profiles.</p>
+      )}
+    </ul>
+  );
+}
+
 type PendingSubmission = {
   id: string;
   title: string;
@@ -87,6 +191,7 @@ function AdminPage() {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [filter, setFilter] = useState<"pending_review" | "approved" | "rejected">("pending_review");
+  const [tab, setTab] = useState<"submissions" | "artists">("submissions");
   const notify = useServerFn(notifySubmissionDecision);
 
   const { data, isLoading, refetch } = useQuery({
@@ -142,11 +247,34 @@ function AdminPage() {
           <ShieldCheck className="h-5 w-5" />
         </span>
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Moderation</h1>
-          <p className="text-xs text-muted-foreground">Review and approve submitted media.</p>
+          <h1 className="text-2xl font-semibold tracking-tight">Admin</h1>
+          <p className="text-xs text-muted-foreground">Moderate submissions and manage artist profiles.</p>
         </div>
       </div>
 
+      <div className="mb-6 inline-flex rounded-lg border border-border bg-card p-1">
+        <button
+          onClick={() => setTab("submissions")}
+          className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition ${
+            tab === "submissions" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <ShieldCheck className="h-3.5 w-3.5" /> Submissions
+        </button>
+        <button
+          onClick={() => setTab("artists")}
+          className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition ${
+            tab === "artists" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Users className="h-3.5 w-3.5" /> Artists
+        </button>
+      </div>
+
+      {tab === "artists" ? (
+        <ArtistsAdmin />
+      ) : (
+        <>
       <div className="mb-6 inline-flex rounded-lg border border-border bg-card p-1">
         {(["pending_review", "approved", "rejected"] as const).map((s) => (
           <button
@@ -186,6 +314,8 @@ function AdminPage() {
           onClose={() => setEditing(null)}
           onSaved={() => refetch()}
         />
+      )}
+        </>
       )}
     </div>
   );
