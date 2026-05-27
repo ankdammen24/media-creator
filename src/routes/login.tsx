@@ -1,5 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { Lock, Info } from "lucide-react";
+import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
+import { Lock } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
@@ -13,6 +15,33 @@ export const Route = createFileRoute("/login")({
 });
 
 function LoginPage() {
+  const { login, user } = useAuth();
+  const navigate = useNavigate();
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (user) navigate({ to: "/admin" });
+  }, [user, navigate]);
+
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setSubmitting(true);
+    try {
+      await login(email, password);
+      router.invalidate();
+      navigate({ to: "/admin" });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Invalid email or password");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <div className="mx-auto max-w-md px-4 py-16 sm:px-6">
       <div className="rounded-xl border border-border bg-card p-6 shadow-lg">
@@ -26,12 +55,7 @@ function LoginPage() {
           </div>
         </div>
 
-        <form
-          className="space-y-4"
-          onSubmit={(e) => {
-            e.preventDefault();
-          }}
-        >
+        <form className="space-y-4" onSubmit={onSubmit}>
           <div className="space-y-1.5">
             <label htmlFor="email" className="text-xs font-medium text-muted-foreground">
               Email
@@ -40,7 +64,9 @@ function LoginPage() {
               id="email"
               type="email"
               autoComplete="email"
-              disabled
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
               className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none disabled:opacity-60"
             />
@@ -53,28 +79,31 @@ function LoginPage() {
               id="password"
               type="password"
               autoComplete="current-password"
-              disabled
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
               className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none disabled:opacity-60"
             />
           </div>
 
+          {error && (
+            <div
+              role="alert"
+              className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive"
+            >
+              {error}
+            </div>
+          )}
+
           <button
             type="submit"
-            disabled
+            disabled={submitting}
             className="w-full rounded-md bg-primary py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50"
           >
-            Sign in
+            {submitting ? "Signing in…" : "Sign in"}
           </button>
         </form>
-
-        <div className="mt-5 flex items-start gap-2 rounded-md border border-border bg-background/50 p-3 text-xs text-muted-foreground">
-          <Info className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
-          <p>
-            Authentication will be enabled once the backend <code className="font-mono text-foreground">/auth/login</code>{" "}
-            endpoint is live. The catalog and Radio Uppsala stream are fully public for now.
-          </p>
-        </div>
       </div>
     </div>
   );
