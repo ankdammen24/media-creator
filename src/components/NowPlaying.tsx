@@ -35,6 +35,13 @@ function useLiveElapsed(playedAt?: string) {
 export function NowPlaying() {
   const { data, isLoading, isError } = useQuery(nowPlayingQuery());
 
+  const np = data?.nowPlaying;
+  const elapsed = useLiveElapsed(np?.playedAt);
+  const recent = useMemo(() => {
+    if (!data?.tracks || data.tracks.length <= 1) return [];
+    return data.tracks.slice(1, 4);
+  }, [data?.tracks]);
+
   if (isLoading) {
     return (
       <div className="overflow-hidden rounded-2xl border border-border bg-card">
@@ -50,7 +57,7 @@ export function NowPlaying() {
     );
   }
 
-  if (isError || !data?.nowPlaying) {
+  if (isError || !np) {
     return (
       <div className="rounded-2xl border border-border bg-card p-5 text-sm text-muted-foreground">
         <div className="flex items-center gap-3">
@@ -61,14 +68,7 @@ export function NowPlaying() {
     );
   }
 
-  const np = data.nowPlaying;
-  const elapsed = useLiveElapsed(np.playedAt);
   const dur = formatDuration(np.duration ?? 0);
-
-  const recent = useMemo(() => {
-    if (!data.tracks || data.tracks.length <= 1) return [];
-    return data.tracks.slice(1, 4);
-  }, [data.tracks]);
 
   return (
     <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
