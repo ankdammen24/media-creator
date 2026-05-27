@@ -55,7 +55,7 @@ function NotificationsPage() {
     if (!user) return;
     await supabase
       .from("notifications" as never)
-      .update({ read_at: new Date().toISOString() })
+      .update({ read_at: new Date().toISOString() } as never)
       .eq("user_id", user.id)
       .is("read_at", null);
     qc.invalidateQueries({ queryKey: ["notifications"] });
@@ -65,7 +65,7 @@ function NotificationsPage() {
   async function markOne(id: string) {
     await supabase
       .from("notifications" as never)
-      .update({ read_at: new Date().toISOString() })
+      .update({ read_at: new Date().toISOString() } as never)
       .eq("id", id);
     qc.invalidateQueries({ queryKey: ["notifications"] });
     qc.invalidateQueries({ queryKey: ["notifications-unread"] });
