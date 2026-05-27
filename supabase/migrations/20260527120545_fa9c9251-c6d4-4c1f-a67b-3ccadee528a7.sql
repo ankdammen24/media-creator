@@ -1,0 +1,3 @@
+ALTER TABLE public.submissions
+  ADD COLUMN IF NOT EXISTS approved_at TIMESTAMP WITH TIME ZONE,
+  ADD COLUMN IF NOT EXISTS approved_by UUID;

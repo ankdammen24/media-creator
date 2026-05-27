@@ -70,6 +70,8 @@ export type Database = {
       }
       submissions: {
         Row: {
+          approved_at: string | null
+          approved_by: string | null
           artist_profile_id: string
           artwork_path: string
           audio_path: string
@@ -86,6 +88,8 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
           artist_profile_id: string
           artwork_path: string
           audio_path: string
@@ -102,6 +106,8 @@ export type Database = {
           user_id: string
         }
         Update: {
+          approved_at?: string | null
+          approved_by?: string | null
           artist_profile_id?: string
           artwork_path?: string
           audio_path?: string
