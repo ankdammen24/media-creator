@@ -14,7 +14,6 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as CatalogRouteImport } from './routes/catalog'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as TracksTrackIdRouteImport } from './routes/tracks.$trackId'
 
 const UploadRoute = UploadRouteImport.update({
   id: '/upload',
@@ -41,11 +40,6 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const TracksTrackIdRoute = TracksTrackIdRouteImport.update({
-  id: '/tracks/$trackId',
-  path: '/tracks/$trackId',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -53,7 +47,6 @@ export interface FileRoutesByFullPath {
   '/catalog': typeof CatalogRoute
   '/login': typeof LoginRoute
   '/upload': typeof UploadRoute
-  '/tracks/$trackId': typeof TracksTrackIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -61,7 +54,6 @@ export interface FileRoutesByTo {
   '/catalog': typeof CatalogRoute
   '/login': typeof LoginRoute
   '/upload': typeof UploadRoute
-  '/tracks/$trackId': typeof TracksTrackIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -70,27 +62,13 @@ export interface FileRoutesById {
   '/catalog': typeof CatalogRoute
   '/login': typeof LoginRoute
   '/upload': typeof UploadRoute
-  '/tracks/$trackId': typeof TracksTrackIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths:
-    | '/'
-    | '/admin'
-    | '/catalog'
-    | '/login'
-    | '/upload'
-    | '/tracks/$trackId'
+  fullPaths: '/' | '/admin' | '/catalog' | '/login' | '/upload'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/admin' | '/catalog' | '/login' | '/upload' | '/tracks/$trackId'
-  id:
-    | '__root__'
-    | '/'
-    | '/admin'
-    | '/catalog'
-    | '/login'
-    | '/upload'
-    | '/tracks/$trackId'
+  to: '/' | '/admin' | '/catalog' | '/login' | '/upload'
+  id: '__root__' | '/' | '/admin' | '/catalog' | '/login' | '/upload'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -99,7 +77,6 @@ export interface RootRouteChildren {
   CatalogRoute: typeof CatalogRoute
   LoginRoute: typeof LoginRoute
   UploadRoute: typeof UploadRoute
-  TracksTrackIdRoute: typeof TracksTrackIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -139,13 +116,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/tracks/$trackId': {
-      id: '/tracks/$trackId'
-      path: '/tracks/$trackId'
-      fullPath: '/tracks/$trackId'
-      preLoaderRoute: typeof TracksTrackIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
@@ -155,7 +125,6 @@ const rootRouteChildren: RootRouteChildren = {
   CatalogRoute: CatalogRoute,
   LoginRoute: LoginRoute,
   UploadRoute: UploadRoute,
-  TracksTrackIdRoute: TracksTrackIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
