@@ -41,12 +41,55 @@ export type Database = {
         }
         Relationships: []
       }
+      notifications: {
+        Row: {
+          body: string
+          created_at: string
+          email_error: string | null
+          email_status: string
+          id: string
+          language: Database["public"]["Enums"]["app_language"]
+          read_at: string | null
+          submission_id: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          email_error?: string | null
+          email_status?: string
+          id?: string
+          language?: Database["public"]["Enums"]["app_language"]
+          read_at?: string | null
+          submission_id?: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          email_error?: string | null
+          email_status?: string
+          id?: string
+          language?: Database["public"]["Enums"]["app_language"]
+          read_at?: string | null
+          submission_id?: string | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
           created_at: string
           display_name: string | null
           id: string
+          preferred_language: Database["public"]["Enums"]["app_language"]
           updated_at: string
           user_id: string
         }
@@ -55,6 +98,7 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           id?: string
+          preferred_language?: Database["public"]["Enums"]["app_language"]
           updated_at?: string
           user_id: string
         }
@@ -63,6 +107,7 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           id?: string
+          preferred_language?: Database["public"]["Enums"]["app_language"]
           updated_at?: string
           user_id?: string
         }
@@ -168,6 +213,7 @@ export type Database = {
       }
     }
     Enums: {
+      app_language: "sv" | "en"
       app_role: "admin" | "moderator" | "user"
       media_type: "music" | "podcast"
       submission_status: "pending_review" | "approved" | "rejected"
@@ -298,6 +344,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_language: ["sv", "en"],
       app_role: ["admin", "moderator", "user"],
       media_type: ["music", "podcast"],
       submission_status: ["pending_review", "approved", "rejected"],
