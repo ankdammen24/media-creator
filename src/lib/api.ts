@@ -37,6 +37,59 @@ export function previewUrl(trackId: string) {
   return `${API_BASE}/playback/${encodeURIComponent(trackId)}/preview`;
 }
 
+/** Authenticated multipart upload with progress (XHR — fetch has no upload progress event). */
+export async function apiAuthedUpload<T>(
+  path: string,
+  formData: FormData,
+  onProgress?: (pct: number) => void,
+): Promise<T> {
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  if (!token) throw new Error("Not authenticated");
+
+  return new Promise<T>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", `${API_BASE}${path}`);
+    xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+    xhr.setRequestHeader("Accept", "application/json");
+
+    if (onProgress) {
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          onProgress(Math.round((e.loaded / e.total) * 100));
+        }
+      };
+    }
+
+    xhr.onload = () => {
+      const text = xhr.responseText;
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          resolve(text ? (JSON.parse(text) as T) : ({} as T));
+        } catch {
+          reject(new Error("Invalid JSON response from server"));
+        }
+        return;
+      }
+      let message = `Upload failed (${xhr.status})`;
+      try {
+        const parsed = JSON.parse(text);
+        if (typeof parsed?.error === "string") message = parsed.error;
+        else if (typeof parsed?.message === "string") message = parsed.message;
+        else if (typeof parsed?.detail === "string") message = parsed.detail;
+      } catch {
+        if (text) message = text;
+      }
+      reject(new Error(message));
+    };
+
+    xhr.onerror = () => reject(new Error("Network error during upload"));
+    xhr.ontimeout = () => reject(new Error("Upload timed out"));
+
+    xhr.send(formData);
+  });
+}
+
 export type Track = {
   id: string;
   title?: string;
