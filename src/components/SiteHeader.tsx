@@ -33,6 +33,13 @@ export function SiteHeader() {
           {user ? (
             <>
               <Link
+                to="/upload"
+                className="rounded-md px-3 py-1.5 text-muted-foreground hover:text-foreground"
+                activeProps={{ className: "rounded-md px-3 py-1.5 text-foreground bg-secondary" }}
+              >
+                Upload
+              </Link>
+              <Link
                 to="/admin"
                 className="rounded-md px-3 py-1.5 text-muted-foreground hover:text-foreground"
                 activeProps={{ className: "rounded-md px-3 py-1.5 text-foreground bg-secondary" }}
