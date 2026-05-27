@@ -284,6 +284,20 @@ function UploadPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
+      <div className="mb-6 inline-flex rounded-lg border border-border bg-card p-1">
+        <Link
+          to="/upload"
+          className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground"
+        >
+          Single upload
+        </Link>
+        <Link
+          to="/upload-batch"
+          className="rounded-md px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
+        >
+          Batch upload
+        </Link>
+      </div>
       <div className="mb-8">
         <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-border bg-secondary/40 px-3 py-1 text-xs text-muted-foreground">
           <Sparkles className="h-3.5 w-3.5 text-primary" />
