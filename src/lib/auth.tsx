@@ -75,7 +75,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error("Network error. Please try again.");
     }
     if (!res.ok) {
-      throw new Error("Invalid email or password");
+      let message = "Invalid email or password";
+      try {
+        const body = (await res.json()) as { error?: string; message?: string; details?: unknown };
+        const fieldErrors = (body.details as { fieldErrors?: Record<string, string[]> } | undefined)?.fieldErrors;
+        const firstField = fieldErrors ? Object.values(fieldErrors).flat()[0] : undefined;
+        message = firstField ?? body.error ?? body.message ?? message;
+      } catch {
+        /* ignore parse errors, keep fallback */
+      }
+      throw new Error(message);
     }
     const data = (await res.json()) as {
       accessToken?: string;
@@ -85,7 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
     const accessToken = data.accessToken ?? data.token ?? null;
     const refreshToken = data.refreshToken ?? null;
-    if (!accessToken) throw new Error("Invalid email or password");
+    if (!accessToken) throw new Error("Login succeeded but no token was returned");
     persist({ user: data.user ?? { email }, accessToken, refreshToken });
   };
 
