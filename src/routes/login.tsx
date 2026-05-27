@@ -6,8 +6,8 @@ import { useAuth } from "@/lib/auth";
 export const Route = createFileRoute("/login")({
   head: () => ({
     meta: [
-      { title: "Sign in — Soundloom Core" },
-      { name: "description", content: "Sign in to Soundloom Core (coming soon)." },
+      { title: "Sign in — Media Rosenqvist" },
+      { name: "description", content: "Sign in to Media Rosenqvist." },
       { name: "robots", content: "noindex" },
     ],
   }),
@@ -60,7 +60,7 @@ function LoginPage() {
           </span>
           <div>
             <h1 className="text-lg font-semibold">{mode === "signin" ? "Sign in" : "Create account"}</h1>
-            <p className="text-xs text-muted-foreground">Soundloom Core</p>
+            <p className="text-xs text-muted-foreground">Media Rosenqvist</p>
           </div>
         </div>
 
