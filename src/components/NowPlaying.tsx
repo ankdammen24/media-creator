@@ -155,9 +155,9 @@ export function NowPlaying() {
                 className="flex items-center gap-3 rounded-lg p-1.5 transition hover:bg-secondary"
               >
                 <div className="h-9 w-9 flex-shrink-0 overflow-hidden rounded-md bg-secondary">
-                  {t.art || t.artworkUrl ? (
+                  {t.art ? (
                     <img
-                      src={t.art || t.artworkUrl}
+                      src={t.art}
                       alt={t.title || ""}
                       className="h-full w-full object-cover"
                       loading="lazy"
