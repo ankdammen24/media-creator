@@ -1,6 +1,6 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { createFileRoute } from "@tanstack/react-router";
 import { ShieldCheck } from "lucide-react";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/admin")({
@@ -10,19 +10,15 @@ export const Route = createFileRoute("/admin")({
       { name: "robots", content: "noindex" },
     ],
   }),
-  component: AdminPage,
+  component: () => (
+    <ProtectedRoute>
+      <AdminPage />
+    </ProtectedRoute>
+  ),
 });
 
 function AdminPage() {
   const { user } = useAuth();
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    if (!user) navigate({ to: "/login" });
-  }, [user, navigate]);
-
-  if (!user) return null;
-
   return (
     <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6">
       <div className="rounded-xl border border-border bg-card p-6 shadow-lg">
@@ -33,12 +29,12 @@ function AdminPage() {
           <div>
             <h1 className="text-lg font-semibold">Admin</h1>
             <p className="text-xs text-muted-foreground">
-              Signed in as {user.name || user.email}
+              Signed in as {user?.name || user?.email}
             </p>
           </div>
         </div>
         <p className="text-sm text-muted-foreground">
-          You're authenticated against the media-catalog backend. Admin tools will appear here.
+          You're authenticated with Supabase. Protected backend calls will use your access token automatically.
         </p>
       </div>
     </div>
