@@ -1,8 +1,9 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Waves, LogOut, User, Bell, Settings as SettingsIcon } from "lucide-react";
+import { LogOut, User, Bell, Settings as SettingsIcon } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import logoMR from "@/assets/logo-mr.png";
 
 export function SiteHeader() {
   const { user, logout } = useAuth();
@@ -24,9 +25,7 @@ export function SiteHeader() {
     <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-md">
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
         <Link to="/" className="flex items-center gap-2 text-sm font-bold tracking-tight">
-          <span className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-primary-foreground">
-            <Waves className="h-4 w-4" />
-          </span>
+          <img src={logoMR} alt="Media Rosenqvist logo" width={28} height={28} className="h-7 w-7 object-contain" />
           <span>Media Rosenqvist</span>
         </Link>
         <nav className="flex items-center gap-1 text-sm">
