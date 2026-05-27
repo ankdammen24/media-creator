@@ -5,6 +5,13 @@ import { ShieldCheck, CheckCircle2, XCircle, Music2, Mic, Loader2 } from "lucide
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  EditButton,
+  EditSubmissionDialog,
+  ReplaceArtworkButton,
+  DeleteSubmissionButton,
+  EditableSubmission,
+} from "@/components/SubmissionActions";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -70,6 +77,7 @@ type PendingSubmission = {
   audio_path: string;
   artwork_path: string;
   created_at: string;
+  user_id: string;
   artist_profiles: { name: string } | null;
 };
 
@@ -84,7 +92,7 @@ function AdminPage() {
       const { data, error } = await supabase
         .from("submissions")
         .select(
-          "id, title, description, media_type, status, audio_path, artwork_path, created_at, artist_profiles(name)",
+          "id, title, description, media_type, status, audio_path, artwork_path, user_id, created_at, artist_profiles(name)",
         )
         .eq("status", filter)
         .order("created_at", { ascending: false });
@@ -92,6 +100,8 @@ function AdminPage() {
       return (data ?? []) as unknown as PendingSubmission[];
     },
   });
+
+  const [editing, setEditing] = useState<EditableSubmission | null>(null);
 
   async function moderate(id: string, status: "approved" | "rejected") {
     let reason: string | null = null;
@@ -152,9 +162,22 @@ function AdminPage() {
       ) : (
         <ul className="space-y-3">
           {data!.map((s) => (
-            <SubmissionRow key={s.id} sub={s} onModerate={moderate} />
+            <SubmissionRow
+              key={s.id}
+              sub={s}
+              onModerate={moderate}
+              onEdit={() => setEditing(s)}
+              onChanged={() => refetch()}
+            />
           ))}
         </ul>
+      )}
+      {editing && (
+        <EditSubmissionDialog
+          sub={editing}
+          onClose={() => setEditing(null)}
+          onSaved={() => refetch()}
+        />
       )}
     </div>
   );
@@ -163,9 +186,13 @@ function AdminPage() {
 function SubmissionRow({
   sub,
   onModerate,
+  onEdit,
+  onChanged,
 }: {
   sub: PendingSubmission;
   onModerate: (id: string, status: "approved" | "rejected") => Promise<void>;
+  onEdit: () => void;
+  onChanged: () => void;
 }) {
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const artUrl = supabase.storage.from("artwork").getPublicUrl(sub.artwork_path).data.publicUrl;
@@ -231,6 +258,11 @@ function SubmissionRow({
             </button>
           </div>
         )}
+        <div className="mt-3 flex flex-wrap gap-2">
+          <EditButton onClick={onEdit} />
+          <ReplaceArtworkButton sub={sub} onDone={onChanged} />
+          <DeleteSubmissionButton sub={sub} onDeleted={onChanged} />
+        </div>
       </div>
     </li>
   );

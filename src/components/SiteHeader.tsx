@@ -40,6 +40,13 @@ export function SiteHeader() {
                 Upload
               </Link>
               <Link
+                to="/my-submissions"
+                className="rounded-md px-3 py-1.5 text-muted-foreground hover:text-foreground"
+                activeProps={{ className: "rounded-md px-3 py-1.5 text-foreground bg-secondary" }}
+              >
+                Mine
+              </Link>
+              <Link
                 to="/admin"
                 className="rounded-md px-3 py-1.5 text-muted-foreground hover:text-foreground"
                 activeProps={{ className: "rounded-md px-3 py-1.5 text-foreground bg-secondary" }}
