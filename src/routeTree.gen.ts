@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as UploadBatchRouteImport } from './routes/upload-batch'
 import { Route as UploadRouteImport } from './routes/upload'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as MySubmissionsRouteImport } from './routes/my-submissions'
 import { Route as LoginRouteImport } from './routes/login'
@@ -27,6 +28,11 @@ const UploadBatchRoute = UploadBatchRouteImport.update({
 const UploadRoute = UploadRouteImport.update({
   id: '/upload',
   path: '/upload',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
 const NotificationsRoute = NotificationsRouteImport.update({
@@ -72,6 +78,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/my-submissions': typeof MySubmissionsRoute
   '/notifications': typeof NotificationsRoute
+  '/settings': typeof SettingsRoute
   '/upload': typeof UploadRoute
   '/upload-batch': typeof UploadBatchRoute
   '/artists/$artistId': typeof ArtistsArtistIdRoute
@@ -83,6 +90,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/my-submissions': typeof MySubmissionsRoute
   '/notifications': typeof NotificationsRoute
+  '/settings': typeof SettingsRoute
   '/upload': typeof UploadRoute
   '/upload-batch': typeof UploadBatchRoute
   '/artists/$artistId': typeof ArtistsArtistIdRoute
@@ -95,6 +103,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/my-submissions': typeof MySubmissionsRoute
   '/notifications': typeof NotificationsRoute
+  '/settings': typeof SettingsRoute
   '/upload': typeof UploadRoute
   '/upload-batch': typeof UploadBatchRoute
   '/artists/$artistId': typeof ArtistsArtistIdRoute
@@ -108,6 +117,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/my-submissions'
     | '/notifications'
+    | '/settings'
     | '/upload'
     | '/upload-batch'
     | '/artists/$artistId'
@@ -119,6 +129,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/my-submissions'
     | '/notifications'
+    | '/settings'
     | '/upload'
     | '/upload-batch'
     | '/artists/$artistId'
@@ -130,6 +141,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/my-submissions'
     | '/notifications'
+    | '/settings'
     | '/upload'
     | '/upload-batch'
     | '/artists/$artistId'
@@ -142,6 +154,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   MySubmissionsRoute: typeof MySubmissionsRoute
   NotificationsRoute: typeof NotificationsRoute
+  SettingsRoute: typeof SettingsRoute
   UploadRoute: typeof UploadRoute
   UploadBatchRoute: typeof UploadBatchRoute
   ArtistsArtistIdRoute: typeof ArtistsArtistIdRoute
@@ -161,6 +174,13 @@ declare module '@tanstack/react-router' {
       path: '/upload'
       fullPath: '/upload'
       preLoaderRoute: typeof UploadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/notifications': {
@@ -222,6 +242,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   MySubmissionsRoute: MySubmissionsRoute,
   NotificationsRoute: NotificationsRoute,
+  SettingsRoute: SettingsRoute,
   UploadRoute: UploadRoute,
   UploadBatchRoute: UploadBatchRoute,
   ArtistsArtistIdRoute: ArtistsArtistIdRoute,
