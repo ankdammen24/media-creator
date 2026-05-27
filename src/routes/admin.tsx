@@ -105,6 +105,8 @@ function AdminPage() {
         rejection_reason: status === "rejected" ? reason : null,
         reviewed_by: user?.id ?? null,
         reviewed_at: new Date().toISOString(),
+        approved_at: status === "approved" ? new Date().toISOString() : null,
+        approved_by: status === "approved" ? (user?.id ?? null) : null,
       })
       .eq("id", id);
     if (error) {

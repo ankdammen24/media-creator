@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Search, Music2, Mic } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { EmptyState, ErrorState } from "@/components/StateViews";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -41,14 +42,18 @@ type CatalogItem = {
   description: string | null;
   media_type: "music" | "podcast";
   artwork_path: string;
+  audio_path: string;
   created_at: string;
-  artist_profiles: { name: string } | null;
+  artist_profile_id: string;
+  artist_profiles: { id: string; name: string } | null;
 };
 
 async function fetchApproved(): Promise<CatalogItem[]> {
   const { data, error } = await supabase
     .from("submissions")
-    .select("id, title, description, media_type, artwork_path, created_at, artist_profiles(name)")
+    .select(
+      "id, title, description, media_type, artwork_path, audio_path, created_at, artist_profile_id, artist_profiles(id, name)",
+    )
     .eq("status", "approved")
     .order("created_at", { ascending: false });
   if (error) throw error;
@@ -62,14 +67,24 @@ function artworkUrl(path: string) {
 function CatalogPage() {
   const [tab, setTab] = useState<Tab>("all");
   const [query, setQuery] = useState("");
+  const [artistId, setArtistId] = useState<string>("all");
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["catalog", "approved"],
     queryFn: fetchApproved,
   });
 
+  const artists = useMemo(() => {
+    const map = new Map<string, string>();
+    (data ?? []).forEach((i) => {
+      if (i.artist_profiles) map.set(i.artist_profiles.id, i.artist_profiles.name);
+    });
+    return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
+  }, [data]);
+
   const items = useMemo(() => {
     let list = data ?? [];
     if (tab !== "all") list = list.filter((i) => i.media_type === tab);
+    if (artistId !== "all") list = list.filter((i) => i.artist_profile_id === artistId);
     const q = query.trim().toLowerCase();
     if (q) {
       list = list.filter(
@@ -79,7 +94,7 @@ function CatalogPage() {
       );
     }
     return list;
-  }, [data, tab, query]);
+  }, [data, tab, query, artistId]);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
@@ -101,20 +116,36 @@ function CatalogPage() {
         </div>
       </div>
 
-      <div className="mb-6 inline-flex rounded-lg border border-border bg-card p-1">
-        {(["all", "music", "podcast"] as Tab[]).map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`rounded-md px-4 py-1.5 text-sm font-medium capitalize transition ${
-              tab === t
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
+      <div className="mb-6 flex flex-wrap items-center gap-3">
+        <div className="inline-flex rounded-lg border border-border bg-card p-1">
+          {(["all", "music", "podcast"] as Tab[]).map((t) => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className={`rounded-md px-4 py-1.5 text-sm font-medium capitalize transition ${
+                tab === t
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+        {artists.length > 0 && (
+          <select
+            value={artistId}
+            onChange={(e) => setArtistId(e.target.value)}
+            className="rounded-md border border-border bg-card px-3 py-1.5 text-sm"
           >
-            {t}
-          </button>
-        ))}
+            <option value="all">All artists</option>
+            {artists.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.name}
+              </option>
+            ))}
+          </select>
+        )}
       </div>
 
       {isLoading ? (
@@ -133,33 +164,68 @@ function CatalogPage() {
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {items.map((i) => (
-            <article key={i.id} className="overflow-hidden rounded-lg border border-border bg-card">
-              <div className="aspect-square w-full bg-secondary">
-                <img
-                  src={artworkUrl(i.artwork_path)}
-                  alt={i.title}
-                  className="h-full w-full object-cover"
-                  loading="lazy"
-                />
-              </div>
-              <div className="space-y-1 p-3">
-                <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-muted-foreground">
-                  {i.media_type === "music" ? (
-                    <Music2 className="h-3 w-3" />
-                  ) : (
-                    <Mic className="h-3 w-3" />
-                  )}
-                  {i.media_type}
-                </div>
-                <h2 className="line-clamp-1 text-sm font-semibold">{i.title}</h2>
-                <p className="line-clamp-1 text-xs text-muted-foreground">
-                  {i.artist_profiles?.name ?? "Unknown artist"}
-                </p>
-              </div>
-            </article>
+            <CatalogCard key={i.id} item={i} />
           ))}
         </div>
       )}
     </div>
+  );
+}
+
+export function CatalogCard({ item }: { item: CatalogItem }) {
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  useEffect(() => {
+    let on = true;
+    supabase.storage
+      .from("audio")
+      .createSignedUrl(item.audio_path, 3600)
+      .then(({ data }) => {
+        if (on && data) setAudioUrl(data.signedUrl);
+      });
+    return () => {
+      on = false;
+    };
+  }, [item.audio_path]);
+
+  return (
+    <article className="overflow-hidden rounded-lg border border-border bg-card">
+      <div className="aspect-square w-full bg-secondary">
+        <img
+          src={artworkUrl(item.artwork_path)}
+          alt={item.title}
+          className="h-full w-full object-cover"
+          loading="lazy"
+        />
+      </div>
+      <div className="space-y-1 p-3">
+        <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-muted-foreground">
+          {item.media_type === "music" ? (
+            <Music2 className="h-3 w-3" />
+          ) : (
+            <Mic className="h-3 w-3" />
+          )}
+          {item.media_type}
+        </div>
+        <h2 className="line-clamp-1 text-sm font-semibold">{item.title}</h2>
+        {item.artist_profiles ? (
+          <Link
+            to="/artists/$artistId"
+            params={{ artistId: item.artist_profiles.id }}
+            className="line-clamp-1 text-xs text-muted-foreground hover:text-foreground hover:underline"
+          >
+            {item.artist_profiles.name}
+          </Link>
+        ) : (
+          <p className="line-clamp-1 text-xs text-muted-foreground">Unknown artist</p>
+        )}
+        {audioUrl ? (
+          <audio controls preload="none" src={audioUrl} className="mt-2 h-9 w-full">
+            Your browser does not support audio.
+          </audio>
+        ) : (
+          <div className="mt-2 h-9 w-full animate-pulse rounded bg-secondary" />
+        )}
+      </div>
+    </article>
   );
 }
