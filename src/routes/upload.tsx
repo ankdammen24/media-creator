@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState, type FormEvent, type ChangeEvent } from "react";
+import { useEffect, useState, type FormEvent, type ChangeEvent, type ReactNode } from "react";
 import {
   Upload as UploadIcon,
   X,
@@ -514,8 +514,8 @@ function Step({
 }: {
   n: number;
   title: string;
-  icon: React.ReactNode;
-  children: React.ReactNode;
+  icon: ReactNode;
+  children: ReactNode;
 }) {
   return (
     <section className="rounded-xl border border-border bg-card p-5 shadow-sm">
@@ -542,7 +542,7 @@ function TypeChoice({
 }: {
   active: boolean;
   onClick: () => void;
-  icon: React.ReactNode;
+  icon: ReactNode;
   label: string;
   hint: string;
 }) {
@@ -585,7 +585,7 @@ function FilePicker({
   file: File | null;
   error: string | null;
   disabled?: boolean;
-  icon: React.ReactNode;
+  icon: ReactNode;
   hint: string;
   onChange: (f: File | null) => void;
   preview?: boolean;
