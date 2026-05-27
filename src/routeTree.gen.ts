@@ -9,12 +9,18 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as UploadBatchRouteImport } from './routes/upload-batch'
 import { Route as UploadRouteImport } from './routes/upload'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as CatalogRouteImport } from './routes/catalog'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 
+const UploadBatchRoute = UploadBatchRouteImport.update({
+  id: '/upload-batch',
+  path: '/upload-batch',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const UploadRoute = UploadRouteImport.update({
   id: '/upload',
   path: '/upload',
@@ -47,6 +53,7 @@ export interface FileRoutesByFullPath {
   '/catalog': typeof CatalogRoute
   '/login': typeof LoginRoute
   '/upload': typeof UploadRoute
+  '/upload-batch': typeof UploadBatchRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -54,6 +61,7 @@ export interface FileRoutesByTo {
   '/catalog': typeof CatalogRoute
   '/login': typeof LoginRoute
   '/upload': typeof UploadRoute
+  '/upload-batch': typeof UploadBatchRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -62,13 +70,27 @@ export interface FileRoutesById {
   '/catalog': typeof CatalogRoute
   '/login': typeof LoginRoute
   '/upload': typeof UploadRoute
+  '/upload-batch': typeof UploadBatchRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/admin' | '/catalog' | '/login' | '/upload'
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/catalog'
+    | '/login'
+    | '/upload'
+    | '/upload-batch'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/admin' | '/catalog' | '/login' | '/upload'
-  id: '__root__' | '/' | '/admin' | '/catalog' | '/login' | '/upload'
+  to: '/' | '/admin' | '/catalog' | '/login' | '/upload' | '/upload-batch'
+  id:
+    | '__root__'
+    | '/'
+    | '/admin'
+    | '/catalog'
+    | '/login'
+    | '/upload'
+    | '/upload-batch'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -77,10 +99,18 @@ export interface RootRouteChildren {
   CatalogRoute: typeof CatalogRoute
   LoginRoute: typeof LoginRoute
   UploadRoute: typeof UploadRoute
+  UploadBatchRoute: typeof UploadBatchRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/upload-batch': {
+      id: '/upload-batch'
+      path: '/upload-batch'
+      fullPath: '/upload-batch'
+      preLoaderRoute: typeof UploadBatchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/upload': {
       id: '/upload'
       path: '/upload'
@@ -125,6 +155,7 @@ const rootRouteChildren: RootRouteChildren = {
   CatalogRoute: CatalogRoute,
   LoginRoute: LoginRoute,
   UploadRoute: UploadRoute,
+  UploadBatchRoute: UploadBatchRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
