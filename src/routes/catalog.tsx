@@ -1,10 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useState, useMemo } from "react";
-import { Search, Music2 } from "lucide-react";
-import { TrackCard } from "@/components/TrackCard";
+import { Search, Music2, Mic } from "lucide-react";
 import { EmptyState, ErrorState } from "@/components/StateViews";
-import { artistsQuery, releasesQuery, tracksQuery } from "@/lib/queries";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/catalog")({
   head: () => ({
@@ -12,20 +11,15 @@ export const Route = createFileRoute("/catalog")({
       { title: "Catalog — Soundloom Core" },
       {
         name: "description",
-        content: "Browse the Media Rosenqvist music catalog: tracks, releases and artists.",
+        content: "Browse the Media Rosenqvist catalog: approved music and podcasts.",
       },
       { property: "og:title", content: "Catalog — Soundloom Core" },
       {
         property: "og:description",
-        content: "Browse tracks, releases and artists in the Media Rosenqvist catalog.",
+        content: "Browse approved music and podcasts in the Media Rosenqvist catalog.",
       },
     ],
   }),
-  loader: ({ context }) => {
-    context.queryClient.ensureQueryData(tracksQuery());
-    context.queryClient.ensureQueryData(artistsQuery());
-    context.queryClient.ensureQueryData(releasesQuery());
-  },
   component: CatalogPage,
   errorComponent: ({ error, reset }) => (
     <div className="mx-auto max-w-7xl px-4 py-10">
@@ -39,11 +33,53 @@ export const Route = createFileRoute("/catalog")({
   ),
 });
 
-type Tab = "tracks" | "releases" | "artists";
+type Tab = "all" | "music" | "podcast";
+
+type CatalogItem = {
+  id: string;
+  title: string;
+  description: string | null;
+  media_type: "music" | "podcast";
+  artwork_path: string;
+  created_at: string;
+  artist_profiles: { name: string } | null;
+};
+
+async function fetchApproved(): Promise<CatalogItem[]> {
+  const { data, error } = await supabase
+    .from("submissions")
+    .select("id, title, description, media_type, artwork_path, created_at, artist_profiles(name)")
+    .eq("status", "approved")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as unknown as CatalogItem[];
+}
+
+function artworkUrl(path: string) {
+  return supabase.storage.from("artwork").getPublicUrl(path).data.publicUrl;
+}
 
 function CatalogPage() {
-  const [tab, setTab] = useState<Tab>("tracks");
+  const [tab, setTab] = useState<Tab>("all");
   const [query, setQuery] = useState("");
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ["catalog", "approved"],
+    queryFn: fetchApproved,
+  });
+
+  const items = useMemo(() => {
+    let list = data ?? [];
+    if (tab !== "all") list = list.filter((i) => i.media_type === tab);
+    const q = query.trim().toLowerCase();
+    if (q) {
+      list = list.filter(
+        (i) =>
+          i.title.toLowerCase().includes(q) ||
+          (i.artist_profiles?.name ?? "").toLowerCase().includes(q),
+      );
+    }
+    return list;
+  }, [data, tab, query]);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
@@ -51,7 +87,7 @@ function CatalogPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Catalog</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            The complete Media Rosenqvist library.
+            Approved music and podcasts from the community.
           </p>
         </div>
         <div className="relative w-full sm:w-72">
@@ -66,7 +102,7 @@ function CatalogPage() {
       </div>
 
       <div className="mb-6 inline-flex rounded-lg border border-border bg-card p-1">
-        {(["tracks", "releases", "artists"] as Tab[]).map((t) => (
+        {(["all", "music", "podcast"] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -81,126 +117,49 @@ function CatalogPage() {
         ))}
       </div>
 
-      {tab === "tracks" && <TracksPanel query={query} />}
-      {tab === "releases" && <ReleasesPanel query={query} />}
-      {tab === "artists" && <ArtistsPanel query={query} />}
-    </div>
-  );
-}
-
-function TracksPanel({ query }: { query: string }) {
-  const { data } = useSuspenseQuery(tracksQuery());
-  const items = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return data.items;
-    return data.items.filter(
-      (t) =>
-        (t.title || "").toLowerCase().includes(q) ||
-        (t.artist || "").toLowerCase().includes(q),
-    );
-  }, [data.items, query]);
-
-  if (items.length === 0) {
-    return (
-      <EmptyState
-        title={query ? "No matches" : "No tracks yet"}
-        description={
-          query
-            ? "Try a different search term."
-            : "The Media Rosenqvist catalog is currently empty. Check back soon."
-        }
-      />
-    );
-  }
-
-  return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-      {items.map((t) => (
-        <TrackCard key={t.id} track={t} />
-      ))}
-    </div>
-  );
-}
-
-function ReleasesPanel({ query }: { query: string }) {
-  const { data } = useSuspenseQuery(releasesQuery());
-  const items = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return data.items;
-    return data.items.filter(
-      (r) =>
-        (r.title || "").toLowerCase().includes(q) ||
-        (r.artist || "").toLowerCase().includes(q),
-    );
-  }, [data.items, query]);
-
-  if (items.length === 0) {
-    return (
-      <EmptyState
-        title={query ? "No matches" : "No releases yet"}
-        description="Releases will appear here once added to the catalog."
-      />
-    );
-  }
-
-  return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-      {items.map((r) => (
-        <div key={r.id} className="overflow-hidden rounded-lg border border-border bg-card">
-          <div className="aspect-square w-full bg-secondary">
-            {r.artworkUrl ? (
-              <img src={r.artworkUrl} alt={r.title || ""} className="h-full w-full object-cover" />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center">
-                <Music2 className="h-10 w-10 text-muted-foreground" />
+      {isLoading ? (
+        <p className="text-sm text-muted-foreground">Loading…</p>
+      ) : error ? (
+        <ErrorState error={error as Error} onRetry={() => refetch()} />
+      ) : items.length === 0 ? (
+        <EmptyState
+          title={query ? "No matches" : "No approved media yet"}
+          description={
+            query
+              ? "Try a different search term."
+              : "Once submissions are approved they'll appear here."
+          }
+        />
+      ) : (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {items.map((i) => (
+            <article key={i.id} className="overflow-hidden rounded-lg border border-border bg-card">
+              <div className="aspect-square w-full bg-secondary">
+                <img
+                  src={artworkUrl(i.artwork_path)}
+                  alt={i.title}
+                  className="h-full w-full object-cover"
+                  loading="lazy"
+                />
               </div>
-            )}
-          </div>
-          <div className="space-y-1 p-3">
-            <h3 className="line-clamp-1 text-sm font-semibold">{r.title || "Untitled"}</h3>
-            <p className="line-clamp-1 text-xs text-muted-foreground">
-              {r.artist || "Unknown artist"}
-            </p>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function ArtistsPanel({ query }: { query: string }) {
-  const { data } = useSuspenseQuery(artistsQuery());
-  const items = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return data.items;
-    return data.items.filter((a) => (a.name || "").toLowerCase().includes(q));
-  }, [data.items, query]);
-
-  if (items.length === 0) {
-    return (
-      <EmptyState
-        title={query ? "No matches" : "No artists yet"}
-        description="Artists will appear here once added to the catalog."
-      />
-    );
-  }
-
-  return (
-    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
-      {items.map((a) => (
-        <div key={a.id} className="rounded-lg border border-border bg-card p-3 text-center">
-          <div className="mx-auto mb-3 h-20 w-20 overflow-hidden rounded-full bg-secondary">
-            {a.imageUrl ? (
-              <img src={a.imageUrl} alt={a.name || ""} className="h-full w-full object-cover" />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center">
-                <Music2 className="h-6 w-6 text-muted-foreground" />
+              <div className="space-y-1 p-3">
+                <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-muted-foreground">
+                  {i.media_type === "music" ? (
+                    <Music2 className="h-3 w-3" />
+                  ) : (
+                    <Mic className="h-3 w-3" />
+                  )}
+                  {i.media_type}
+                </div>
+                <h2 className="line-clamp-1 text-sm font-semibold">{i.title}</h2>
+                <p className="line-clamp-1 text-xs text-muted-foreground">
+                  {i.artist_profiles?.name ?? "Unknown artist"}
+                </p>
               </div>
-            )}
-          </div>
-          <h3 className="line-clamp-1 text-sm font-semibold">{a.name || "Unknown"}</h3>
+            </article>
+          ))}
         </div>
-      ))}
+      )}
     </div>
   );
 }

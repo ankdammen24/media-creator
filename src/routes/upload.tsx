@@ -13,11 +13,13 @@ import {
 } from "lucide-react";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useAuth } from "@/lib/auth";
-import {
-  apiAuthedJson,
-  putSignedUpload,
-  type ArtistProfile,
-} from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
+
+type ArtistProfile = {
+  id: string;
+  name: string;
+  bio: string | null;
+};
 
 export const Route = createFileRoute("/upload")({
   head: () => ({
@@ -43,20 +45,6 @@ const MAX_IMAGE_BYTES = 20 * 1024 * 1024;
 
 type MediaType = "music" | "podcast";
 
-type PresignFile = {
-  kind: "audio" | "artwork";
-  objectKey: string;
-  url: string;
-  headers?: Record<string, string>;
-};
-
-type PresignResponse = {
-  mediaId: string;
-  uploads: PresignFile[];
-};
-
-type ListResp<T> = { items?: T[] } | T[];
-
 function formatBytes(n: number) {
   if (n < 1024) return `${n} B`;
   if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
@@ -69,9 +57,8 @@ function extOf(name: string) {
   return i >= 0 ? name.slice(i + 1).toLowerCase() : "";
 }
 
-function normalizeList<T>(r: ListResp<T>): T[] {
-  if (Array.isArray(r)) return r;
-  return r.items ?? [];
+function sanitize(name: string) {
+  return name.replace(/[^a-zA-Z0-9._-]+/g, "_").slice(0, 120);
 }
 
 function UploadPage() {
@@ -105,9 +92,15 @@ function UploadPage() {
     (async () => {
       try {
         setProfilesLoading(true);
-        const r = await apiAuthedJson<ListResp<ArtistProfile>>("/artist-profiles", undefined, "GET");
+        if (!user) return;
+        const { data, error } = await supabase
+          .from("artist_profiles")
+          .select("id, name, bio")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: true });
         if (!on) return;
-        const items = normalizeList(r);
+        if (error) throw error;
+        const items = (data ?? []) as ArtistProfile[];
         setProfiles(items);
         if (items.length === 1) setProfileId(items[0].id);
       } catch (e) {
@@ -119,7 +112,7 @@ function UploadPage() {
     return () => {
       on = false;
     };
-  }, []);
+  }, [user]);
 
   const audioError = (() => {
     if (!audio) return null;
@@ -164,14 +157,21 @@ function UploadPage() {
 
   async function createProfile(e: FormEvent) {
     e.preventDefault();
-    if (!newProfileName.trim()) return;
+    if (!newProfileName.trim() || !user) return;
     setCreateBusy(true);
     setProfilesError(null);
     try {
-      const p = await apiAuthedJson<ArtistProfile>("/artist-profiles", {
-        name: newProfileName.trim(),
-        bio: newProfileBio.trim() || undefined,
-      });
+      const { data, error } = await supabase
+        .from("artist_profiles")
+        .insert({
+          user_id: user.id,
+          name: newProfileName.trim(),
+          bio: newProfileBio.trim() || null,
+        })
+        .select("id, name, bio")
+        .single();
+      if (error) throw error;
+      const p = data as ArtistProfile;
       setProfiles((cur) => [...cur, p]);
       setProfileId(p.id);
       setNewProfileName("");
@@ -186,7 +186,7 @@ function UploadPage() {
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!canSubmit || !audio || !artwork || !mediaType) return;
+    if (!canSubmit || !audio || !artwork || !mediaType || !user) return;
 
     setStatus("submitting");
     setError(null);
@@ -194,39 +194,57 @@ function UploadPage() {
     setArtworkPct(0);
 
     try {
-      setPhase("presign");
-      const presign = await apiAuthedJson<PresignResponse>("/uploads/presign", {
-        mediaType,
-        files: [
-          { kind: "audio", filename: audio.name, contentType: audio.type || "application/octet-stream" },
-          { kind: "artwork", filename: artwork.name, contentType: artwork.type || "application/octet-stream" },
-        ],
-      });
-
-      const audioSlot = presign.uploads.find((u) => u.kind === "audio");
-      const artworkSlot = presign.uploads.find((u) => u.kind === "artwork");
-      if (!audioSlot || !artworkSlot) throw new Error("Server did not return upload URLs for both files");
+      const uid = user.id;
+      const stamp = Date.now();
+      const audioPath = `${uid}/${stamp}-${sanitize(audio.name)}`;
+      const artworkPath = `${uid}/${stamp}-${sanitize(artwork.name)}`;
 
       setPhase("audio");
-      await putSignedUpload(audioSlot.url, audio, setAudioPct, audioSlot.headers);
+      const audioUp = await supabase.storage.from("audio").upload(audioPath, audio, {
+        cacheControl: "3600",
+        upsert: false,
+        contentType: audio.type || undefined,
+      });
+      if (audioUp.error) throw audioUp.error;
+      setAudioPct(100);
 
       setPhase("artwork");
-      await putSignedUpload(artworkSlot.url, artwork, setArtworkPct, artworkSlot.headers);
+      const artUp = await supabase.storage.from("artwork").upload(artworkPath, artwork, {
+        cacheControl: "3600",
+        upsert: false,
+        contentType: artwork.type || undefined,
+      });
+      if (artUp.error) {
+        // best effort cleanup of audio
+        await supabase.storage.from("audio").remove([audioPath]);
+        throw artUp.error;
+      }
+      setArtworkPct(100);
 
       setPhase("complete");
-      await apiAuthedJson("/uploads/complete", {
-        mediaId: presign.mediaId,
-        artistProfileId: profileId,
-        mediaType,
+      const { error: insertErr } = await supabase.from("submissions").insert({
+        user_id: uid,
+        artist_profile_id: profileId,
+        media_type: mediaType,
         title: title.trim(),
-        description: description.trim() || undefined,
-        audioObjectKey: audioSlot.objectKey,
-        artworkObjectKey: artworkSlot.objectKey,
+        description: description.trim() || null,
+        audio_path: audioPath,
+        artwork_path: artworkPath,
+        status: "pending_review",
       });
+      if (insertErr) {
+        await supabase.storage.from("audio").remove([audioPath]);
+        await supabase.storage.from("artwork").remove([artworkPath]);
+        throw insertErr;
+      }
 
       setStatus("success");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong while submitting");
+      const msg =
+        err && typeof err === "object" && "message" in err
+          ? String((err as { message: unknown }).message)
+          : "Something went wrong while submitting";
+      setError(msg);
       setStatus("error");
     }
   }
