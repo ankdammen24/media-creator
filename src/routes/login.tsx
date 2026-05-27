@@ -15,12 +15,14 @@ export const Route = createFileRoute("/login")({
 });
 
 function LoginPage() {
-  const { login, user } = useAuth();
+  const { login, signup, user } = useAuth();
   const navigate = useNavigate();
   const router = useRouter();
+  const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -30,11 +32,18 @@ function LoginPage() {
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setInfo(null);
     setSubmitting(true);
     try {
-      await login(email, password);
-      router.invalidate();
-      navigate({ to: "/admin" });
+      if (mode === "signin") {
+        await login(email, password);
+        router.invalidate();
+        navigate({ to: "/admin" });
+      } else {
+        await signup(email, password);
+        setInfo("Check your email to confirm your account, then sign in.");
+        setMode("signin");
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Invalid email or password");
     } finally {
@@ -50,9 +59,26 @@ function LoginPage() {
             <Lock className="h-5 w-5" />
           </span>
           <div>
-            <h1 className="text-lg font-semibold">Sign in</h1>
+            <h1 className="text-lg font-semibold">{mode === "signin" ? "Sign in" : "Create account"}</h1>
             <p className="text-xs text-muted-foreground">Soundloom Core</p>
           </div>
+        </div>
+
+        <div className="mb-4 inline-flex rounded-md border border-border p-0.5 text-xs">
+          <button
+            type="button"
+            onClick={() => { setMode("signin"); setError(null); setInfo(null); }}
+            className={`rounded px-3 py-1 ${mode === "signin" ? "bg-secondary text-foreground" : "text-muted-foreground"}`}
+          >
+            Sign in
+          </button>
+          <button
+            type="button"
+            onClick={() => { setMode("signup"); setError(null); setInfo(null); }}
+            className={`rounded px-3 py-1 ${mode === "signup" ? "bg-secondary text-foreground" : "text-muted-foreground"}`}
+          >
+            Sign up
+          </button>
         </div>
 
         <form className="space-y-4" onSubmit={onSubmit}>
@@ -78,8 +104,9 @@ function LoginPage() {
             <input
               id="password"
               type="password"
-              autoComplete="current-password"
+              autoComplete={mode === "signin" ? "current-password" : "new-password"}
               required
+              minLength={6}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
@@ -95,13 +122,23 @@ function LoginPage() {
               {error}
             </div>
           )}
+          {info && (
+            <div
+              role="status"
+              className="rounded-md border border-primary/30 bg-primary/10 px-3 py-2 text-xs text-foreground"
+            >
+              {info}
+            </div>
+          )}
 
           <button
             type="submit"
             disabled={submitting}
             className="w-full rounded-md bg-primary py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50"
           >
-            {submitting ? "Signing in…" : "Sign in"}
+            {submitting
+              ? mode === "signin" ? "Signing in…" : "Creating account…"
+              : mode === "signin" ? "Sign in" : "Create account"}
           </button>
         </form>
       </div>

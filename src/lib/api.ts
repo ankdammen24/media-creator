@@ -1,4 +1,5 @@
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "https://api.mediarosenqvist.com";
+import { supabase } from "@/integrations/supabase/client";
 
 export const apiBase = () => API_BASE;
 
@@ -6,6 +7,25 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     ...init,
     headers: { Accept: "application/json", ...(init?.headers || {}) },
+  });
+  if (!res.ok) {
+    throw new Error(`API ${res.status} ${res.statusText} on ${path}`);
+  }
+  return res.json() as Promise<T>;
+}
+
+/** Authenticated fetch: attaches Supabase access_token as Bearer for protected backend calls. */
+export async function apiAuthed<T>(path: string, init?: RequestInit): Promise<T> {
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  if (!token) throw new Error("Not authenticated");
+  const res = await fetch(`${API_BASE}${path}`, {
+    ...init,
+    headers: {
+      Accept: "application/json",
+      Authorization: `Bearer ${token}`,
+      ...(init?.headers || {}),
+    },
   });
   if (!res.ok) {
     throw new Error(`API ${res.status} ${res.statusText} on ${path}`);

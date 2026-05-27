@@ -1,116 +1,83 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { apiBase } from "./api";
+import type { Session, User } from "@supabase/supabase-js";
+import { supabase } from "@/integrations/supabase/client";
 
 export type AuthUser = {
-  id?: string;
+  id: string;
   email?: string;
   name?: string;
-  role?: string;
-  [k: string]: unknown;
 };
 
-type AuthState = {
+type AuthContextValue = {
   user: AuthUser | null;
+  session: Session | null;
   accessToken: string | null;
-  refreshToken: string | null;
-};
-
-type AuthContextValue = AuthState & {
+  loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  logout: () => void;
+  signup: (email: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
 };
-
-const STORAGE_KEY = "soundloom.auth";
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-function readStored(): AuthState {
-  if (typeof window === "undefined") return { user: null, accessToken: null, refreshToken: null };
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return { user: null, accessToken: null, refreshToken: null };
-    const parsed = JSON.parse(raw) as AuthState;
-    return {
-      user: parsed.user ?? null,
-      accessToken: parsed.accessToken ?? null,
-      refreshToken: parsed.refreshToken ?? null,
-    };
-  } catch {
-    return { user: null, accessToken: null, refreshToken: null };
-  }
+function toAuthUser(u: User | null | undefined): AuthUser | null {
+  if (!u) return null;
+  return {
+    id: u.id,
+    email: u.email ?? undefined,
+    name: (u.user_metadata?.display_name as string | undefined) ?? u.email ?? undefined,
+  };
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<AuthState>({ user: null, accessToken: null, refreshToken: null });
+  const [session, setSession] = useState<Session | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setState(readStored());
-    const onStorage = (e: StorageEvent) => {
-      if (e.key === STORAGE_KEY) setState(readStored());
-    };
-    window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
+      setSession(s);
+      setLoading(false);
+    });
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session);
+      setLoading(false);
+    });
+    return () => subscription.unsubscribe();
   }, []);
 
-  const persist = (next: AuthState) => {
-    setState(next);
-    if (typeof window !== "undefined") {
-      if (next.accessToken) {
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-      } else {
-        window.localStorage.removeItem(STORAGE_KEY);
-      }
-    }
-  };
-
   const login = async (email: string, password: string) => {
-    let res: Response;
-    try {
-      res = await fetch(`${apiBase()}/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-    } catch {
-      throw new Error("Network error. Please try again.");
-    }
-    if (!res.ok) {
-      let message = "Invalid email or password";
-      try {
-        const body = (await res.json()) as { error?: string; message?: string; details?: unknown };
-        const fieldErrors = (body.details as { fieldErrors?: Record<string, string[]> } | undefined)?.fieldErrors;
-        const firstField = fieldErrors ? Object.values(fieldErrors).flat()[0] : undefined;
-        message = firstField ?? body.error ?? body.message ?? message;
-      } catch {
-        /* ignore parse errors, keep fallback */
-      }
-      throw new Error(message);
-    }
-    const data = (await res.json()) as {
-      accessToken?: string;
-      refreshToken?: string;
-      user?: AuthUser;
-      token?: string;
-    };
-    const accessToken = data.accessToken ?? data.token ?? null;
-    const refreshToken = data.refreshToken ?? null;
-    if (!accessToken) throw new Error("Login succeeded but no token was returned");
-    persist({ user: data.user ?? { email }, accessToken, refreshToken });
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw new Error(error.message);
   };
 
-  const logout = () => {
-    const token = state.accessToken;
-    if (token) {
-      fetch(`${apiBase()}/auth/logout`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-      }).catch(() => {});
-    }
-    persist({ user: null, accessToken: null, refreshToken: null });
+  const signup = async (email: string, password: string) => {
+    const redirectTo = typeof window !== "undefined" ? `${window.location.origin}/` : undefined;
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo: redirectTo },
+    });
+    if (error) throw new Error(error.message);
+  };
+
+  const logout = async () => {
+    await supabase.auth.signOut();
   };
 
   return (
-    <AuthContext.Provider value={{ ...state, login, logout }}>{children}</AuthContext.Provider>
+    <AuthContext.Provider
+      value={{
+        user: toAuthUser(session?.user),
+        session,
+        accessToken: session?.access_token ?? null,
+        loading,
+        login,
+        signup,
+        logout,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
   );
 }
 

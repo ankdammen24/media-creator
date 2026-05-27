@@ -44,8 +44,8 @@ export function SiteHeader() {
                 <span className="max-w-[160px] truncate">{user.name || user.email || "Signed in"}</span>
               </span>
               <button
-                onClick={() => {
-                  logout();
+                onClick={async () => {
+                  await logout();
                   navigate({ to: "/" });
                 }}
                 className="ml-1 inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-foreground hover:bg-secondary"
