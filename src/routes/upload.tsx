@@ -1,14 +1,28 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, type FormEvent, type ChangeEvent } from "react";
-import { Upload as UploadIcon, X, CheckCircle2, AlertCircle, Copy } from "lucide-react";
+import { useEffect, useState, type FormEvent, type ChangeEvent } from "react";
+import {
+  Upload as UploadIcon,
+  X,
+  CheckCircle2,
+  AlertCircle,
+  Music,
+  Mic,
+  User as UserIcon,
+  Image as ImageIcon,
+  Sparkles,
+} from "lucide-react";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useAuth } from "@/lib/auth";
-import { apiAuthedUpload } from "@/lib/api";
+import {
+  apiAuthedJson,
+  putSignedUpload,
+  type ArtistProfile,
+} from "@/lib/api";
 
 export const Route = createFileRoute("/upload")({
   head: () => ({
     meta: [
-      { title: "Upload — Soundloom Core" },
+      { title: "Upload — Media Rosenqvist Catalog" },
       { name: "robots", content: "noindex" },
     ],
   }),
@@ -19,10 +33,29 @@ export const Route = createFileRoute("/upload")({
   ),
 });
 
-const ALLOWED_EXTS = ["wav", "flac", "aiff", "aif", "mp3"];
-const ACCEPT_ATTR =
-  ".wav,.flac,.aiff,.aif,.mp3,audio/wav,audio/flac,audio/aiff,audio/mpeg";
-const MAX_BYTES = 500 * 1024 * 1024;
+const AUDIO_EXTS = ["wav", "flac", "aiff", "aif", "mp3", "m4a"];
+const AUDIO_ACCEPT =
+  ".wav,.flac,.aiff,.aif,.mp3,.m4a,audio/wav,audio/flac,audio/aiff,audio/mpeg,audio/mp4";
+const IMAGE_EXTS = ["jpg", "jpeg", "png", "webp"];
+const IMAGE_ACCEPT = ".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp";
+const MAX_AUDIO_BYTES = 500 * 1024 * 1024;
+const MAX_IMAGE_BYTES = 20 * 1024 * 1024;
+
+type MediaType = "music" | "podcast";
+
+type PresignFile = {
+  kind: "audio" | "artwork";
+  objectKey: string;
+  url: string;
+  headers?: Record<string, string>;
+};
+
+type PresignResponse = {
+  mediaId: string;
+  uploads: PresignFile[];
+};
+
+type ListResp<T> = { items?: T[] } | T[];
 
 function formatBytes(n: number) {
   if (n < 1024) return `${n} B`;
@@ -36,161 +69,347 @@ function extOf(name: string) {
   return i >= 0 ? name.slice(i + 1).toLowerCase() : "";
 }
 
-type UploadResponse = {
-  trackId?: string;
-  id?: string;
-  track?: { id?: string };
-};
-
-function pickTrackId(r: UploadResponse): string | null {
-  return r.trackId ?? r.id ?? r.track?.id ?? null;
+function normalizeList<T>(r: ListResp<T>): T[] {
+  if (Array.isArray(r)) return r;
+  return r.items ?? [];
 }
 
 function UploadPage() {
   const { user } = useAuth();
-  const [title, setTitle] = useState("");
-  const [artist, setArtist] = useState("");
-  const [file, setFile] = useState<File | null>(null);
-  const [status, setStatus] = useState<"idle" | "uploading" | "success" | "error">("idle");
-  const [progress, setProgress] = useState(0);
-  const [trackId, setTrackId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
 
-  const fileError = (() => {
-    if (!file) return null;
-    if (!ALLOWED_EXTS.includes(extOf(file.name))) {
-      return `Unsupported file type. Allowed: ${ALLOWED_EXTS.join(", ").toUpperCase()}.`;
-    }
-    if (file.size > MAX_BYTES) {
-      return `File is too large (${formatBytes(file.size)}). Max ${formatBytes(MAX_BYTES)}.`;
-    }
+  // Profiles
+  const [profiles, setProfiles] = useState<ArtistProfile[]>([]);
+  const [profilesLoading, setProfilesLoading] = useState(true);
+  const [profilesError, setProfilesError] = useState<string | null>(null);
+  const [profileId, setProfileId] = useState<string>("");
+  const [creatingProfile, setCreatingProfile] = useState(false);
+  const [newProfileName, setNewProfileName] = useState("");
+  const [newProfileBio, setNewProfileBio] = useState("");
+  const [createBusy, setCreateBusy] = useState(false);
+
+  // Submission
+  const [mediaType, setMediaType] = useState<MediaType | "">("");
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [audio, setAudio] = useState<File | null>(null);
+  const [artwork, setArtwork] = useState<File | null>(null);
+
+  const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
+  const [phase, setPhase] = useState<"" | "presign" | "audio" | "artwork" | "complete">("");
+  const [audioPct, setAudioPct] = useState(0);
+  const [artworkPct, setArtworkPct] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let on = true;
+    (async () => {
+      try {
+        setProfilesLoading(true);
+        const r = await apiAuthedJson<ListResp<ArtistProfile>>("/artist-profiles", undefined, "GET");
+        if (!on) return;
+        const items = normalizeList(r);
+        setProfiles(items);
+        if (items.length === 1) setProfileId(items[0].id);
+      } catch (e) {
+        if (on) setProfilesError(e instanceof Error ? e.message : "Could not load profiles");
+      } finally {
+        if (on) setProfilesLoading(false);
+      }
+    })();
+    return () => {
+      on = false;
+    };
+  }, []);
+
+  const audioError = (() => {
+    if (!audio) return null;
+    if (!AUDIO_EXTS.includes(extOf(audio.name)))
+      return `Unsupported audio format. Allowed: ${AUDIO_EXTS.join(", ").toUpperCase()}.`;
+    if (audio.size > MAX_AUDIO_BYTES)
+      return `Audio is too large (${formatBytes(audio.size)}). Max ${formatBytes(MAX_AUDIO_BYTES)}.`;
+    return null;
+  })();
+
+  const artworkError = (() => {
+    if (!artwork) return null;
+    if (!IMAGE_EXTS.includes(extOf(artwork.name)))
+      return `Unsupported image format. Allowed: ${IMAGE_EXTS.join(", ").toUpperCase()}.`;
+    if (artwork.size > MAX_IMAGE_BYTES)
+      return `Artwork is too large (${formatBytes(artwork.size)}). Max ${formatBytes(MAX_IMAGE_BYTES)}.`;
     return null;
   })();
 
   const canSubmit =
-    status !== "uploading" &&
+    status !== "submitting" &&
+    !!profileId &&
+    !!mediaType &&
     title.trim().length > 0 &&
-    artist.trim().length > 0 &&
-    !!file &&
-    !fileError;
+    !!audio &&
+    !audioError &&
+    !!artwork &&
+    !artworkError;
 
-  function onFileChange(e: ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0] ?? null;
-    setFile(f);
+  function resetForm() {
+    setMediaType("");
+    setTitle("");
+    setDescription("");
+    setAudio(null);
+    setArtwork(null);
+    setStatus("idle");
+    setPhase("");
+    setAudioPct(0);
+    setArtworkPct(0);
+    setError(null);
   }
 
-  function reset() {
-    setTitle("");
-    setArtist("");
-    setFile(null);
-    setStatus("idle");
-    setProgress(0);
-    setTrackId(null);
-    setError(null);
-    setCopied(false);
+  async function createProfile(e: FormEvent) {
+    e.preventDefault();
+    if (!newProfileName.trim()) return;
+    setCreateBusy(true);
+    setProfilesError(null);
+    try {
+      const p = await apiAuthedJson<ArtistProfile>("/artist-profiles", {
+        name: newProfileName.trim(),
+        bio: newProfileBio.trim() || undefined,
+      });
+      setProfiles((cur) => [...cur, p]);
+      setProfileId(p.id);
+      setNewProfileName("");
+      setNewProfileBio("");
+      setCreatingProfile(false);
+    } catch (err) {
+      setProfilesError(err instanceof Error ? err.message : "Could not create profile");
+    } finally {
+      setCreateBusy(false);
+    }
   }
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!canSubmit || !file) return;
+    if (!canSubmit || !audio || !artwork || !mediaType) return;
 
-    setStatus("uploading");
-    setProgress(0);
+    setStatus("submitting");
     setError(null);
-    setTrackId(null);
-
-    const fd = new FormData();
-    fd.append("title", title.trim());
-    fd.append("artist", artist.trim());
-    fd.append("file", file, file.name);
+    setAudioPct(0);
+    setArtworkPct(0);
 
     try {
-      const res = await apiAuthedUpload<UploadResponse>(
-        "/upload/audio",
-        fd,
-        (pct) => setProgress(pct),
-      );
-      const id = pickTrackId(res);
-      if (!id) throw new Error("Upload succeeded but no track ID was returned");
-      setTrackId(id);
+      setPhase("presign");
+      const presign = await apiAuthedJson<PresignResponse>("/uploads/presign", {
+        mediaType,
+        files: [
+          { kind: "audio", filename: audio.name, contentType: audio.type || "application/octet-stream" },
+          { kind: "artwork", filename: artwork.name, contentType: artwork.type || "application/octet-stream" },
+        ],
+      });
+
+      const audioSlot = presign.uploads.find((u) => u.kind === "audio");
+      const artworkSlot = presign.uploads.find((u) => u.kind === "artwork");
+      if (!audioSlot || !artworkSlot) throw new Error("Server did not return upload URLs for both files");
+
+      setPhase("audio");
+      await putSignedUpload(audioSlot.url, audio, setAudioPct, audioSlot.headers);
+
+      setPhase("artwork");
+      await putSignedUpload(artworkSlot.url, artwork, setArtworkPct, artworkSlot.headers);
+
+      setPhase("complete");
+      await apiAuthedJson("/uploads/complete", {
+        mediaId: presign.mediaId,
+        artistProfileId: profileId,
+        mediaType,
+        title: title.trim(),
+        description: description.trim() || undefined,
+        audioObjectKey: audioSlot.objectKey,
+        artworkObjectKey: artworkSlot.objectKey,
+      });
+
       setStatus("success");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Upload failed");
+      setError(err instanceof Error ? err.message : "Something went wrong while submitting");
       setStatus("error");
     }
   }
 
-  async function copyId() {
-    if (!trackId) return;
-    try {
-      await navigator.clipboard.writeText(trackId);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch {
-      /* noop */
-    }
-  }
-
-  return (
-    <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6">
-      <div className="rounded-xl border border-border bg-card p-6 shadow-lg">
-        <div className="mb-6 flex items-center gap-3">
-          <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/15 text-primary">
-            <UploadIcon className="h-5 w-5" />
-          </span>
-          <div>
-            <h1 className="text-lg font-semibold">Upload audio</h1>
-            <p className="text-xs text-muted-foreground">
-              Signed in as {user?.name || user?.email}
-            </p>
+  if (status === "success") {
+    return (
+      <div className="mx-auto max-w-2xl px-4 py-16 sm:px-6">
+        <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-8 text-center shadow-lg">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-400">
+            <CheckCircle2 className="h-7 w-7" />
+          </div>
+          <h1 className="mb-2 text-2xl font-semibold">Your submission has been sent for review.</h1>
+          <p className="mb-6 text-sm text-muted-foreground">
+            Thanks for sharing your work. We&rsquo;ll notify you once it&rsquo;s live in the catalog.
+          </p>
+          <div className="flex flex-wrap justify-center gap-2">
+            <button
+              type="button"
+              onClick={resetForm}
+              className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+            >
+              Submit another
+            </button>
+            <Link
+              to="/catalog"
+              className="inline-flex items-center justify-center rounded-md border border-border bg-background px-4 py-2 text-sm font-medium hover:bg-accent"
+            >
+              Back to catalog
+            </Link>
           </div>
         </div>
+      </div>
+    );
+  }
 
-        {status === "success" && trackId ? (
-          <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-5">
-            <div className="mb-2 flex items-center gap-2 text-emerald-400">
-              <CheckCircle2 className="h-5 w-5" />
-              <h2 className="font-semibold">Upload complete</h2>
-            </div>
-            <p className="mb-3 text-sm text-muted-foreground">
-              Your track has been received and queued for processing.
-            </p>
-            <div className="mb-4 flex flex-wrap items-center gap-2">
-              <span className="text-xs text-muted-foreground">Track ID:</span>
-              <code className="rounded bg-background px-2 py-1 font-mono text-xs">
-                {trackId}
-              </code>
-              <button
-                type="button"
-                onClick={copyId}
-                className="inline-flex items-center gap-1 rounded border border-border bg-background px-2 py-1 text-xs hover:bg-accent"
-              >
-                <Copy className="h-3 w-3" />
-                {copied ? "Copied" : "Copy"}
-              </button>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Link
-                to="/catalog"
-                className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-              >
-                View in catalog
-              </Link>
-              <button
-                type="button"
-                onClick={reset}
-                className="inline-flex items-center justify-center rounded-md border border-border bg-background px-4 py-2 text-sm font-medium hover:bg-accent"
-              >
-                Upload another
-              </button>
+  const selectedProfile = profiles.find((p) => p.id === profileId);
+
+  return (
+    <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
+      <div className="mb-8">
+        <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-border bg-secondary/40 px-3 py-1 text-xs text-muted-foreground">
+          <Sparkles className="h-3.5 w-3.5 text-primary" />
+          Welcome{user?.name ? `, ${user.name}` : ""} — let&rsquo;s share your work
+        </div>
+        <h1 className="text-3xl font-semibold tracking-tight">Submit to the catalog</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Four quick steps: choose a profile, add details, upload media, submit for review.
+        </p>
+      </div>
+
+      <form onSubmit={onSubmit} className="space-y-6">
+        {/* Step 1: profile */}
+        <Step n={1} title="Choose artist profile" icon={<UserIcon className="h-4 w-4" />}>
+          {profilesLoading ? (
+            <p className="text-sm text-muted-foreground">Loading profiles…</p>
+          ) : (
+            <>
+              {profiles.length > 0 && !creatingProfile && (
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {profiles.map((p) => {
+                    const active = profileId === p.id;
+                    return (
+                      <button
+                        type="button"
+                        key={p.id}
+                        onClick={() => setProfileId(p.id)}
+                        className={`flex items-center gap-3 rounded-lg border p-3 text-left transition ${
+                          active
+                            ? "border-primary bg-primary/10"
+                            : "border-border bg-background hover:bg-accent/40"
+                        }`}
+                      >
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary text-sm font-semibold">
+                          {p.name.slice(0, 1).toUpperCase()}
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block truncate text-sm font-medium">{p.name}</span>
+                          {p.bio && (
+                            <span className="block truncate text-xs text-muted-foreground">{p.bio}</span>
+                          )}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {profiles.length === 0 && !creatingProfile && (
+                <p className="text-sm text-muted-foreground">
+                  You don&rsquo;t have any artist profiles yet. Create one to continue.
+                </p>
+              )}
+
+              {!creatingProfile ? (
+                <button
+                  type="button"
+                  onClick={() => setCreatingProfile(true)}
+                  className="mt-3 inline-flex items-center gap-1 rounded-md border border-dashed border-border bg-background px-3 py-2 text-sm hover:bg-accent/40"
+                >
+                  + New artist profile
+                </button>
+              ) : (
+                <div className="mt-3 rounded-lg border border-border bg-background p-4">
+                  <div className="mb-3 flex items-center justify-between">
+                    <h3 className="text-sm font-medium">Create a new profile</h3>
+                    <button
+                      type="button"
+                      onClick={() => setCreatingProfile(false)}
+                      className="text-muted-foreground hover:text-foreground"
+                      aria-label="Cancel"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="mb-1 block text-xs font-medium">Artist or show name</label>
+                      <input
+                        type="text"
+                        value={newProfileName}
+                        onChange={(e) => setNewProfileName(e.target.value)}
+                        maxLength={100}
+                        className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/40"
+                        placeholder="e.g. Aurora Nights"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium">Short bio (optional)</label>
+                      <textarea
+                        value={newProfileBio}
+                        onChange={(e) => setNewProfileBio(e.target.value)}
+                        maxLength={500}
+                        rows={2}
+                        className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/40"
+                      />
+                    </div>
+                    <div className="flex justify-end">
+                      <button
+                        type="button"
+                        onClick={createProfile}
+                        disabled={!newProfileName.trim() || createBusy}
+                        className="inline-flex items-center justify-center rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {createBusy ? "Creating…" : "Create profile"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {profilesError && (
+                <p className="mt-2 text-xs text-destructive">{profilesError}</p>
+              )}
+            </>
+          )}
+        </Step>
+
+        {/* Step 2: details */}
+        <Step n={2} title="Add details" icon={<Music className="h-4 w-4" />}>
+          <div className="mb-4">
+            <span className="mb-2 block text-sm font-medium">Media type</span>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <TypeChoice
+                active={mediaType === "music"}
+                onClick={() => setMediaType("music")}
+                icon={<Music className="h-4 w-4" />}
+                label="Music"
+                hint="Songs, beats, mixes"
+              />
+              <TypeChoice
+                active={mediaType === "podcast"}
+                onClick={() => setMediaType("podcast")}
+                icon={<Mic className="h-4 w-4" />}
+                label="Podcast"
+                hint="Episodes, talks, interviews"
+              />
             </div>
           </div>
-        ) : (
-          <form onSubmit={onSubmit} className="space-y-5">
+
+          <div className="space-y-3">
             <div>
               <label htmlFor="title" className="mb-1 block text-sm font-medium">
-                Title
+                Title <span className="text-destructive">*</span>
               </label>
               <input
                 id="title"
@@ -198,106 +417,268 @@ function UploadPage() {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 maxLength={200}
-                required
-                disabled={status === "uploading"}
+                disabled={status === "submitting"}
                 className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/40 disabled:opacity-60"
               />
             </div>
-
             <div>
-              <label htmlFor="artist" className="mb-1 block text-sm font-medium">
-                Artist
+              <label htmlFor="desc" className="mb-1 block text-sm font-medium">
+                Description <span className="text-xs font-normal text-muted-foreground">(optional)</span>
               </label>
-              <input
-                id="artist"
-                type="text"
-                value={artist}
-                onChange={(e) => setArtist(e.target.value)}
-                maxLength={200}
-                required
-                disabled={status === "uploading"}
+              <textarea
+                id="desc"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                maxLength={2000}
+                rows={3}
+                disabled={status === "submitting"}
                 className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/40 disabled:opacity-60"
               />
             </div>
+          </div>
+        </Step>
 
-            <div>
-              <label htmlFor="file" className="mb-1 block text-sm font-medium">
-                Audio file
-              </label>
-              {!file ? (
-                <label
-                  htmlFor="file"
-                  className="flex cursor-pointer flex-col items-center justify-center rounded-md border border-dashed border-border bg-background px-4 py-8 text-center hover:bg-accent/40"
-                >
-                  <UploadIcon className="mb-2 h-6 w-6 text-muted-foreground" />
-                  <span className="text-sm font-medium">Choose an audio file</span>
-                  <span className="mt-1 text-xs text-muted-foreground">
-                    WAV, FLAC, AIFF or MP3 — up to {formatBytes(MAX_BYTES)}
-                  </span>
-                  <input
-                    id="file"
-                    type="file"
-                    accept={ACCEPT_ATTR}
-                    onChange={onFileChange}
-                    className="sr-only"
-                    disabled={status === "uploading"}
-                  />
-                </label>
-              ) : (
-                <div className="flex items-center justify-between gap-3 rounded-md border border-border bg-background px-3 py-2">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">{file.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {formatBytes(file.size)}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setFile(null)}
-                    disabled={status === "uploading"}
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border hover:bg-accent disabled:opacity-60"
-                    aria-label="Remove file"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
+        {/* Step 3: media */}
+        <Step n={3} title="Upload media" icon={<UploadIcon className="h-4 w-4" />}>
+          <div className="grid gap-4 md:grid-cols-2">
+            <FilePicker
+              id="audio"
+              label="Audio file"
+              required
+              accept={AUDIO_ACCEPT}
+              file={audio}
+              error={audioError}
+              disabled={status === "submitting"}
+              icon={<Music className="h-5 w-5 text-muted-foreground" />}
+              hint={`WAV, FLAC, AIFF, MP3, M4A — up to ${formatBytes(MAX_AUDIO_BYTES)}`}
+              onChange={(f) => setAudio(f)}
+            />
+            <FilePicker
+              id="artwork"
+              label="Artwork image"
+              required
+              accept={IMAGE_ACCEPT}
+              file={artwork}
+              error={artworkError}
+              disabled={status === "submitting"}
+              icon={<ImageIcon className="h-5 w-5 text-muted-foreground" />}
+              hint={`Square recommended. JPG, PNG, WEBP — up to ${formatBytes(MAX_IMAGE_BYTES)}`}
+              onChange={(f) => setArtwork(f)}
+              preview
+            />
+          </div>
+
+          {status === "submitting" && (
+            <div className="mt-5 space-y-3">
+              <ProgressRow label="Audio" pct={audioPct} active={phase === "audio"} done={phase === "artwork" || phase === "complete"} />
+              <ProgressRow label="Artwork" pct={artworkPct} active={phase === "artwork"} done={phase === "complete"} />
+              {phase === "presign" && (
+                <p className="text-xs text-muted-foreground">Preparing secure upload…</p>
               )}
-              {fileError && (
-                <p className="mt-1 text-xs text-destructive">{fileError}</p>
+              {phase === "complete" && (
+                <p className="text-xs text-muted-foreground">Finalizing submission…</p>
               )}
             </div>
+          )}
+        </Step>
 
-            {status === "uploading" && (
-              <div>
-                <div className="mb-1 flex justify-between text-xs text-muted-foreground">
-                  <span>Uploading…</span>
-                  <span>{progress}%</span>
-                </div>
-                <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-                  <div
-                    className="h-full bg-primary transition-all"
-                    style={{ width: `${progress}%` }}
-                  />
-                </div>
-              </div>
-            )}
+        {/* Step 4: submit */}
+        <Step n={4} title="Submit for review" icon={<CheckCircle2 className="h-4 w-4" />}>
+          {error && (
+            <div className="mb-3 flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              <p>{error}</p>
+            </div>
+          )}
+          <p className="mb-3 text-xs text-muted-foreground">
+            Submitting as <strong className="text-foreground">{selectedProfile?.name ?? "—"}</strong>. Your upload will be reviewed before going live.
+          </p>
+          <button
+            type="submit"
+            disabled={!canSubmit}
+            className="inline-flex w-full items-center justify-center rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {status === "submitting" ? "Submitting…" : "Submit for review"}
+          </button>
+        </Step>
+      </form>
+    </div>
+  );
+}
 
-            {status === "error" && error && (
-              <div className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
-                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                <p>{error}</p>
-              </div>
-            )}
+function Step({
+  n,
+  title,
+  icon,
+  children,
+}: {
+  n: number;
+  title: string;
+  icon: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="rounded-xl border border-border bg-card p-5 shadow-sm">
+      <header className="mb-4 flex items-center gap-3">
+        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/15 text-sm font-semibold text-primary">
+          {n}
+        </span>
+        <h2 className="flex items-center gap-2 text-base font-semibold">
+          <span className="text-muted-foreground">{icon}</span>
+          {title}
+        </h2>
+      </header>
+      {children}
+    </section>
+  );
+}
 
-            <button
-              type="submit"
-              disabled={!canSubmit}
-              className="inline-flex w-full items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {status === "uploading" ? "Uploading…" : "Upload"}
-            </button>
-          </form>
-        )}
+function TypeChoice({
+  active,
+  onClick,
+  icon,
+  label,
+  hint,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+  hint: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex items-center gap-3 rounded-lg border p-3 text-left transition ${
+        active ? "border-primary bg-primary/10" : "border-border bg-background hover:bg-accent/40"
+      }`}
+    >
+      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-foreground">
+        {icon}
+      </span>
+      <span>
+        <span className="block text-sm font-medium">{label}</span>
+        <span className="block text-xs text-muted-foreground">{hint}</span>
+      </span>
+    </button>
+  );
+}
+
+function FilePicker({
+  id,
+  label,
+  required,
+  accept,
+  file,
+  error,
+  disabled,
+  icon,
+  hint,
+  onChange,
+  preview,
+}: {
+  id: string;
+  label: string;
+  required?: boolean;
+  accept: string;
+  file: File | null;
+  error: string | null;
+  disabled?: boolean;
+  icon: React.ReactNode;
+  hint: string;
+  onChange: (f: File | null) => void;
+  preview?: boolean;
+}) {
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  useEffect(() => {
+    if (!preview || !file) {
+      setPreviewUrl(null);
+      return;
+    }
+    const url = URL.createObjectURL(file);
+    setPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [file, preview]);
+
+  function onFileChange(e: ChangeEvent<HTMLInputElement>) {
+    onChange(e.target.files?.[0] ?? null);
+  }
+
+  return (
+    <div>
+      <label htmlFor={id} className="mb-1 block text-sm font-medium">
+        {label} {required && <span className="text-destructive">*</span>}
+      </label>
+      {!file ? (
+        <label
+          htmlFor={id}
+          className="flex h-32 cursor-pointer flex-col items-center justify-center rounded-md border border-dashed border-border bg-background px-4 py-4 text-center hover:bg-accent/40"
+        >
+          {icon}
+          <span className="mt-2 text-sm font-medium">Choose {label.toLowerCase()}</span>
+          <span className="mt-1 text-xs text-muted-foreground">{hint}</span>
+          <input
+            id={id}
+            type="file"
+            accept={accept}
+            onChange={onFileChange}
+            className="sr-only"
+            disabled={disabled}
+          />
+        </label>
+      ) : (
+        <div className="flex items-center gap-3 rounded-md border border-border bg-background p-3">
+          {preview && previewUrl ? (
+            <img src={previewUrl} alt="Artwork preview" className="h-14 w-14 rounded object-cover" />
+          ) : (
+            <span className="flex h-10 w-10 items-center justify-center rounded bg-secondary">{icon}</span>
+          )}
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium">{file.name}</p>
+            <p className="text-xs text-muted-foreground">{formatBytes(file.size)}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => onChange(null)}
+            disabled={disabled}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border hover:bg-accent disabled:opacity-60"
+            aria-label={`Remove ${label}`}
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+      {error && <p className="mt-1 text-xs text-destructive">{error}</p>}
+    </div>
+  );
+}
+
+function ProgressRow({
+  label,
+  pct,
+  active,
+  done,
+}: {
+  label: string;
+  pct: number;
+  active: boolean;
+  done: boolean;
+}) {
+  const shown = done ? 100 : pct;
+  return (
+    <div>
+      <div className="mb-1 flex justify-between text-xs text-muted-foreground">
+        <span>
+          {label} {done ? "· uploaded" : active ? "· uploading…" : ""}
+        </span>
+        <span>{shown}%</span>
+      </div>
+      <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+        <div
+          className={`h-full transition-all ${done ? "bg-emerald-500" : "bg-primary"}`}
+          style={{ width: `${shown}%` }}
+        />
       </div>
     </div>
   );
