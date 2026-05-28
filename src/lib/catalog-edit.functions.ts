@@ -165,6 +165,7 @@ const SubmissionPatch = z.object({
   artwork_path: z.string().max(500).optional(),
   isrc: z.string().max(32).nullable().optional(),
   upc: z.string().max(32).nullable().optional(),
+  artist_profile_id: z.string().uuid().optional(),
 });
 
 export const updateSubmission = createServerFn({ method: "POST" })
@@ -183,27 +184,74 @@ export const updateSubmission = createServerFn({ method: "POST" })
     if (!existing) throw new Error("Låt saknas.");
     await assertCatalogEditor(userId, existing.user_id);
 
-    // Om vi flyttar låten till ett album måste albumets artist matcha låtens artist.
-    if (data.patch.album_id && data.patch.album_id !== existing.album_id) {
+    const patch: Record<string, unknown> = { ...data.patch };
+
+    // Byter vi artist på låten? (endast editor/admin för målartisten)
+    const changingArtist =
+      !!data.patch.artist_profile_id &&
+      data.patch.artist_profile_id !== existing.artist_profile_id;
+    const effectiveArtist = data.patch.artist_profile_id ?? existing.artist_profile_id;
+
+    if (changingArtist) {
+      const { data: targetArtist, error: taErr } = await supabaseAdmin
+        .from("artist_profiles")
+        .select("id, user_id")
+        .eq("id", data.patch.artist_profile_id!)
+        .maybeSingle();
+      if (taErr) throw new Error(taErr.message);
+      if (!targetArtist) throw new Error("Målartist saknas.");
+      await assertCatalogEditor(userId, targetArtist.user_id);
+    }
+
+    // Albumets artist måste matcha låtens (effektiva) artist.
+    const targetAlbumId =
+      data.patch.album_id !== undefined ? data.patch.album_id : existing.album_id;
+    if (targetAlbumId) {
       const { data: album, error: alErr } = await supabaseAdmin
         .from("albums")
         .select("id, artist_profile_id")
-        .eq("id", data.patch.album_id)
+        .eq("id", targetAlbumId)
         .maybeSingle();
       if (alErr) throw new Error(alErr.message);
       if (!album) throw new Error("Målalbum saknas.");
-      if (album.artist_profile_id !== existing.artist_profile_id) {
-        throw new Error("Låtens artist matchar inte albumets artist.");
+      if (album.artist_profile_id !== effectiveArtist) {
+        if (changingArtist) {
+          // Vid artistbyte kopplar vi bort låten från det gamla albumet.
+          patch.album_id = null;
+          patch.track_number = null;
+        } else {
+          throw new Error("Låtens artist matchar inte albumets artist.");
+        }
       }
     }
 
     const { data: updated, error } = await supabaseAdmin
       .from("submissions")
-      .update(data.patch)
+      .update(patch)
       .eq("id", data.submissionId)
       .select("*")
       .single();
     if (error) throw new Error(error.message);
+
+    // Synka kopplingstabellen (artistsidan läser via submission_artists).
+    if (changingArtist) {
+      const { error: delErr } = await supabaseAdmin
+        .from("submission_artists")
+        .delete()
+        .eq("submission_id", data.submissionId)
+        .eq("is_primary", true);
+      if (delErr) throw new Error(delErr.message);
+      const { error: insErr } = await supabaseAdmin
+        .from("submission_artists")
+        .insert({
+          submission_id: data.submissionId,
+          artist_profile_id: effectiveArtist,
+          position: 0,
+          is_primary: true,
+        });
+      if (insErr) throw new Error(insErr.message);
+    }
+
     return updated;
   });
 
