@@ -484,9 +484,6 @@ export function ReleaseWizard() {
             is_primary: true,
             position: 0,
           });
-          void enqueueAudio({ data: { submissionId: inserted.id } }).catch(
-            (e) => console.warn("enqueueAudioProcessing failed:", e),
-          );
         }
       }
 
