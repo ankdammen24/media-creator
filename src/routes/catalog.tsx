@@ -10,6 +10,7 @@ import { z } from "zod";
 import { effectiveArtworkPath } from "@/lib/album-helpers";
 import { PlayButton } from "@/components/player/PlayButton";
 import type { PlayerTrack } from "@/components/player/PlayerProvider";
+import { EditorTrackMeta, EditorArtistMeta } from "@/components/EditorCardMeta";
 
 const catalogSearchSchema = z.object({
   focus: fallback(z.string(), "").optional(),
@@ -58,13 +59,27 @@ type CatalogItem = {
   artist_profile_id: string;
   artist_profiles: { id: string; name: string } | null;
   albums: { artwork_path: string | null } | null;
+  isrc: string | null;
+  upc: string | null;
+  version: string | null;
+  track_number: number | null;
+  duration_seconds: number | null;
+  loudness_lufs: number | null;
+  explicit: boolean | null;
+  instrumental: boolean | null;
+  ai_generated: boolean | null;
+  dolby_atmos_available: boolean | null;
+  songwriters: string[] | null;
+  producers: string[] | null;
+  featured_artists: string[] | null;
+  processing_status: string | null;
 };
 
 async function fetchApproved(): Promise<CatalogItem[]> {
   const { data, error } = await supabase
     .from("submissions")
     .select(
-      "id, title, description, media_type, artwork_path, audio_path, audio_web_path, created_at, artist_profile_id, artist_profiles!submissions_artist_profile_id_fkey(id, name), albums(artwork_path)",
+      "id, title, description, media_type, artwork_path, audio_path, audio_web_path, created_at, artist_profile_id, isrc, upc, version, track_number, duration_seconds, loudness_lufs, explicit, instrumental, ai_generated, dolby_atmos_available, songwriters, producers, featured_artists, processing_status, artist_profiles!submissions_artist_profile_id_fkey(id, name), albums(artwork_path)",
     )
     .eq("status", "approved")
     .order("created_at", { ascending: false });
@@ -72,12 +87,12 @@ async function fetchApproved(): Promise<CatalogItem[]> {
   return (data ?? []) as unknown as CatalogItem[];
 }
 
-type ArtistRow = { id: string; name: string; avatar_path: string | null };
+type ArtistRow = { id: string; name: string; avatar_path: string | null; approval_status: string | null };
 
 async function fetchArtists(): Promise<ArtistRow[]> {
   const { data, error } = await supabase
     .from("artist_profiles")
-    .select("id, name, avatar_path")
+    .select("id, name, avatar_path, approval_status")
     .order("name", { ascending: true });
   if (error) throw error;
   return (data ?? []) as ArtistRow[];
