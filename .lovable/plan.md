@@ -1,56 +1,69 @@
-# EPK för artister – grundarkitektur
+# AI-bildgenerering för EPK (etapp 1.5)
 
-Vi bygger i fyra etapper. Varje etapp är fristående och kan släppas separat. Etapp 1 ger oss `artist_images` direkt; resten i tur och ordning.
+Bygger ovanpå `artist_images` från förra etappen. Inga DB-ändringar krävs — AI-genererade bilder lagras i samma tabell med `credit: 'AI-genererad'`.
 
-## Datamodell (etapp 1 – migrering nu)
+## Tre integrationer
 
-Ny tabell **`artist_images`**:
-- `artist_profile_id` (uuid)
-- `user_id` (uuid, för RLS)
-- `storage_path` (text, i `artwork`-bucket under `artists/<id>/...`)
-- `kind` enum `('avatar' | 'cover' | 'press')` – avatar = rund profilbild, cover = bred hero, press = pressbild i galleri
-- `is_primary` (bool) – en `avatar` och en `cover` kan vara primary per artist (partial unique index)
-- `visibility` enum `('public' | 'link_only')`
-- `caption`, `credit` (text, för fotografkredd i EPK)
-- `sort_order` (int)
-- `created_at`, `updated_at`
+### 1. Generera EPK-bild från prompt (i `ArtistImageManager`)
 
-**Bakåtkompatibilitet:** befintlig `artist_profiles.avatar_path` behålls som fallback. En vy/funktion läser primary avatar från `artist_images` om finns, annars `avatar_path`. Auto-fetch från iTunes fortsätter skriva till `avatar_path` (oförändrat) – kunden kan sen "befordra" till galleriet manuellt.
+Ny knapp **"Skapa med AI"** bredvid uppladdningsfältet. Öppnar en modal:
+- Fritextfält för prompt (förifyllt mallförslag baserat på vald `kind`, t.ex. *"Studio-pressbild av artist Acme, naturligt ljus, bokeh, 4:3"*)
+- Val av typ (avatar/cover/press) – styr aspect ratio (1:1 / 16:9 / 3:2)
+- Streamad förhandsvisning med blur på partials (sells "renderar nu"), skarp på final
+- "Spara till galleri" knapp → laddar upp PNG till `artwork`-bucket, infogar `artist_images`-rad med vald `kind`, `credit = 'AI-genererad (Gemini 3.1 Flash)'`, `visibility = 'link_only'` som default så artisten medvetet publicerar
 
-**RLS:** publik SELECT där `visibility = 'public'`. Ägare + admin ser allt, kan skriva/radera egna.
+### 2. Fallback i auto-fetch (artist + album)
 
-## Etapp 2 – Bio kort/lång
+I `AdminAutoArtwork.tsx` (befintlig admin-flik): efter iTunes-bulk visas summering "X hittades, Y saknas fortfarande". Ny knapp **"Generera resterande med AI"** som loopar de saknade och skapar bilder via samma server-route. Räknare visar uppskattad kostnad innan körning (`antal × ~$0.035`). Bekräftelse krävs.
 
-Lägg till `artist_profiles.bio_short` (text, max ~280 tecken UI-validerat) bredvid befintlig `bio` som blir "lång". Inget databasbrott.
+I `AlbumForm.tsx` och `upload.tsx` när användaren skapar ny artist/album utan bild: efter att iTunes-auto-fetch misslyckats (idag tyst), erbjud en toast med knapp "Skapa AI-bild istället".
 
-## Etapp 3 – Pressmeddelanden (PDF)
+### 3. Redigera befintlig bild med AI
 
-Tabell **`artist_press_releases`**: `artist_profile_id`, `user_id`, `title`, `storage_path` (ny bucket `press`, privat), `visibility`, `published_at`. RLS som ovan. Public-länk via signerad URL för `link_only`, direkt publik URL (proxad genom server-fn som kollar visibility) för `public`.
+I `ArtistImageManager`-galleriet, ny knapp per bild **"Variera med AI"** (penselikon). Öppnar samma modal förifyllt med befintlig bild som referens + prompt-fält ("ändra bakgrund till studio", "gör mer dramatisk belysning", etc.). Använder Gemini-redigeringsläge (skickar bilden som input).
 
-## Etapp 4 – Videolänkar
+## Standardmodell och kostnad
 
-Tabell **`artist_videos`**: `artist_profile_id`, `user_id`, `title`, `url` (YouTube/Vimeo), `visibility`, `sort_order`. Bädda in via oEmbed-thumbnail – ingen extern API krävs för YouTube/Vimeo.
+- Default: **`google/gemini-3.1-flash-image-preview`** (Nano Banana 2) – ~$0.03–0.04/bild
+- Kostnaden visas i UI:t bredvid generera-knappen så artisten ser innan klick
+- Modellval exponeras inte i UI:t i denna etapp (kan läggas till senare om behov uppstår)
 
-## EPK-vy och delningslänk
+## Säkerhet och kreditskydd
 
-- Befintlig artistsida visar `public`-innehåll automatiskt (galleri, bio, videos, press).
-- Ny route `/epk/$artistSlug?token=<...>` – om token matchar artistens `epk_share_token` (nytt fält på `artist_profiles`) visas även `link_only`-innehåll. Token kan roteras från admin.
-- "Kopiera EPK-länk"-knapp i artistens redigeringsformulär.
+- Server-route kräver inloggad användare via `requireSupabaseAuth`-mönster (manuell kontroll i routen eftersom det är en server-route, inte server-fn)
+- Validerar att `auth.uid()` antingen äger `artist_profile_id` eller är admin (`has_role`)
+- Endast ägare/admin ser AI-knappar i UI:t (samma `canEdit`-villkor som befintlig editor)
+- Ingen dygnsgräns initialt (valt av användaren)
+- Prompt loggas i `console.log` på servern för felsökning men sparas inte i DB
 
-## UI denna omgång (etapp 1)
+## Teknisk struktur
 
-- `ArtistImageManager`-komponent i artistformuläret: dra-och-släpp uppladdning, välj `kind`, markera primary, sätt `visibility`, omordna.
-- Artistsidan: hero använder primary `cover` om finns, annars primary `avatar`/fallback. Galleri-sektion under bio visar publika `press`-bilder.
+**Ny server-route** `src/routes/api/generate-artist-image.ts`:
+- POST med `{ artistId, prompt, kind, referenceImagePath? }`
+- Verifierar auth via Supabase access token i `Authorization`-header
+- Verifierar ägarskap via `supabaseAdmin` SQL-fråga
+- Anropar `https://ai.gateway.lovable.dev/v1/images/generations` med Gemini-shape (`messages` + `modalities: ["image", "text"]`), `stream: true`
+- Skickar vidare upstream-SSE-body direkt till klienten (ingen buffering)
+- Felhantering: 402 → "Lägg till credits i workspace", 429 → "Försök igen om en stund", 4xx → visa upstream-fel
 
-## Vad jag gör i denna prompt
+**Ny komponent** `src/components/AiImageGenerator.tsx`:
+- Modal med prompt, typ-val, streamad preview
+- `eventsource-parser` för SSE (lägg till som dependency)
+- `flushSync` runt setState så partial frames renderas progressivt
+- Vid final: konvertera base64 → Blob → upload till storage → insert till `artist_images`
 
-Endast **etapp 1** (datamodell + bildgalleri-UI + integration på artistsida). Bio/PDF/video kommer i separata promptar så vi kan testa stegvis.
+**Uppdateringar**:
+- `ArtistImageManager.tsx`: lägg till "Skapa med AI"-knapp + "Variera"-knapp per bild
+- `AdminAutoArtwork.tsx`: lägg till AI-fallback-knapp efter iTunes-körning, för både artister och album
+- `AlbumForm.tsx` / `upload.tsx`: visa toast med "Skapa AI-bild" om iTunes misslyckas (mjuk integration, ingen blockering)
 
-## Tekniska detaljer
+**Ny dependency**: `eventsource-parser` (~4 kB, Vercel-underhållen, behövs för SSE-parsning på klienten)
 
-- Migrering skapar `artist_images` med GRANT, RLS, trigger för `updated_at`, partial unique index på `(artist_profile_id, kind) where is_primary`.
-- Storage: `artwork`-bucket (redan publik) under `artists/<artist_id>/<uuid>.<ext>`. För `link_only`-bilder används privat path + signerad URL (servar via server-fn).
-- Frontend: `src/components/ArtistImageManager.tsx`, server-fn `src/lib/artist-images.functions.ts` för uppladdning/sortering/primary-byte.
-- Befintlig auto-fetch logik orörd.
+## Vad jag INTE gör nu
 
-Säg till om något av detta ska justeras innan jag kör igång.
+- Ingen dygnsgräns (kan läggas till om missbruk uppstår)
+- Inget modellval i UI:t (default Gemini 3.1 Flash Image)
+- Ingen separat AI-historik/audit-tabell (sparas som vanliga `artist_images` med credit-fält)
+- Ingen automatisk AI utan klick (kreditkontroll alltid via knapptryck)
+
+Säg till om något ska justeras innan jag bygger.
