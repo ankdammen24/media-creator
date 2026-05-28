@@ -1847,6 +1847,26 @@ function Meta({ k, v }: { k: string; v: string }) {
 }
 
 // ============================================================
+// Demo notice
+// ============================================================
+function DemoNotice({ className = "" }: { className?: string }) {
+  return (
+    <div
+      className={`flex items-start gap-3 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-300 ${className}`}
+    >
+      <Info className="mt-0.5 h-4 w-4 shrink-0" />
+      <p>
+        <span className="font-semibold">Demo-läge.</span> Din release sparas i
+        Media Rosenqvist Catalog och skickas till Radio Uppsala för granskning.
+        Distribution till Spotify, Apple Music och andra streamingtjänster är{" "}
+        <span className="font-semibold">inte aktiv</span> — låtarna publiceras
+        alltså inte på dessa plattformar.
+      </p>
+    </div>
+  );
+}
+
+// ============================================================
 // Floating save bar
 // ============================================================
 function FloatingSaveBar({
