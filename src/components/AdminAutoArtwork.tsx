@@ -17,28 +17,34 @@ type ResultState =
   | { kind: "tracks"; res: RegenerateResult };
 
 function renderSummary(result: ResultState) {
-  if (result.kind === "artists" || result.kind === "albums") {
-    const r = result.res;
-    return (
-      <ul className="space-y-1 text-muted-foreground">
-        <li>Genomsökta: {r.scanned}</li>
-        <li>Uppdaterade med omslag: {r.updated}</li>
-        <li>Ingen träff i iTunes: {r.missed}</li>
-        <li>Misslyckade: {r.failed}</li>
-      </ul>
-    );
+  switch (result.kind) {
+    case "artists":
+    case "albums": {
+      const r = result.res;
+      return (
+        <ul className="space-y-1 text-muted-foreground">
+          <li>Genomsökta: {r.scanned}</li>
+          <li>Uppdaterade med omslag: {r.updated}</li>
+          <li>Ingen träff i iTunes: {r.missed}</li>
+          <li>Misslyckade: {r.failed}</li>
+        </ul>
+      );
+    }
+    case "regen":
+    case "tracks": {
+      const r = result.res;
+      return (
+        <ul className="space-y-1 text-muted-foreground">
+          <li>Genomsökta: {r.scanned}</li>
+          <li>Uppdaterade: {r.updated}</li>
+          <li>Källa iTunes: {r.bySource.itunes}</li>
+          <li>Källa Deezer: {r.bySource.deezer}</li>
+          <li>Källa AI: {r.bySource.ai}</li>
+          <li>Misslyckade: {r.failed}</li>
+        </ul>
+      );
+    }
   }
-  const r = result.res;
-  return (
-    <ul className="space-y-1 text-muted-foreground">
-      <li>Genomsökta: {r.scanned}</li>
-      <li>Uppdaterade: {r.updated}</li>
-      <li>Källa iTunes: {r.bySource.itunes}</li>
-      <li>Källa Deezer: {r.bySource.deezer}</li>
-      <li>Källa AI: {r.bySource.ai}</li>
-      <li>Misslyckade: {r.failed}</li>
-    </ul>
-  );
 }
 
 export function AdminAutoArtwork() {
