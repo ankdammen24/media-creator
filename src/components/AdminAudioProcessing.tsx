@@ -312,3 +312,13 @@ function StatusBadge({ status }: { status: ProcRow["processing_status"] }) {
     </span>
   );
 }
+
+function LogLevelDot({ level }: { level: string }) {
+  const color =
+    level === "error"
+      ? "bg-destructive"
+      : level === "warn"
+        ? "bg-amber-400"
+        : "bg-emerald-400";
+  return <span className={`mt-1 h-1.5 w-1.5 shrink-0 rounded-full ${color}`} />;
+}
