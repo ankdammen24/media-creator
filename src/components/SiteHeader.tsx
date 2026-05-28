@@ -1,14 +1,17 @@
+import { useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { LogOut, User, Bell, Settings as SettingsIcon } from "lucide-react";
+import { LogOut, User, Bell, Settings as SettingsIcon, Menu } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { GlobalSearch } from "@/components/GlobalSearch";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import logoMR from "@/assets/logo-mr.png";
 
 export function SiteHeader() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [menuOpen, setMenuOpen] = useState(false);
   const { data: unread = 0 } = useQuery({
     queryKey: ["notifications-unread", user?.id],
     enabled: !!user,
@@ -24,15 +27,16 @@ export function SiteHeader() {
   });
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-md">
-      <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
-        <Link to="/" className="flex items-center gap-2 text-sm font-bold tracking-tight">
-          <img src={logoMR} alt="Media Rosenqvist logo" width={28} height={28} className="h-7 w-7 object-contain" />
-          <span>Media Rosenqvist</span>
+      <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-2 px-3 sm:gap-4 sm:px-6">
+        <Link to="/" className="flex min-w-0 items-center gap-2 text-sm font-bold tracking-tight">
+          <img src={logoMR} alt="Media Rosenqvist logo" width={28} height={28} className="h-7 w-7 flex-shrink-0 object-contain" />
+          <span className="truncate">Media Rosenqvist</span>
         </Link>
-        <div className="flex flex-1 justify-center px-2">
+        <div className="flex flex-1 justify-center px-1 sm:px-2">
           <GlobalSearch />
         </div>
-        <nav className="flex items-center gap-1 text-sm">
+        {/* Desktop nav */}
+        <nav className="hidden items-center gap-1 text-sm md:flex">
           <Link
             to="/"
             activeOptions={{ exact: true }}
@@ -117,8 +121,107 @@ export function SiteHeader() {
             </Link>
           )}
         </nav>
+
+        {/* Mobile nav trigger */}
+        <div className="flex items-center gap-1 md:hidden">
+          {user && (
+            <Link
+              to="/notifications"
+              className="relative inline-flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground"
+              aria-label="Notifications"
+            >
+              <Bell className="h-4 w-4" />
+              {unread > 0 && (
+                <span className="absolute -right-0.5 -top-0.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
+                  {unread > 9 ? "9+" : unread}
+                </span>
+              )}
+            </Link>
+          )}
+          <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
+            <SheetTrigger
+              className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border text-foreground hover:bg-secondary"
+              aria-label="Öppna meny"
+            >
+              <Menu className="h-4 w-4" />
+            </SheetTrigger>
+            <SheetContent side="right" className="w-72 p-0">
+              <SheetHeader className="border-b border-border p-4 text-left">
+                <SheetTitle className="text-base">Meny</SheetTitle>
+                {user ? (
+                  <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <User className="h-3.5 w-3.5" />
+                    <span className="truncate">{user.name || user.email}</span>
+                  </span>
+                ) : null}
+              </SheetHeader>
+              <nav className="flex flex-col p-2 text-sm">
+                <MobileNavLink to="/" exact onSelect={() => setMenuOpen(false)}>Home</MobileNavLink>
+                <MobileNavLink to="/catalog" onSelect={() => setMenuOpen(false)}>Catalog</MobileNavLink>
+                {user ? (
+                  <>
+                    <MobileNavLink to="/upload" onSelect={() => setMenuOpen(false)}>Upload</MobileNavLink>
+                    <MobileNavLink to="/my-submissions" onSelect={() => setMenuOpen(false)}>Mine</MobileNavLink>
+                    <MobileNavLink to="/notifications" onSelect={() => setMenuOpen(false)}>
+                      <span className="inline-flex items-center gap-2">
+                        <Bell className="h-4 w-4" /> Notifications
+                        {unread > 0 && (
+                          <span className="inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
+                            {unread > 9 ? "9+" : unread}
+                          </span>
+                        )}
+                      </span>
+                    </MobileNavLink>
+                    <MobileNavLink to="/settings" onSelect={() => setMenuOpen(false)}>
+                      <span className="inline-flex items-center gap-2">
+                        <SettingsIcon className="h-4 w-4" /> Settings
+                      </span>
+                    </MobileNavLink>
+                    <MobileNavLink to="/admin" onSelect={() => setMenuOpen(false)}>Admin</MobileNavLink>
+                    <button
+                      onClick={async () => {
+                        setMenuOpen(false);
+                        await logout();
+                        navigate({ to: "/" });
+                      }}
+                      className="mt-2 inline-flex items-center gap-2 rounded-md border border-border px-3 py-2 text-left text-foreground hover:bg-secondary"
+                    >
+                      <LogOut className="h-4 w-4" /> Sign out
+                    </button>
+                  </>
+                ) : (
+                  <MobileNavLink to="/login" onSelect={() => setMenuOpen(false)}>Sign in</MobileNavLink>
+                )}
+              </nav>
+            </SheetContent>
+          </Sheet>
+        </div>
       </div>
     </header>
+  );
+}
+
+function MobileNavLink({
+  to,
+  exact,
+  children,
+  onSelect,
+}: {
+  to: string;
+  exact?: boolean;
+  children: React.ReactNode;
+  onSelect: () => void;
+}) {
+  return (
+    <Link
+      to={to}
+      activeOptions={exact ? { exact: true } : undefined}
+      onClick={onSelect}
+      className="rounded-md px-3 py-2 text-muted-foreground hover:bg-secondary hover:text-foreground"
+      activeProps={{ className: "rounded-md px-3 py-2 text-foreground bg-secondary" }}
+    >
+      {children}
+    </Link>
   );
 }
 
