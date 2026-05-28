@@ -37,6 +37,7 @@ import {
   EditSubmissionDialog,
   type EditableSubmission,
 } from "@/components/SubmissionActions";
+import { EditAlbumDialog } from "@/components/EditAlbumDialog";
 import {
   DndContext,
   PointerSensor,
@@ -146,6 +147,7 @@ function AlbumPage() {
   const album = data?.album ?? null;
   const canEdit = !!album && !!user && (user.id === album.user_id || isAdmin);
   const [editingTrack, setEditingTrack] = useState<EditableSubmission | null>(null);
+  const [editingAlbum, setEditingAlbum] = useState(false);
 
   async function handleDelete() {
     if (!album) return;
@@ -262,13 +264,13 @@ function AlbumPage() {
                 </button>
                 {canEdit && (
                   <>
-                    <Link
-                      to="/albums/$albumId/edit"
-                      params={{ albumId: album.id }}
+                    <button
+                      type="button"
+                      onClick={() => setEditingAlbum(true)}
                       className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-2 text-xs hover:bg-accent"
                     >
                       <Pencil className="h-3.5 w-3.5" /> Edit
-                    </Link>
+                    </button>
                     <button
                       type="button"
                       onClick={handleDelete}
@@ -339,6 +341,16 @@ function AlbumPage() {
             <EditSubmissionDialog
               sub={editingTrack}
               onClose={() => setEditingTrack(null)}
+              onSaved={() => {
+                queryClient.invalidateQueries({ queryKey: ["album", albumId] });
+                refetch();
+              }}
+            />
+          )}
+          {editingAlbum && album && (
+            <EditAlbumDialog
+              album={album}
+              onClose={() => setEditingAlbum(false)}
               onSaved={() => {
                 queryClient.invalidateQueries({ queryKey: ["album", albumId] });
                 refetch();
