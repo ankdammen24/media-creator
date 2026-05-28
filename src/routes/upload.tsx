@@ -317,8 +317,13 @@ function UploadPage() {
             <CheckCircle2 className="h-7 w-7" />
           </div>
           <h1 className="mb-2 text-2xl font-semibold">Your submission has been sent for review.</h1>
-          <p className="mb-6 text-sm text-muted-foreground">
-            Thanks for sharing your work. We&rsquo;ll notify you once it&rsquo;s live in the catalog.
+          <p className="mb-2 text-sm text-muted-foreground">
+            Tack! Din uppladdning sparas i Media Rosenqvist Catalog och skickas
+            till Radio Uppsala för granskning. Vi hör av oss när den är publicerad.
+          </p>
+          <p className="mb-6 text-xs text-amber-700 dark:text-amber-300">
+            Obs: distribution till Spotify, Apple Music m.fl. är inte aktiv —
+            detta är en demo-inskickning.
           </p>
           <div className="flex flex-wrap justify-center gap-2">
             <button
@@ -379,6 +384,14 @@ function UploadPage() {
         <p className="mt-1 text-sm text-muted-foreground">
           Four quick steps: choose a profile, add details, upload media, submit for review.
         </p>
+        <div className="mt-4 flex items-start gap-3 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+          <p>
+            <span className="font-semibold">Demo-läge.</span> Det du laddar upp
+            sparas i Media Rosenqvist Catalog och skickas till Radio Uppsala.
+            Distribution till Spotify, Apple Music m.fl. är inte aktiv.
+          </p>
+        </div>
       </div>
 
       <form onSubmit={onSubmit} className="space-y-6">

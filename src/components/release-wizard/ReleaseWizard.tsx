@@ -29,6 +29,7 @@ import {
   Trash2,
   Upload as UploadIcon,
   X,
+  Info,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
@@ -519,8 +520,12 @@ export function ReleaseWizard() {
           Release submitted for review
         </h1>
         <p className="mx-auto mt-3 max-w-md text-sm text-muted-foreground">
-          Vi granskar din release och hör av oss inom kort. Du kan följa statusen
-          under "Mine".
+          Releasen har sparats i Media Rosenqvist Catalog och skickats till Radio
+          Uppsala för granskning. Du kan följa statusen under "Mine".
+        </p>
+        <p className="mx-auto mt-3 max-w-md text-xs text-amber-700 dark:text-amber-300">
+          Obs: distribution till Spotify, Apple Music och andra streamingtjänster
+          är inte aktiv — detta är en demo-inskickning.
         </p>
         <div className="mt-8 flex justify-center gap-3">
           <button
@@ -561,6 +566,8 @@ export function ReleaseWizard() {
           </div>
           <ReleaseStatusBadge status={state.status} size="md" />
         </div>
+
+        <DemoNotice className="mb-8" />
 
         <div className="grid gap-8 lg:grid-cols-[260px_1fr]">
           {/* Sidebar (desktop) */}
@@ -817,7 +824,7 @@ function StepReleaseDetails({
     <StepCard
       step={1}
       title="Release Details"
-      description="Grunduppgifterna om din release. Allt går att redigera senare."
+      description="Grunduppgifterna om din release. Allt sparas i Media Rosenqvist Catalog och går att redigera senare."
     >
       <div className="grid gap-5 md:grid-cols-2">
         <Field label="Release title" required>
@@ -1142,9 +1149,19 @@ function StepPlatforms({
   return (
     <StepCard
       step={2}
-      title="Streaming Platforms"
-      description="Choose where your release should be distributed."
+      title="Plattformar (endast referens)"
+      description="Markera var releasen skulle distribueras. I demo-läget är distributionen inte aktiv."
     >
+      <div className="mb-4 flex items-start gap-3 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
+        <Info className="mt-0.5 h-4 w-4 shrink-0" />
+        <p>
+          Plattformsvalet sparas endast som referens.{" "}
+          <span className="font-semibold">
+            Ingen faktisk distribution till streamingtjänster sker i demo-läget.
+          </span>{" "}
+          Releasen hamnar i katalogen och skickas till Radio Uppsala.
+        </p>
+      </div>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {PLATFORMS.map((p) => {
           const active = state.platforms.includes(p.code);
@@ -1634,9 +1651,9 @@ function StepRights({
   const items: Array<{ key: keyof ReleaseState["rights"]; label: string }> = [
     { key: "owns", label: "I own or control the rights to this music" },
     { key: "permission", label: "I have permission to distribute this content" },
-    { key: "policies", label: "I understand streaming platform policies" },
+    { key: "policies", label: "I understand this is a demo catalog submission, not streaming distribution" },
     { key: "noManipulation", label: "No artificial stream manipulation" },
-    { key: "terms", label: "I agree to the distribution terms" },
+    { key: "terms", label: "I agree to the catalog submission terms" },
   ];
   return (
     <StepCard
@@ -1751,6 +1768,10 @@ function StepReview({
 
         <div className="border-t border-border p-6">
           <h4 className="mb-3 text-sm font-semibold">Distribution</h4>
+          <p className="mb-3 text-xs text-amber-700 dark:text-amber-300">
+            Endast referens — ingen faktisk distribution till streamingtjänster
+            sker i demo-läget. Releasen skickas till katalogen och Radio Uppsala.
+          </p>
           <div className="flex flex-wrap gap-1.5">
             {state.platforms.length === 0 ? (
               <span className="text-xs text-muted-foreground">None selected</span>
@@ -1840,6 +1861,26 @@ function Meta({ k, v }: { k: string; v: string }) {
       <dt className="text-muted-foreground">{k}</dt>
       <dd className="font-medium">{v}</dd>
     </>
+  );
+}
+
+// ============================================================
+// Demo notice
+// ============================================================
+function DemoNotice({ className = "" }: { className?: string }) {
+  return (
+    <div
+      className={`flex items-start gap-3 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-300 ${className}`}
+    >
+      <Info className="mt-0.5 h-4 w-4 shrink-0" />
+      <p>
+        <span className="font-semibold">Demo-läge.</span> Din release sparas i
+        Media Rosenqvist Catalog och skickas till Radio Uppsala för granskning.
+        Distribution till Spotify, Apple Music och andra streamingtjänster är{" "}
+        <span className="font-semibold">inte aktiv</span> — låtarna publiceras
+        alltså inte på dessa plattformar.
+      </p>
+    </div>
   );
 }
 

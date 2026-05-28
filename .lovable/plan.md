@@ -1,57 +1,36 @@
-## Mål
+Lgg till tydliga demo-lgesmarkrer i Submit Music-fldet s anvndare inte tror att ltar verkligen skickas till Spotify, Apple Music osv.
 
-Submit-knappen (musik) ska synas för **alla** i menyn. Klickflödet:
+## Bakgrund
+Submit Music (Release Wizard + Upload) ger idag ett starkt intryck av att vara en riktig distributions-tjnst. Steg 2 heter "Streaming Platforms" med Spotify, Apple Music m.fl. som checkboxar. Rttighetssteget pratar om "streaming platform policies". Framgngsmeddelandena sger bara "submitted for review". Detta kan vilseleda anvndare.
 
-1. **Inte inloggad** → skickas till inloggning först.
-2. **Inloggad utan godkänt artistkonto** → får fylla i sina uppgifter och **ansöka** om ett artistkonto.
-3. **Ansökan måste godkännas av admin** innan man kan skicka in musik.
+## Plan
 
-Submit förblir enbart för musik (flödet sätter redan `media_type = "music"`).
+### 1. Release Wizard (`/releases/new`) – Demo-banner och omformulerade steg
+- Lgg till en persistent **demo-banner**verst i wizardn (orange/gul tonad ruta):
+  - "Demo-läge — din release hamnar i Media Rosenqvist Catalog och skickas till Radio Uppsala. Distribution till Spotify, Apple Music m.fl. är inte aktiv."
+- **Steg 1 (Release Details)**: uppdatera `description` s det str att allt sparas i Catalog.
+- **Steg 2 (Platforms)**: 
+  - Byt titel till "Platforms (for future use)" eller liknande.
+  - Lgg till en tydlig notis under: "Platform selection is for reference only — actual distribution is not active in demo mode."
+  - Kanske gra ut alternativen eller lgga en badge p dem.
+- **Steg 4 (Rights)**: omformulera "I understand streaming platform policies" → "I understand this is a demo catalog submission" och "I agree to the distribution terms" → "I agree to the catalog submission terms".
+- **Steg 5 (Review)**: under "Distribution"-avsnittet, lgg till en notis om att plattformarna endastr fr referens.
+- **Success-skärm**: tydligt skriv:
+  - "Release saved to the catalog and submitted to Radio Uppsala for review."
+  - "Distribution to streaming platforms is not active — this is a demo submission."
 
-## Databas (migration)
+### 2. Upload-sidor (`/upload` och `/upload-batch`)
+- Lägg till demo-notis i introtexten p båda sidorna.
+- Uppdatera framgångsskärmarna så de tydligt anger att låten hamnar i Catalog + Radio Uppsala, inte Spotify etc.
 
-Lägg till godkännandestatus på `artist_profiles`:
+### 3. My-submissions (`/my-submissions`)
+- Lägg till en förklarande text under rubriken om vad "Mine"/submissions innebär i demo-läget.
 
-- Ny enum `artist_approval_status` med värdena `pending`, `approved`, `rejected`.
-- Ny kolumn `approval_status` (default `pending`, ej null) samt `reviewed_by`, `reviewed_at` och `rejection_reason`.
-- **Backfill:** alla befintliga artistprofiler sätts till `approved` så katalogen är oförändrad.
-- **Trigger** som skyddar mot självgodkännande:
-  - Vid skapande tvingas status till `pending` för icke-admins.
-  - Vid uppdatering kan endast admin ändra `approval_status` (icke-admins får statusfältet återställt till tidigare värde).
-- Admin kan redan läsa/uppdatera alla artistprofiler via befintliga RLS-regler.
+### 4. Navigation (SiteHeader)
+- Lägg till en liten "Demo"-badge bredvid eller på "Submit Music"-knappen i headern.
 
-## Frontend
-
-**Menyn (`SiteHeader.tsx`)**
-- Flytta Submit-länken ut ur det inloggade blocket så den alltid visas (både desktop och mobil). Själva inloggningskravet hanteras av målsidan.
-
-**Submit-sidan (`releases.new.tsx` + ny gate)**
-- Sidan ligger kvar bakom `ProtectedRoute` (ej inloggad → `/login`).
-- Ny komponent `ArtistAccountGate` runt wizarden som hämtar användarens artistprofiler med status:
-  - **Har godkänd profil** → visa release-wizarden som vanligt.
-  - **Har bara väntande ansökan** → visa meddelande "Din ansökan granskas av admin".
-  - **Har ingen profil** → visa ansökningsformuläret (namn, bio, webbplats/länkar) med tydlig text om att kontot godkänns av admin. Skapar en profil med status `pending`.
-
-**Release-wizarden (`ReleaseWizard.tsx`)**
-- Artistlistan filtreras till endast `approval_status = 'approved'`.
-
-**Ansökningssida (`artists.new.tsx`)**
-- Uppdateras till "Ansök om artistkonto": skapar en väntande profil och visar bekräftelse om att admin måste godkänna (istället för att direkt navigera till artistsidan).
-
-**Admin (`ArtistsAdmin` i `admin.tsx`)**
-- Hämta även `approval_status`.
-- Lägg en sektion överst för **väntande ansökningar** med Godkänn/Avslå-knappar (sätter status, `reviewed_by`, `reviewed_at`, ev. avslagsorsak).
-- Visa statusetikett på varje artist i listan.
-
-## Teknisk detalj
-
-- Självgodkännande förhindras i databasen via trigger, inte bara i UI:t — en inloggad användare kan annars sätta `approved` själv via API:et.
-- Publika katalog-/artistsidor påverkas inte: väntande artister har inga godkända släpp och syns därför inte publikt.
-
-## Verifiering
-
-- Utloggad: Submit syns → klick leder till inloggning.
-- Inloggad utan profil: ser ansökningsformulär → ansökan skapas som `pending`.
-- Pending-konto: ser "under granskning", kan inte nå wizarden.
-- Admin: ser väntande ansökan, godkänner → användaren kan nu skicka in musik.
-- Befintliga artister i katalogen fungerar oförändrat (approved).
+## Tekniska detaljer
+- Använd existerande design tokens (borders, bakgrunder, textfärger).
+- För demo-bannern: gul/orange accent (`amber-500` eller motsvarande semantisk token) med border och en Info-ikon.
+- Ingen backend-förändring behövs — enbart frontend-text och UI.
+- All text på svenska med engelska parenteser där det passar.

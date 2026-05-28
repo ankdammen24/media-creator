@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2, Plus, UserCircle2, Disc3, Music2 } from "lucide-react";
+import { Loader2, Plus, UserCircle2, Disc3, Music2, Info } from "lucide-react";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useAuth } from "@/lib/auth";
 import { useEditorRole } from "@/lib/useEditorRole";
@@ -94,6 +94,15 @@ function MyPage() {
         >
           <Plus className="h-3.5 w-3.5" /> Skapa ny artist
         </Link>
+      </div>
+
+      <div className="mb-6 flex items-start gap-3 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
+        <Info className="mt-0.5 h-4 w-4 shrink-0" />
+        <p>
+          <span className="font-semibold">Demo-läge.</span> Inskickad musik sparas
+          i Media Rosenqvist Catalog och skickas till Radio Uppsala för granskning.
+          Distribution till Spotify, Apple Music m.fl. är inte aktiv.
+        </p>
       </div>
 
       {isLoading ? (
