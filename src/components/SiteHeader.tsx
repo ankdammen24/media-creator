@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { LogOut, User, Bell, Settings as SettingsIcon, Menu, Send } from "lucide-react";
+import { LogOut, User, Bell, Settings as SettingsIcon, Menu, Send, Info } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
