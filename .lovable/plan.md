@@ -1,113 +1,47 @@
-# Komplett ägarbyte av artister + audit-logg + FK-fix
+## Vad som ska fixas
 
-Två sammanhängande problem löses i samma omgång:
+Tre småfix för att kunna förvalta artister och album i efterhand.
 
-1. **Ägarbyte i admin uppdaterar bara `artist_profiles.user_id`** → relaterade rader (`albums`, `submissions`, `artist_images`) blir kvar hos gamla ägaren och nya ägaren blockas av RLS.
-2. **Saknade foreign keys** → PostgREST kraschar med "Could not find a relationship between 'albums' and 'artist_profiles'" och relaterade joins är ömtåliga.
+### 1. Redigera artist i efterhand (även som admin)
 
-## Steg 1 — Migration
+På `/artists/$artistId` visas knappen "Redigera profil" och bildhanteraren bara när inloggad användare äger profilen (`profile.user_id === user.id`). Admins ser ingen knapp.
 
-### 1a. Lägg till saknade foreign keys + index
+**Ändring:** Slå även på `canEdit` när användaren har rollen `admin`. Hämta admin‑status i samma query (samma mönster som `albums.$albumId.tsx` redan använder). Då blir `ArtistProfileEditor` + `ArtistImageManager` (inkl. AI‑bilder) tillgängliga för admins och ägaren även efter att artisten skapats.
 
-```sql
-ALTER TABLE public.albums
-  ADD CONSTRAINT albums_artist_profile_id_fkey
-  FOREIGN KEY (artist_profile_id) REFERENCES public.artist_profiles(id)
-  ON DELETE CASCADE;
+Backend behöver inget nytt — RLS på `artist_profiles` och `artist_images` tillåter redan både ägare och admin.
 
-ALTER TABLE public.artist_images
-  ADD CONSTRAINT artist_images_artist_profile_id_fkey
-  FOREIGN KEY (artist_profile_id) REFERENCES public.artist_profiles(id)
-  ON DELETE CASCADE;
+### 2. AI‑bilder och bildbyte i efterhand
 
-ALTER TABLE public.submission_artists
-  ADD CONSTRAINT submission_artists_submission_id_fkey
-  FOREIGN KEY (submission_id) REFERENCES public.submissions(id) ON DELETE CASCADE,
-  ADD CONSTRAINT submission_artists_artist_profile_id_fkey
-  FOREIGN KEY (artist_profile_id) REFERENCES public.artist_profiles(id) ON DELETE CASCADE;
-```
+Faller ut automatiskt av punkt 1: `ArtistImageManager` (knapparna "Skapa med AI", "Variera med AI", ladda upp, ta bort, sätt primär, byt typ) renderas så snart `editing && canEdit` är sant. Inget nytt UI behövs — bara gaten som öppnas i punkt 1.
 
-`submissions → artist_profiles` och `submissions → albums` läggs till på samma sätt om de inte redan finns (idempotent via `DO`-block). Index skapas för varje FK-kolumn för join-prestanda. Avslutas med `NOTIFY pgrst, 'reload schema';`.
+### 3. Skapa album i efterhand och samla låtar i det
 
-### 1b. Skapa `artist_ownership_log`
+Knappen för att skapa album finns redan (`/albums/new`), men det är svårt att hitta och det går inte att flytta in befintliga låtar.
 
-```sql
-CREATE TABLE public.artist_ownership_log (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  artist_profile_id uuid NOT NULL REFERENCES public.artist_profiles(id) ON DELETE CASCADE,
-  from_user_id uuid NOT NULL,
-  to_user_id uuid NOT NULL,
-  changed_by uuid NOT NULL,           -- admin som gjorde ändringen
-  affected_albums int NOT NULL DEFAULT 0,
-  affected_submissions int NOT NULL DEFAULT 0,
-  affected_images int NOT NULL DEFAULT 0,
-  reason text,
-  created_at timestamptz NOT NULL DEFAULT now()
-);
+**A. Genväg till "Skapa album"**
 
-GRANT SELECT ON public.artist_ownership_log TO authenticated;
-GRANT ALL  ON public.artist_ownership_log TO service_role;
+Lägg till en "Skapa album"‑knapp:
+- På `/my-submissions` högst upp (länk till `/albums/new`).
+- På `/artists/$artistId` när `canEdit` är sant — länk till `/albums/new` med `?artistId=<id>` så att `AlbumForm` förväljer rätt artist (utökar `AlbumForm` att läsa `artistId` från search params som default).
 
-ALTER TABLE public.artist_ownership_log ENABLE ROW LEVEL SECURITY;
+**B. Lägg till befintliga låtar i ett album**
 
-CREATE POLICY "Admins read ownership log"
-  ON public.artist_ownership_log FOR SELECT
-  TO authenticated
-  USING (public.has_role(auth.uid(), 'admin'::app_role));
--- Inga insert/update/delete-policys: bara service_role (server-fn) får skriva.
-```
+På `/albums/$albumId`, när `canEdit`, lägg till en ny sektion "Lägg till låtar":
+- Lista alla submissions som tillhör albumets `artist_profile_id` och som ännu inte har något `album_id` (eller är kopplade till ett annat album om vi vill tillåta flytt — vi börjar med "inga `album_id`"). Filtreras till submissions som användaren får se via RLS.
+- Checkbox‑lista + knapp "Lägg till valda". Vid klick: för varje vald submission, `UPDATE submissions SET album_id = <album.id>, track_number = <nästa lediga>`. Återanvänd `nextTrackNumber` från `src/lib/album-helpers.ts` (kör sekventiellt för att undvika kollisioner).
+- Efter sparat: invalidate album‑query.
 
-## Steg 2 — Server-fn för ägarbyte
+**C. Byta album på en submission**
 
-Ny fil `src/lib/admin-ownership.functions.ts` med `reassignArtistOwner` (POST):
+I `EditSubmissionDialog` (`src/components/SubmissionActions.tsx`): lägg till ett "Album"‑fält (select över ägarens album för aktuell artist, plus "Inget album"). Vid spar uppdateras `album_id` och `track_number` (sätts till nästa lediga om ett nytt album väljs, annars nollas). DB‑triggern `check_submission_album_artist` säkerställer att albumets artist matchar.
 
-- `inputValidator` (Zod): `{ artistId: uuid, newUserId: uuid, reason?: string }`
-- `middleware: [requireSupabaseAuth]` — hämtar `userId` (= changed_by)
-- Verifierar att anroparen är admin via `has_role` (annars `throw new Error("Forbidden")`)
-- Använder `supabaseAdmin` för att:
-  1. Läsa nuvarande `artist_profiles.user_id` (= `from_user_id`)
-  2. Räkna `albums`, `submissions`, `artist_images` som tillhör artisten
-  3. Uppdatera `user_id` i alla fyra tabellerna (`artist_profiles`, `albums`, `submissions`, `artist_images`) WHERE `artist_profile_id = :artistId`
-  4. Skriva en rad till `artist_ownership_log`
-- Returnerar `{ from, to, counts: { albums, submissions, images } }`
+## Filer som ändras
 
-Filen läggs i `src/lib/` (inte `src/server/`) och hålls "thin" (bara server-fn + dess imports) — undviker det transitiva `client.server`-importproblemet.
+- `src/routes/artists.$artistId.tsx` — hämta admin‑status, utvidga `canEdit`.
+- `src/routes/my-submissions.tsx` — "Skapa album"‑knapp.
+- `src/components/AlbumForm.tsx` — läs `artistId` från search params som default.
+- `src/routes/albums.new.tsx` — typad search‑validator för `artistId`.
+- `src/routes/albums.$albumId.tsx` — ny "Lägg till låtar"‑sektion (admin/ägare).
+- `src/components/SubmissionActions.tsx` — album‑select i `EditSubmissionDialog`.
 
-Ny fil `src/lib/admin-ownership-log.functions.ts` med `listOwnershipLog` (GET, admin-only) som läser senaste 50 rader joinade med `profiles.display_name` för "from/to/changed_by".
-
-## Steg 3 — UI-ändringar
-
-### `src/routes/admin.tsx`
-
-- `<select>` byts mot **Combobox + "Byt ägare"-knapp**. Ingen on-change-mutation.
-- Klick på knapp → öppnar dialog (shadcn `AlertDialog`) med:
-  - "Du flyttar **Artistnamn** från **Gammal ägare** till **Ny ägare**."
-  - Visar antal album, submissions och bilder som flyttas med (förhandshämtat via en lättviktig count-query, eller hämtas i samma server-fn med `{ preview: true }`).
-  - Valfritt textfält "Anledning".
-  - Bekräfta → kallar `reassignArtistOwner` via `useServerFn`.
-- Toast med resultat ("Flyttade 3 album, 12 låtar, 4 bilder").
-- Invalidatar `["admin-artists"]`, `["catalog"]`, `["artist", artistId]`.
-
-### Ny komponent `src/components/AdminOwnershipLog.tsx`
-
-- Tabell: Datum, Artist, Från → Till, Av (admin), Påverkade rader, Anledning.
-- Renderas i `admin.tsx` under "Artists"-sektionen.
-
-## Tekniska detaljer
-
-- All mutation skrivs med `supabaseAdmin` i en server-fn — RLS bypassas medvetet, säkerheten upprätthålls av admin-checken inuti handlern.
-- Atomicitet: Supabase-JS har ingen transaktion klient-side. Vi kör uppdateringarna sekventiellt och loggar **efter** att alla lyckats. Om en update misslyckas: bryt, logga inte, returnera fel. Idempotens säkras av att samma `from == to` ger no-op.
-- `artist_ownership_log` har FK med `ON DELETE CASCADE` mot `artist_profiles` så raderade artister inte lämnar dangling-loggar — anpassa till `SET NULL` om historik ska bevaras (kan diskuteras).
-- Inga ändringar i storage-paths (`artists/{user_id}/...`) — de är bara strängar, RLS på storage gäller bucket-ägarskap inte path-segment.
-
-## Filer som skapas/ändras
-
-- **Migration**: 1 ny SQL-fil (steg 1a + 1b i samma migration).
-- **Skapas**: `src/lib/admin-ownership.functions.ts`, `src/lib/admin-ownership-log.functions.ts`, `src/components/AdminOwnershipLog.tsx`.
-- **Ändras**: `src/routes/admin.tsx` (reassign-flödet + ny sektion för logg).
-
-## Vad detta INTE gör
-
-- Skickar inget mejl till gamla/nya ägaren (kan läggas till senare i `notifications`-tabellen om du vill).
-- Tar inte bort gammal ägares roll/access globalt — bara på den specifika artisten.
-- Berör inte `azuracast`-import eller storage-objekt.
+Inga DB‑migrationer behövs.
