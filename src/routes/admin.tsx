@@ -78,6 +78,24 @@ function AdminGate() {
 }
 
 function ArtistsAdmin() {
+  return <ArtistsAdminInner />;
+}
+
+function AccountStatusBadge({ status }: { status: "pending" | "approved" | "rejected" }) {
+  const map = {
+    approved: { label: "Godkänd", cls: "bg-primary/10 text-primary" },
+    pending: { label: "Väntande", cls: "bg-amber-500/10 text-amber-600 dark:text-amber-400" },
+    rejected: { label: "Avvisad", cls: "bg-destructive/10 text-destructive" },
+  } as const;
+  const m = map[status] ?? map.pending;
+  return (
+    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${m.cls}`}>
+      {m.label}
+    </span>
+  );
+}
+
+function ArtistsAdminInner() {
   const qc = useQueryClient();
   const { data: artists, isLoading, refetch } = useQuery({
     queryKey: ["admin-artists"],
