@@ -1,12 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { Search, Music2, Mic } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { EmptyState, ErrorState } from "@/components/StateViews";
 import { supabase } from "@/integrations/supabase/client";
+import { zodValidator, fallback } from "@tanstack/zod-adapter";
+import { z } from "zod";
+
+const catalogSearchSchema = z.object({
+  focus: fallback(z.string().optional(), undefined),
+});
 
 export const Route = createFileRoute("/catalog")({
+  validateSearch: zodValidator(catalogSearchSchema),
   head: () => ({
     meta: [
       { title: "Catalog — Media Rosenqvist" },
