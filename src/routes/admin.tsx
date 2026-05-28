@@ -84,7 +84,7 @@ function ArtistsAdmin() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("artist_profiles")
-        .select("id, name, bio, user_id")
+        .select("id, name, bio, user_id, approval_status, rejection_reason")
         .order("name");
       if (error) throw error;
       return data ?? [];
