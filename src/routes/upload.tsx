@@ -194,6 +194,10 @@ function UploadPage() {
       setNewProfileName("");
       setNewProfileBio("");
       setCreatingProfile(false);
+      // Fire-and-forget: try to grab a default avatar from iTunes.
+      autoFetchArtistImage({ data: { artistId: p.id } }).catch((e) =>
+        console.warn("autoFetchArtistArtwork failed", e),
+      );
     } catch (err) {
       setProfilesError(err instanceof Error ? err.message : "Could not create profile");
     } finally {
