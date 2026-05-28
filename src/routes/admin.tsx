@@ -497,6 +497,8 @@ function AdminPage() {
         <AdminAutoArtwork />
       ) : tab === "artists" ? (
         <ArtistsAdmin />
+      ) : tab === "users" ? (
+        <AdminUsers />
       ) : (
         <>
       <div className="mb-6 inline-flex rounded-lg border border-border bg-card p-1">
