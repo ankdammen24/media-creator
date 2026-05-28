@@ -138,7 +138,7 @@ function AppShell() {
         className="flex min-h-screen flex-col"
         style={
           current
-            ? { paddingBottom: "calc(5.5rem + env(safe-area-inset-bottom))" }
+            ? { paddingBottom: "calc(6rem + env(safe-area-inset-bottom))" }
             : undefined
         }
       >
