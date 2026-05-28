@@ -171,6 +171,7 @@ export function ReplaceArtworkButton({
 }) {
   const [busy, setBusy] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
+  const updateFn = useServerFn(updateSubmissionFn);
 
   async function uploadFile(file: File) {
     setBusy(true);
@@ -182,11 +183,7 @@ export function ReplaceArtworkButton({
         upsert: false,
       });
       if (up.error) throw up.error;
-      const upd = await supabase
-        .from("submissions")
-        .update({ artwork_path: path })
-        .eq("id", sub.id);
-      if (upd.error) throw upd.error;
+      await updateFn({ data: { submissionId: sub.id, patch: { artwork_path: path } } });
       // best-effort delete old artwork
       await supabase.storage.from("artwork").remove([sub.artwork_path]);
       onDone();
