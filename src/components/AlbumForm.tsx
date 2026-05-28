@@ -1,8 +1,10 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { Image as ImageIcon, X, Loader2 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
+import { autoFetchAlbumArtwork } from "@/lib/artwork.functions";
 import {
   ALBUM_IMAGE_ACCEPT,
   ALBUM_IMAGE_EXTS,
@@ -29,6 +31,7 @@ type AlbumFormProps = {
 export function AlbumForm({ existing, onSaved, redirectTo, lockArtistId }: AlbumFormProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const autoFetchArtwork = useServerFn(autoFetchAlbumArtwork);
 
   const [artists, setArtists] = useState<ArtistOption[]>([]);
   const [artistId, setArtistId] = useState<string>(
@@ -154,6 +157,12 @@ export function AlbumForm({ existing, onSaved, redirectTo, lockArtistId }: Album
           .single();
         if (error) throw error;
         saved = data as Album;
+        // Fire-and-forget: if user didn't upload artwork, try iTunes in background.
+        if (!artworkPath) {
+          autoFetchArtwork({ data: { albumId: saved.id } }).catch((e) =>
+            console.warn("autoFetchAlbumArtwork failed", e),
+          );
+        }
       }
 
       if (onSaved) {
