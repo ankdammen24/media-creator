@@ -41,14 +41,16 @@ function isMusic(file: AzFile): boolean {
   return true;
 }
 
-function downloadUrl(file: AzFile): string | null {
-  if (file.links?.download) {
-    return file.links.download.startsWith("http")
-      ? file.links.download
-      : `${AZURACAST_BASE}${file.links.download}`;
+function sourceUrl(file: AzFile): string | null {
+  // Använd /file/{id}/play — fungerar utan att on-demand är aktiverat.
+  // /file/{id}/download returnerar 405 utan on-demand-stödet.
+  if (file.links?.play) {
+    return file.links.play.startsWith("http")
+      ? file.links.play
+      : `${AZURACAST_BASE}${file.links.play}`;
   }
   if (file.id != null) {
-    return `${AZURACAST_BASE}/api/station/${STATION_ID}/file/${file.id}/download`;
+    return `${AZURACAST_BASE}/api/station/${STATION_ID}/file/${file.id}/play`;
   }
   return null;
 }
@@ -167,7 +169,9 @@ export async function performAzuracastImport(
       summary.skippedNonMusic += 1;
       continue;
     }
-    if (file.length != null && file.length < MIN_DURATION_SECONDS) {
+    // Skippa bara filer vi VET är korta. AzuraCast returnerar 0 för filer
+    // som inte hunnit analyseras — då vill vi inte felklassa dem som jinglar.
+    if (file.length != null && file.length > 0 && file.length < MIN_DURATION_SECONDS) {
       summary.skippedShort += 1;
       continue;
     }
@@ -180,8 +184,8 @@ export async function performAzuracastImport(
     if (opts.dryRun) continue;
 
     try {
-      const dl = downloadUrl(file);
-      if (!dl) throw new Error("ingen download-länk");
+      const dl = sourceUrl(file);
+      if (!dl) throw new Error("ingen källänk (play)");
 
       const audioRes = await fetch(dl, { headers: { "X-API-Key": apiKey } });
       if (!audioRes.ok) throw new Error(`download ${audioRes.status}`);
