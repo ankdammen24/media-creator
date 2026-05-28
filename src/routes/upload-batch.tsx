@@ -672,6 +672,7 @@ function SharedArtworkPreview({ file, onRemove }: { file: File; onRemove: () => 
 function DraftRow({
   d,
   hasSharedArtwork,
+  artistName,
   onChange,
   onArtwork,
   onRemove,
@@ -679,12 +680,14 @@ function DraftRow({
 }: {
   d: Draft;
   hasSharedArtwork: boolean;
+  artistName: string;
   onChange: (patch: Partial<Draft>) => void;
   onArtwork: (f: File | null) => void;
   onRemove: () => void;
   onRetryUpload: () => void;
 }) {
   const [artUrl, setArtUrl] = useState<string | null>(null);
+  const [aiOpen, setAiOpen] = useState(false);
   useEffect(() => {
     if (!d.artwork) {
       setArtUrl(null);
