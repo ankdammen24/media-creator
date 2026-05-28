@@ -1,5 +1,5 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { ArrowLeft, Loader2, CheckCircle2 } from "lucide-react";
 import { useState } from "react";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useAuth } from "@/lib/auth";
@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 export const Route = createFileRoute("/artists/new")({
   head: () => ({
     meta: [
-      { title: "Ny artist — Media Rosenqvist" },
+      { title: "Ansök om artistkonto — Media Rosenqvist" },
       { name: "robots", content: "noindex" },
     ],
   }),
@@ -21,34 +21,49 @@ export const Route = createFileRoute("/artists/new")({
 
 function NewArtistPage() {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const [name, setName] = useState("");
   const [bio, setBio] = useState("");
   const [website, setWebsite] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [done, setDone] = useState(false);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!user || !name.trim()) return;
     setBusy(true);
     setErr(null);
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from("artist_profiles")
       .insert({
         user_id: user.id,
         name: name.trim(),
         bio: bio.trim() || null,
         website_url: website.trim() || null,
-      })
-      .select("id")
-      .single();
+      });
     setBusy(false);
-    if (error || !data) {
-      setErr(error?.message ?? "Kunde inte skapa artist");
+    if (error) {
+      setErr(error.message ?? "Kunde inte skicka ansökan");
       return;
     }
-    navigate({ to: "/artists/$artistId", params: { artistId: data.id } });
+    setDone(true);
+  }
+
+  if (done) {
+    return (
+      <div className="mx-auto max-w-xl px-4 py-12 sm:px-6">
+        <div className="rounded-xl border border-border bg-card p-6 text-center">
+          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-secondary">
+            <CheckCircle2 className="h-6 w-6 text-primary" />
+          </div>
+          <h1 className="mb-2 text-xl font-semibold tracking-tight">Ansökan skickad</h1>
+          <p className="text-sm text-muted-foreground">
+            Tack! Din ansökan om artistkonto granskas av en administratör. Så
+            snart den är godkänd kan du skicka in musik.
+          </p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -59,9 +74,10 @@ function NewArtistPage() {
       >
         <ArrowLeft className="h-3.5 w-3.5" /> Tillbaka
       </Link>
-      <h1 className="mb-2 text-2xl font-semibold tracking-tight">Skapa artist</h1>
+      <h1 className="mb-2 text-2xl font-semibold tracking-tight">Ansök om artistkonto</h1>
       <p className="mb-6 text-sm text-muted-foreground">
-        En artistprofil samlar album och låtar. Du kan redigera detaljer senare.
+        Fyll i dina uppgifter och ansök om ett artistkonto. En administratör
+        godkänner kontot innan du kan skicka in musik.
       </p>
       <form onSubmit={onSubmit} className="space-y-4 rounded-xl border border-border bg-card p-5">
         <div>
@@ -101,7 +117,7 @@ function NewArtistPage() {
             className="inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
           >
             {busy && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-            Skapa artist
+            Skicka ansökan
           </button>
         </div>
       </form>
