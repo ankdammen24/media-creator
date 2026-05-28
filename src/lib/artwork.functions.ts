@@ -99,9 +99,18 @@ async function isAdmin(userId: string): Promise<boolean> {
 export const autoFetchArtistArtwork = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => z.object({ artistId: z.string().uuid() }).parse(input))
-  .handler(async ({ data }): Promise<AutoArtworkResult> => {
+  .handler(async ({ data, context }): Promise<AutoArtworkResult> => {
     const artist = await fetchArtist(data.artistId);
     if (!artist) return { updated: false, path: null, reason: "not-found" };
+    const { data: ownerRow } = await supabaseAdmin
+      .from("artist_profiles")
+      .select("user_id")
+      .eq("id", artist.id)
+      .maybeSingle();
+    const ownerId = (ownerRow as { user_id: string } | null)?.user_id;
+    if (ownerId !== context.userId && !(await isAdmin(context.userId))) {
+      throw new Error("Forbidden");
+    }
     if (artist.avatar_path) return { updated: false, path: artist.avatar_path, reason: "already-has-image" };
 
     const url = await searchArtistImage(artist.name);
@@ -121,9 +130,18 @@ export const autoFetchArtistArtwork = createServerFn({ method: "POST" })
 export const autoFetchAlbumArtwork = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => z.object({ albumId: z.string().uuid() }).parse(input))
-  .handler(async ({ data }): Promise<AutoArtworkResult> => {
+  .handler(async ({ data, context }): Promise<AutoArtworkResult> => {
     const album = await fetchAlbum(data.albumId);
     if (!album) return { updated: false, path: null, reason: "not-found" };
+    const { data: ownerRow } = await supabaseAdmin
+      .from("albums")
+      .select("user_id")
+      .eq("id", album.id)
+      .maybeSingle();
+    const ownerId = (ownerRow as { user_id: string } | null)?.user_id;
+    if (ownerId !== context.userId && !(await isAdmin(context.userId))) {
+      throw new Error("Forbidden");
+    }
     if (album.artwork_path) return { updated: false, path: album.artwork_path, reason: "already-has-image" };
 
     const url = await searchAlbumImage(album.title, album.artist_profiles?.name ?? null);
