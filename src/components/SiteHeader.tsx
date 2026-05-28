@@ -1,13 +1,15 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { LogOut, User, Bell, Settings as SettingsIcon } from "lucide-react";
+import { LogOut, User, Bell, Settings as SettingsIcon, Disc3 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { GlobalSearch } from "@/components/GlobalSearch";
 import logoMR from "@/assets/logo-mr.png";
+import { useEditorRole } from "@/lib/useEditorRole";
 
 export function SiteHeader() {
   const { user, logout } = useAuth();
+  const { isEditor } = useEditorRole();
   const navigate = useNavigate();
   const { data: unread = 0 } = useQuery({
     queryKey: ["notifications-unread", user?.id],
@@ -64,6 +66,16 @@ export function SiteHeader() {
               >
                 Mine
               </Link>
+              {isEditor && (
+                <Link
+                  to="/albums/new"
+                  className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-muted-foreground hover:text-foreground"
+                  activeProps={{ className: "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-foreground bg-secondary" }}
+                >
+                  <Disc3 className="h-4 w-4" />
+                  Album
+                </Link>
+              )}
               <Link
                 to="/notifications"
                 className="relative rounded-md px-3 py-1.5 text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5"
