@@ -65,7 +65,7 @@ export function SiteHeader() {
             activeProps={{ className: "inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground shadow-sm ring-2 ring-primary/40" }}
           >
             <Send className="h-3.5 w-3.5" />
-            Submit
+            Submit Music
           </Link>
           {user ? (
             <>
