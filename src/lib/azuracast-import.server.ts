@@ -7,6 +7,49 @@ const AZURACAST_BASE = "https://stream.radiouppsala.se";
 const STATION_ID = 1;
 const MIN_DURATION_SECONDS = 40;
 
+/**
+ * Strömmar en upstream-Response-body direkt till Supabase Storage utan att
+ * buffra hela filen i workerns minne. supabase-js storage-klienten kräver
+ * en Blob/ArrayBuffer/File och buffrar därmed allt i RAM, vilket spränger
+ * Cloudflare Workers ~128 MB-gräns för stora ljudfiler. REST-endpointen
+ * accepterar däremot en ReadableStream som fetch-body.
+ */
+async function streamUploadToStorage(params: {
+  bucket: string;
+  path: string;
+  body: ReadableStream<Uint8Array> | null;
+  contentType: string;
+  contentLength: string | null;
+}): Promise<void> {
+  if (!params.body) throw new Error(`storage upload: missing body for ${params.path}`);
+  const baseUrl = process.env.SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!baseUrl || !serviceKey) {
+    throw new Error("storage upload: SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY saknas");
+  }
+  const url = `${baseUrl}/storage/v1/object/${params.bucket}/${encodeURI(params.path)}`;
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${serviceKey}`,
+    apikey: serviceKey,
+    "Content-Type": params.contentType,
+    "x-upsert": "true",
+    "cache-control": "3600",
+  };
+  if (params.contentLength) headers["Content-Length"] = params.contentLength;
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers,
+    body: params.body,
+    // @ts-expect-error – duplex krävs av fetch när body är en stream
+    duplex: "half",
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`storage upload ${res.status}: ${text || res.statusText}`);
+  }
+}
+
 export type AzFile = {
   id?: number;
   unique_id?: string;
@@ -189,14 +232,15 @@ export async function performAzuracastImport(
 
       const audioRes = await fetch(dl, { headers: { "X-API-Key": apiKey } });
       if (!audioRes.ok) throw new Error(`download ${audioRes.status}`);
-      const audioBlob = await audioRes.blob();
       const audioContentType = audioRes.headers.get("content-type") || "audio/mpeg";
       const audioPath = `${adminUserId}/azuracast/${azId}.mp3`;
-
-      const upAudio = await supabaseAdmin.storage
-        .from("audio")
-        .upload(audioPath, audioBlob, { contentType: audioContentType, upsert: true });
-      if (upAudio.error) throw new Error(`audio upload: ${upAudio.error.message}`);
+      await streamUploadToStorage({
+        bucket: "audio",
+        path: audioPath,
+        body: audioRes.body,
+        contentType: audioContentType,
+        contentLength: audioRes.headers.get("content-length"),
+      });
 
       // Artwork — frivilligt
       let artworkPath = "";
@@ -205,15 +249,19 @@ export async function performAzuracastImport(
         try {
           const artRes = await fetch(au, { headers: { "X-API-Key": apiKey } });
           if (artRes.ok) {
-            const artBlob = await artRes.blob();
             const ct = artRes.headers.get("content-type") || "image/jpeg";
             const ext = ct.includes("png") ? "png" : ct.includes("webp") ? "webp" : "jpg";
             artworkPath = `${adminUserId}/azuracast/${azId}.${ext}`;
-            const upArt = await supabaseAdmin.storage
-              .from("artwork")
-              .upload(artworkPath, artBlob, { contentType: ct, upsert: true });
-            if (upArt.error) {
-              console.warn(`artwork upload ${azId}: ${upArt.error.message}`);
+            try {
+              await streamUploadToStorage({
+                bucket: "artwork",
+                path: artworkPath,
+                body: artRes.body,
+                contentType: ct,
+                contentLength: artRes.headers.get("content-length"),
+              });
+            } catch (e) {
+              console.warn(`artwork upload ${azId}:`, e);
               artworkPath = "";
             }
           }
