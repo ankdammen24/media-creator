@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ShieldCheck, CheckCircle2, XCircle, Music2, Mic, Loader2, Users, Radio, ImagePlus, FileSpreadsheet, Waves } from "lucide-react";
+import { ShieldCheck, CheckCircle2, XCircle, Music2, Mic, Loader2, Users, Radio, ImagePlus, FileSpreadsheet } from "lucide-react";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,7 +12,6 @@ import { AdminAutoArtwork } from "@/components/AdminAutoArtwork";
 import { AdminOwnershipLog } from "@/components/AdminOwnershipLog";
 import { AdminUsers } from "@/components/AdminUsers";
 import { AdminCatalogImport } from "@/components/AdminCatalogImport";
-import { AdminAudioProcessing } from "@/components/AdminAudioProcessing";
 import { reassignArtistOwner } from "@/lib/admin-ownership.functions";
 import {
   EditButton,
