@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Upload as UploadIcon, Trash2, Star, Eye, EyeOff, ImagePlus } from "lucide-react";
+import { Upload as UploadIcon, Trash2, Star, Eye, EyeOff, ImagePlus, Sparkles, Wand2 } from "lucide-react";
+import { AiImageGenerator } from "@/components/AiImageGenerator";
 
 export type ArtistImage = {
   id: string;
@@ -37,15 +38,22 @@ function publicUrl(path: string) {
 export function ArtistImageManager({
   artistId,
   userId,
+  artistName,
 }: {
   artistId: string;
   userId: string;
+  artistName: string;
 }) {
   const [images, setImages] = useState<ArtistImage[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [uploadKind, setUploadKind] = useState<ArtistImage["kind"]>("press");
+  const [aiOpen, setAiOpen] = useState<
+    | { mode: "new"; kind: ArtistImage["kind"] }
+    | { mode: "variant"; kind: ArtistImage["kind"]; path: string }
+    | null
+  >(null);
 
   async function reload() {
     setLoading(true);
@@ -213,6 +221,16 @@ export function ArtistImageManager({
             }}
           />
         </label>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => setAiOpen({ mode: "new", kind: uploadKind })}
+          className="inline-flex items-center gap-1.5 rounded-md border border-primary/40 bg-primary/10 px-3 py-2 text-sm text-primary hover:bg-primary/20 disabled:opacity-50"
+          title="Skapa bild med AI (~$0.035)"
+        >
+          <Sparkles className="h-4 w-4" />
+          Skapa med AI
+        </button>
       </div>
 
       {error && (
@@ -333,6 +351,21 @@ export function ArtistImageManager({
                           >
                             <Trash2 className="h-3 w-3" />
                           </button>
+                          <button
+                            type="button"
+                            disabled={busy}
+                            onClick={() =>
+                              setAiOpen({
+                                mode: "variant",
+                                kind: img.kind,
+                                path: img.storage_path,
+                              })
+                            }
+                            className="inline-flex items-center gap-1 rounded border border-primary/40 px-1.5 py-1 text-primary hover:bg-primary/10"
+                            title="Variera med AI"
+                          >
+                            <Wand2 className="h-3 w-3" />
+                          </button>
                         </div>
                       </div>
                     </li>
@@ -342,6 +375,21 @@ export function ArtistImageManager({
             ),
           )}
         </div>
+      )}
+
+      {aiOpen && (
+        <AiImageGenerator
+          artistId={artistId}
+          userId={userId}
+          artistName={artistName}
+          defaultKind={aiOpen.kind}
+          referenceImagePath={aiOpen.mode === "variant" ? aiOpen.path : null}
+          onClose={() => setAiOpen(null)}
+          onSaved={() => {
+            setAiOpen(null);
+            void reload();
+          }}
+        />
       )}
     </div>
   );

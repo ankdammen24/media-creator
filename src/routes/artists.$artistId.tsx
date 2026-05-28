@@ -133,7 +133,11 @@ function ArtistPage() {
                   setEditing(false);
                 }}
               />
-              <ArtistImageManager artistId={profile.id} userId={profile.user_id} />
+              <ArtistImageManager
+                artistId={profile.id}
+                userId={profile.user_id}
+                artistName={profile.name}
+              />
             </div>
           ) : (
           <>

@@ -19,6 +19,7 @@ import { Route as CatalogRouteImport } from './routes/catalog'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ArtistsArtistIdRouteImport } from './routes/artists.$artistId'
+import { Route as ApiGenerateArtistImageRouteImport } from './routes/api/generate-artist-image'
 import { Route as AlbumsNewRouteImport } from './routes/albums.new'
 import { Route as AlbumsAlbumIdRouteImport } from './routes/albums.$albumId'
 import { Route as AlbumsAlbumIdEditRouteImport } from './routes/albums.$albumId.edit'
@@ -73,6 +74,11 @@ const ArtistsArtistIdRoute = ArtistsArtistIdRouteImport.update({
   path: '/artists/$artistId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiGenerateArtistImageRoute = ApiGenerateArtistImageRouteImport.update({
+  id: '/api/generate-artist-image',
+  path: '/api/generate-artist-image',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AlbumsNewRoute = AlbumsNewRouteImport.update({
   id: '/albums/new',
   path: '/albums/new',
@@ -101,6 +107,7 @@ export interface FileRoutesByFullPath {
   '/upload-batch': typeof UploadBatchRoute
   '/albums/$albumId': typeof AlbumsAlbumIdRouteWithChildren
   '/albums/new': typeof AlbumsNewRoute
+  '/api/generate-artist-image': typeof ApiGenerateArtistImageRoute
   '/artists/$artistId': typeof ArtistsArtistIdRoute
   '/albums/$albumId/edit': typeof AlbumsAlbumIdEditRoute
 }
@@ -116,6 +123,7 @@ export interface FileRoutesByTo {
   '/upload-batch': typeof UploadBatchRoute
   '/albums/$albumId': typeof AlbumsAlbumIdRouteWithChildren
   '/albums/new': typeof AlbumsNewRoute
+  '/api/generate-artist-image': typeof ApiGenerateArtistImageRoute
   '/artists/$artistId': typeof ArtistsArtistIdRoute
   '/albums/$albumId/edit': typeof AlbumsAlbumIdEditRoute
 }
@@ -132,6 +140,7 @@ export interface FileRoutesById {
   '/upload-batch': typeof UploadBatchRoute
   '/albums/$albumId': typeof AlbumsAlbumIdRouteWithChildren
   '/albums/new': typeof AlbumsNewRoute
+  '/api/generate-artist-image': typeof ApiGenerateArtistImageRoute
   '/artists/$artistId': typeof ArtistsArtistIdRoute
   '/albums/$albumId/edit': typeof AlbumsAlbumIdEditRoute
 }
@@ -149,6 +158,7 @@ export interface FileRouteTypes {
     | '/upload-batch'
     | '/albums/$albumId'
     | '/albums/new'
+    | '/api/generate-artist-image'
     | '/artists/$artistId'
     | '/albums/$albumId/edit'
   fileRoutesByTo: FileRoutesByTo
@@ -164,6 +174,7 @@ export interface FileRouteTypes {
     | '/upload-batch'
     | '/albums/$albumId'
     | '/albums/new'
+    | '/api/generate-artist-image'
     | '/artists/$artistId'
     | '/albums/$albumId/edit'
   id:
@@ -179,6 +190,7 @@ export interface FileRouteTypes {
     | '/upload-batch'
     | '/albums/$albumId'
     | '/albums/new'
+    | '/api/generate-artist-image'
     | '/artists/$artistId'
     | '/albums/$albumId/edit'
   fileRoutesById: FileRoutesById
@@ -195,6 +207,7 @@ export interface RootRouteChildren {
   UploadBatchRoute: typeof UploadBatchRoute
   AlbumsAlbumIdRoute: typeof AlbumsAlbumIdRouteWithChildren
   AlbumsNewRoute: typeof AlbumsNewRoute
+  ApiGenerateArtistImageRoute: typeof ApiGenerateArtistImageRoute
   ArtistsArtistIdRoute: typeof ArtistsArtistIdRoute
 }
 
@@ -270,6 +283,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ArtistsArtistIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/generate-artist-image': {
+      id: '/api/generate-artist-image'
+      path: '/api/generate-artist-image'
+      fullPath: '/api/generate-artist-image'
+      preLoaderRoute: typeof ApiGenerateArtistImageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/albums/new': {
       id: '/albums/new'
       path: '/albums/new'
@@ -318,6 +338,7 @@ const rootRouteChildren: RootRouteChildren = {
   UploadBatchRoute: UploadBatchRoute,
   AlbumsAlbumIdRoute: AlbumsAlbumIdRouteWithChildren,
   AlbumsNewRoute: AlbumsNewRoute,
+  ApiGenerateArtistImageRoute: ApiGenerateArtistImageRoute,
   ArtistsArtistIdRoute: ArtistsArtistIdRoute,
 }
 export const routeTree = rootRouteImport
