@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ArrowLeft,
   Disc3,
@@ -12,6 +12,7 @@ import {
   Tag,
   Loader2,
   Plus,
+  GripVertical,
 } from "lucide-react";
 import { EmptyState, ErrorState } from "@/components/StateViews";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,6 +20,7 @@ import { useServerFn } from "@tanstack/react-start";
 import {
   attachSubmissionsToAlbum,
   deleteAlbum as deleteAlbumFn,
+  reorderAlbumTracks,
 } from "@/lib/catalog-edit.functions";
 import { useAuth } from "@/lib/auth";
 import { useEditorRole } from "@/lib/useEditorRole";
@@ -35,6 +37,24 @@ import {
   EditSubmissionDialog,
   type EditableSubmission,
 } from "@/components/SubmissionActions";
+import {
+  DndContext,
+  PointerSensor,
+  TouchSensor,
+  KeyboardSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 export const Route = createFileRoute("/albums/$albumId")({
   head: () => ({
