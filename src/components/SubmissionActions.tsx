@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { Pencil, Trash2, ImageUp, Loader2 } from "lucide-react";
+import { Pencil, Trash2, ImageUp, Loader2, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { nextTrackNumber } from "@/lib/album-helpers";
+import { AiArtworkDialog } from "@/components/AiArtworkDialog";
 
 export type EditableSubmission = {
   id: string;
@@ -164,11 +165,9 @@ export function ReplaceArtworkButton({
   onDone: () => void;
 }) {
   const [busy, setBusy] = useState(false);
+  const [aiOpen, setAiOpen] = useState(false);
 
-  async function pick(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
+  async function uploadFile(file: File) {
     setBusy(true);
     try {
       const ext = file.name.split(".").pop() || "jpg";
@@ -193,22 +192,51 @@ export function ReplaceArtworkButton({
     }
   }
 
+  async function pick(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    await uploadFile(file);
+  }
+
   return (
-    <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs hover:bg-secondary">
-      {busy ? (
-        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-      ) : (
-        <ImageUp className="h-3.5 w-3.5" />
-      )}
-      Replace artwork
-      <input
-        type="file"
-        accept="image/*"
-        className="hidden"
+    <>
+      <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs hover:bg-secondary">
+        {busy ? (
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        ) : (
+          <ImageUp className="h-3.5 w-3.5" />
+        )}
+        Replace artwork
+        <input
+          type="file"
+          accept="image/*"
+          className="hidden"
+          disabled={busy}
+          onChange={pick}
+        />
+      </label>
+      <button
+        type="button"
+        onClick={() => setAiOpen(true)}
         disabled={busy}
-        onChange={pick}
+        className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs hover:bg-secondary disabled:opacity-50"
+      >
+        <Sparkles className="h-3.5 w-3.5 text-primary" />
+        Skapa med AI
+      </button>
+      <AiArtworkDialog
+        open={aiOpen}
+        aspect="1:1"
+        title="Skapa omslag med AI"
+        filenameHint={`track-${sub.title}`}
+        defaultPrompt={`Abstrakt omslag för "${sub.title}", konstnärlig komposition, ingen text, inga ansikten`}
+        onClose={() => setAiOpen(false)}
+        onGenerated={(file) => {
+          void uploadFile(file);
+        }}
       />
-    </label>
+    </>
   );
 }
 

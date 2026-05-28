@@ -12,12 +12,14 @@ import {
   Layers,
   Trash2,
   Loader2,
+  Sparkles,
 } from "lucide-react";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { AlbumPicker } from "@/components/AlbumPicker";
 import { nextTrackNumber } from "@/lib/album-helpers";
+import { AiArtworkDialog } from "@/components/AiArtworkDialog";
 
 type ArtistProfile = { id: string; name: string; bio: string | null };
 type MediaType = "music" | "podcast";
@@ -104,6 +106,9 @@ function BatchUploadPage() {
   const [defaultMediaType, setDefaultMediaType] = useState<MediaType>("music");
   const [sharedArtwork, setSharedArtwork] = useState<File | null>(null);
   const [sharedArtworkError, setSharedArtworkError] = useState<string | null>(null);
+  const [sharedAiOpen, setSharedAiOpen] = useState(false);
+
+  const primaryArtistName = profiles.find((p) => p.id === profileId)?.name ?? "";
 
   // Drafts
   const [drafts, setDrafts] = useState<Draft[]>([]);
@@ -465,6 +470,14 @@ function BatchUploadPage() {
             {sharedArtworkError && (
               <p className="mt-1 text-xs text-destructive">{sharedArtworkError}</p>
             )}
+            <button
+              type="button"
+              onClick={() => setSharedAiOpen(true)}
+              className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs hover:bg-accent"
+            >
+              <Sparkles className="h-3.5 w-3.5 text-primary" />
+              Skapa delat omslag med AI
+            </button>
           </div>
         </div>
       </Section>
@@ -517,6 +530,7 @@ function BatchUploadPage() {
                 key={d.id}
                 d={d}
                 hasSharedArtwork={!!sharedArtwork}
+                artistName={primaryArtistName}
                 onChange={(p) => updateDraft(d.id, p)}
                 onArtwork={(f) => setDraftArtwork(d.id, f)}
                 onRemove={() => removeDraft(d.id)}
@@ -555,6 +569,18 @@ function BatchUploadPage() {
           </button>
         </Section>
       )}
+      <AiArtworkDialog
+        open={sharedAiOpen}
+        aspect="1:1"
+        title="Skapa delat omslag med AI"
+        filenameHint={`shared-${primaryArtistName || "artwork"}`}
+        defaultPrompt={`Abstrakt delat omslag${primaryArtistName ? ` för ${primaryArtistName}` : ""}, konstnärlig komposition som funkar för flera spår, ingen text, inga ansikten`}
+        onClose={() => setSharedAiOpen(false)}
+        onGenerated={(file) => {
+          setSharedArtwork(file);
+          setSharedArtworkError(null);
+        }}
+      />
     </div>
   );
 }
@@ -658,6 +684,7 @@ function SharedArtworkPreview({ file, onRemove }: { file: File; onRemove: () => 
 function DraftRow({
   d,
   hasSharedArtwork,
+  artistName,
   onChange,
   onArtwork,
   onRemove,
@@ -665,12 +692,14 @@ function DraftRow({
 }: {
   d: Draft;
   hasSharedArtwork: boolean;
+  artistName: string;
   onChange: (patch: Partial<Draft>) => void;
   onArtwork: (f: File | null) => void;
   onRemove: () => void;
   onRetryUpload: () => void;
 }) {
   const [artUrl, setArtUrl] = useState<string | null>(null);
+  const [aiOpen, setAiOpen] = useState(false);
   useEffect(() => {
     if (!d.artwork) {
       setArtUrl(null);
@@ -838,6 +867,24 @@ function DraftRow({
             {d.artworkError && (
               <p className="mt-1 text-xs text-destructive">{d.artworkError}</p>
             )}
+            <button
+              type="button"
+              onClick={() => setAiOpen(true)}
+              disabled={disabled}
+              className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-2 py-1 text-xs hover:bg-accent disabled:opacity-50"
+            >
+              <Sparkles className="h-3.5 w-3.5 text-primary" />
+              Skapa med AI
+            </button>
+            <AiArtworkDialog
+              open={aiOpen}
+              aspect="1:1"
+              title="Skapa omslag med AI"
+              filenameHint={`track-${d.title || "untitled"}`}
+              defaultPrompt={`Abstrakt omslag för låten "${d.title || "låten"}"${artistName ? ` av ${artistName}` : ""}, konstnärlig komposition, ingen text, inga ansikten`}
+              onClose={() => setAiOpen(false)}
+              onGenerated={(file) => onArtwork(file)}
+            />
           </div>
         </div>
       </div>

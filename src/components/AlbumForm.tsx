@@ -1,10 +1,11 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { Image as ImageIcon, X, Loader2 } from "lucide-react";
+import { Image as ImageIcon, X, Loader2, Sparkles } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { autoFetchAlbumArtwork } from "@/lib/artwork.functions";
+import { AiArtworkDialog } from "@/components/AiArtworkDialog";
 import {
   ALBUM_IMAGE_ACCEPT,
   ALBUM_IMAGE_EXTS,
@@ -49,6 +50,9 @@ export function AlbumForm({ existing, onSaved, redirectTo, lockArtistId }: Album
   const [artworkError, setArtworkError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [aiOpen, setAiOpen] = useState(false);
+
+  const selectedArtistName = artists.find((a) => a.id === artistId)?.name ?? "";
 
   // Load artist options
   useEffect(() => {
@@ -227,6 +231,14 @@ export function AlbumForm({ existing, onSaved, redirectTo, lockArtistId }: Album
               />
             </label>
           )}
+          <button
+            type="button"
+            onClick={() => setAiOpen(true)}
+            className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-2 py-1 text-xs hover:bg-accent"
+          >
+            <Sparkles className="h-3.5 w-3.5 text-primary" />
+            Skapa med AI
+          </button>
         </div>
 
         <div className="space-y-3">
@@ -320,6 +332,16 @@ export function AlbumForm({ existing, onSaved, redirectTo, lockArtistId }: Album
           {existing ? "Save changes" : "Create album"}
         </button>
       </div>
+
+      <AiArtworkDialog
+        open={aiOpen}
+        aspect="1:1"
+        title="Skapa albumomslag med AI"
+        filenameHint={`album-${title || "untitled"}`}
+        defaultPrompt={`Abstrakt albumomslag för "${title || "albumet"}"${selectedArtistName ? ` av ${selectedArtistName}` : ""}, konstnärlig komposition i ${genre || "samtida"} stil, ingen text, inga ansikten`}
+        onClose={() => setAiOpen(false)}
+        onGenerated={(file) => pickArtwork(file)}
+      />
     </form>
   );
 }

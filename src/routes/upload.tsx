@@ -18,6 +18,7 @@ import { AlbumPicker } from "@/components/AlbumPicker";
 import { nextTrackNumber } from "@/lib/album-helpers";
 import { useServerFn } from "@tanstack/react-start";
 import { autoFetchArtistArtwork } from "@/lib/artwork.functions";
+import { AiArtworkDialog } from "@/components/AiArtworkDialog";
 
 type ArtistProfile = {
   id: string;
@@ -100,6 +101,7 @@ function UploadPage() {
   const [audioPct, setAudioPct] = useState(0);
   const [artworkPct, setArtworkPct] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [aiOpen, setAiOpen] = useState(false);
 
   useEffect(() => {
     let on = true;
@@ -621,6 +623,17 @@ function UploadPage() {
               preview
             />
           </div>
+          <div className="mt-2">
+            <button
+              type="button"
+              onClick={() => setAiOpen(true)}
+              disabled={status === "submitting"}
+              className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs hover:bg-accent disabled:opacity-50"
+            >
+              <Sparkles className="h-3.5 w-3.5 text-primary" />
+              Skapa omslag med AI
+            </button>
+          </div>
 
           {status === "submitting" && (
             <div className="mt-5 space-y-3">
@@ -666,6 +679,15 @@ function UploadPage() {
           </button>
         </Step>
       </form>
+      <AiArtworkDialog
+        open={aiOpen}
+        aspect="1:1"
+        title="Skapa omslag med AI"
+        filenameHint={`track-${title || "untitled"}`}
+        defaultPrompt={`Abstrakt omslag för låten "${title || "låten"}"${primaryProfile ? ` av ${primaryProfile.name}` : ""}, konstnärlig komposition, ingen text, inga ansikten`}
+        onClose={() => setAiOpen(false)}
+        onGenerated={(file) => setArtwork(file)}
+      />
     </div>
   );
 }

@@ -20,6 +20,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ArtistsNewRouteImport } from './routes/artists.new'
 import { Route as ArtistsArtistIdRouteImport } from './routes/artists.$artistId'
+import { Route as ApiGenerateArtworkRouteImport } from './routes/api/generate-artwork'
 import { Route as ApiGenerateArtistImageRouteImport } from './routes/api/generate-artist-image'
 import { Route as AlbumsNewRouteImport } from './routes/albums.new'
 import { Route as AlbumsAlbumIdRouteImport } from './routes/albums.$albumId'
@@ -80,6 +81,11 @@ const ArtistsArtistIdRoute = ArtistsArtistIdRouteImport.update({
   path: '/artists/$artistId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiGenerateArtworkRoute = ApiGenerateArtworkRouteImport.update({
+  id: '/api/generate-artwork',
+  path: '/api/generate-artwork',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiGenerateArtistImageRoute = ApiGenerateArtistImageRouteImport.update({
   id: '/api/generate-artist-image',
   path: '/api/generate-artist-image',
@@ -114,6 +120,7 @@ export interface FileRoutesByFullPath {
   '/albums/$albumId': typeof AlbumsAlbumIdRouteWithChildren
   '/albums/new': typeof AlbumsNewRoute
   '/api/generate-artist-image': typeof ApiGenerateArtistImageRoute
+  '/api/generate-artwork': typeof ApiGenerateArtworkRoute
   '/artists/$artistId': typeof ArtistsArtistIdRoute
   '/artists/new': typeof ArtistsNewRoute
   '/albums/$albumId/edit': typeof AlbumsAlbumIdEditRoute
@@ -131,6 +138,7 @@ export interface FileRoutesByTo {
   '/albums/$albumId': typeof AlbumsAlbumIdRouteWithChildren
   '/albums/new': typeof AlbumsNewRoute
   '/api/generate-artist-image': typeof ApiGenerateArtistImageRoute
+  '/api/generate-artwork': typeof ApiGenerateArtworkRoute
   '/artists/$artistId': typeof ArtistsArtistIdRoute
   '/artists/new': typeof ArtistsNewRoute
   '/albums/$albumId/edit': typeof AlbumsAlbumIdEditRoute
@@ -149,6 +157,7 @@ export interface FileRoutesById {
   '/albums/$albumId': typeof AlbumsAlbumIdRouteWithChildren
   '/albums/new': typeof AlbumsNewRoute
   '/api/generate-artist-image': typeof ApiGenerateArtistImageRoute
+  '/api/generate-artwork': typeof ApiGenerateArtworkRoute
   '/artists/$artistId': typeof ArtistsArtistIdRoute
   '/artists/new': typeof ArtistsNewRoute
   '/albums/$albumId/edit': typeof AlbumsAlbumIdEditRoute
@@ -168,6 +177,7 @@ export interface FileRouteTypes {
     | '/albums/$albumId'
     | '/albums/new'
     | '/api/generate-artist-image'
+    | '/api/generate-artwork'
     | '/artists/$artistId'
     | '/artists/new'
     | '/albums/$albumId/edit'
@@ -185,6 +195,7 @@ export interface FileRouteTypes {
     | '/albums/$albumId'
     | '/albums/new'
     | '/api/generate-artist-image'
+    | '/api/generate-artwork'
     | '/artists/$artistId'
     | '/artists/new'
     | '/albums/$albumId/edit'
@@ -202,6 +213,7 @@ export interface FileRouteTypes {
     | '/albums/$albumId'
     | '/albums/new'
     | '/api/generate-artist-image'
+    | '/api/generate-artwork'
     | '/artists/$artistId'
     | '/artists/new'
     | '/albums/$albumId/edit'
@@ -220,6 +232,7 @@ export interface RootRouteChildren {
   AlbumsAlbumIdRoute: typeof AlbumsAlbumIdRouteWithChildren
   AlbumsNewRoute: typeof AlbumsNewRoute
   ApiGenerateArtistImageRoute: typeof ApiGenerateArtistImageRoute
+  ApiGenerateArtworkRoute: typeof ApiGenerateArtworkRoute
   ArtistsArtistIdRoute: typeof ArtistsArtistIdRoute
   ArtistsNewRoute: typeof ArtistsNewRoute
 }
@@ -303,6 +316,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ArtistsArtistIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/generate-artwork': {
+      id: '/api/generate-artwork'
+      path: '/api/generate-artwork'
+      fullPath: '/api/generate-artwork'
+      preLoaderRoute: typeof ApiGenerateArtworkRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/generate-artist-image': {
       id: '/api/generate-artist-image'
       path: '/api/generate-artist-image'
@@ -359,6 +379,7 @@ const rootRouteChildren: RootRouteChildren = {
   AlbumsAlbumIdRoute: AlbumsAlbumIdRouteWithChildren,
   AlbumsNewRoute: AlbumsNewRoute,
   ApiGenerateArtistImageRoute: ApiGenerateArtistImageRoute,
+  ApiGenerateArtworkRoute: ApiGenerateArtworkRoute,
   ArtistsArtistIdRoute: ArtistsArtistIdRoute,
   ArtistsNewRoute: ArtistsNewRoute,
 }
