@@ -49,7 +49,7 @@ export const parseCatalogImport = createServerFn({ method: "POST" })
         filename: data.filename,
         created_by: userId,
         status: "preview",
-        summary,
+        summary: summary as unknown as Json,
       })
       .select("id")
       .single();
@@ -68,7 +68,7 @@ export const parseCatalogImport = createServerFn({ method: "POST" })
       matched_artist_id: r.matched_artist_id,
       matched_album_id: r.matched_album_id,
       matched_submission_id: r.matched_submission_id,
-      proposed_changes: r.proposed_changes,
+      proposed_changes: r.proposed_changes as unknown as Json,
       notes: r.notes,
     }));
 
@@ -200,7 +200,7 @@ export const applyCatalogImport = createServerFn({ method: "POST" })
       .update({
         status: "applied",
         completed_at: new Date().toISOString(),
-        summary: { applied, skipped, failed, errors },
+        summary: { applied, skipped, failed, errors } as unknown as Json,
       })
       .eq("id", data.runId);
 
