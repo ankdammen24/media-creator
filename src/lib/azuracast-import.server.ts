@@ -189,14 +189,15 @@ export async function performAzuracastImport(
 
       const audioRes = await fetch(dl, { headers: { "X-API-Key": apiKey } });
       if (!audioRes.ok) throw new Error(`download ${audioRes.status}`);
-      const audioBlob = await audioRes.blob();
       const audioContentType = audioRes.headers.get("content-type") || "audio/mpeg";
       const audioPath = `${adminUserId}/azuracast/${azId}.mp3`;
-
-      const upAudio = await supabaseAdmin.storage
-        .from("audio")
-        .upload(audioPath, audioBlob, { contentType: audioContentType, upsert: true });
-      if (upAudio.error) throw new Error(`audio upload: ${upAudio.error.message}`);
+      await streamUploadToStorage({
+        bucket: "audio",
+        path: audioPath,
+        body: audioRes.body,
+        contentType: audioContentType,
+        contentLength: audioRes.headers.get("content-length"),
+      });
 
       // Artwork — frivilligt
       let artworkPath = "";
@@ -205,15 +206,19 @@ export async function performAzuracastImport(
         try {
           const artRes = await fetch(au, { headers: { "X-API-Key": apiKey } });
           if (artRes.ok) {
-            const artBlob = await artRes.blob();
             const ct = artRes.headers.get("content-type") || "image/jpeg";
             const ext = ct.includes("png") ? "png" : ct.includes("webp") ? "webp" : "jpg";
             artworkPath = `${adminUserId}/azuracast/${azId}.${ext}`;
-            const upArt = await supabaseAdmin.storage
-              .from("artwork")
-              .upload(artworkPath, artBlob, { contentType: ct, upsert: true });
-            if (upArt.error) {
-              console.warn(`artwork upload ${azId}: ${upArt.error.message}`);
+            try {
+              await streamUploadToStorage({
+                bucket: "artwork",
+                path: artworkPath,
+                body: artRes.body,
+                contentType: ct,
+                contentLength: artRes.headers.get("content-length"),
+              });
+            } catch (e) {
+              console.warn(`artwork upload ${azId}:`, e);
               artworkPath = "";
             }
           }
