@@ -9,6 +9,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { notifySubmissionDecision } from "@/lib/notifications.functions";
 import { runAzuracastImport } from "@/lib/azuracast-import.functions";
 import { AdminAutoArtwork } from "@/components/AdminAutoArtwork";
+import { AdminOwnershipLog } from "@/components/AdminOwnershipLog";
+import { reassignArtistOwner } from "@/lib/admin-ownership.functions";
 import {
   EditButton,
   EditSubmissionDialog,
