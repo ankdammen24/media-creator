@@ -1,0 +1,2 @@
+ALTER TABLE public.submissions DROP CONSTRAINT IF EXISTS submissions_music_requires_album;
+ALTER TABLE public.submissions ADD CONSTRAINT submissions_music_requires_album CHECK ((media_type = 'music'::media_type AND (album_id IS NULL OR (track_number IS NOT NULL AND track_number >= 1)) AND (album_id IS NOT NULL OR track_number IS NULL)) OR (media_type = 'podcast'::media_type AND album_id IS NULL AND track_number IS NULL));
