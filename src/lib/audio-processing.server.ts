@@ -7,6 +7,37 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 export const AUDIO_BUCKET = "audio";
 
+export type LogLevel = "info" | "warn" | "error";
+
+/**
+ * Append an entry to the admin-only audio_processing_logs table. Best-effort —
+ * logging failures must never break the main processing flow.
+ */
+export async function logAudio(
+  event: string,
+  message: string,
+  opts?: {
+    submissionId?: string | null;
+    level?: LogLevel;
+    payload?: Record<string, unknown>;
+    createdBy?: string | null;
+  },
+) {
+  try {
+    await supabaseAdmin.from("audio_processing_logs").insert({
+      event,
+      message: message.slice(0, 2000),
+      level: opts?.level ?? "info",
+      submission_id: opts?.submissionId ?? null,
+      payload: (opts?.payload ?? {}) as never,
+      created_by: opts?.createdBy ?? null,
+    });
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.error("audio log failed", e);
+  }
+}
+
 export type EmbedMetadata = {
   title?: string | null;
   artist?: string | null;
@@ -97,6 +128,10 @@ export async function dispatchToWorker(submissionId: string, opts?: { force?: bo
       .from("submissions")
       .update({ processing_status: "pending", processing_error: "AUDIO_PROCESSOR_URL not configured" })
       .eq("id", submissionId);
+    await logAudio("skipped", "Worker URL ej konfigurerad — markerad pending.", {
+      submissionId,
+      level: "warn",
+    });
     return { outcome: "skipped" as const, reason: "worker not configured" };
   }
 
@@ -138,6 +173,10 @@ export async function dispatchToWorker(submissionId: string, opts?: { force?: bo
     .from("submissions")
     .update({ processing_status: "processing", processing_error: null })
     .eq("id", submissionId);
+  await logAudio("dispatch", `Skickar jobb till worker (force=${!!opts?.force}).`, {
+    submissionId,
+    payload: { masterPath, webPath, force: !!opts?.force },
+  });
 
   try {
     const res = await fetch(`${url.replace(/\/$/, "")}/process`, {
@@ -152,8 +191,14 @@ export async function dispatchToWorker(submissionId: string, opts?: { force?: bo
         .from("submissions")
         .update({ processing_status: "failed", processing_error: msg })
         .eq("id", submissionId);
+      await logAudio("dispatch_failed", msg, {
+        submissionId,
+        level: "error",
+        payload: { httpStatus: res.status },
+      });
       return { outcome: "failed" as const, reason: msg };
     }
+    await logAudio("queued", "Worker accepterade jobbet.", { submissionId });
     return { outcome: "queued" as const };
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
@@ -161,6 +206,10 @@ export async function dispatchToWorker(submissionId: string, opts?: { force?: bo
       .from("submissions")
       .update({ processing_status: "failed", processing_error: `dispatch: ${msg}` })
       .eq("id", submissionId);
+    await logAudio("dispatch_error", `dispatch: ${msg}`, {
+      submissionId,
+      level: "error",
+    });
     return { outcome: "failed" as const, reason: msg };
   }
 }

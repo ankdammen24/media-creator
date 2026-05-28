@@ -254,6 +254,39 @@ export type Database = {
         }
         Relationships: []
       }
+      audio_processing_logs: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          event: string
+          id: string
+          level: string
+          message: string
+          payload: Json
+          submission_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          event: string
+          id?: string
+          level?: string
+          message: string
+          payload?: Json
+          submission_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          event?: string
+          id?: string
+          level?: string
+          message?: string
+          payload?: Json
+          submission_id?: string | null
+        }
+        Relationships: []
+      }
       import_rows: {
         Row: {
           album_title_raw: string | null

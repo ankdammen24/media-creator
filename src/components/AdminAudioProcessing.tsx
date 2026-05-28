@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Loader2, RefreshCw, Waves, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Loader2, RefreshCw, Waves, AlertCircle, CheckCircle2, ScrollText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   enqueueAudioProcessing,
   enqueueAudioBackfill,
   getAudioProcessingStats,
+  getAudioProcessingLogs,
 } from "@/lib/audio-processing.functions";
 
 type ProcRow = {
@@ -39,11 +40,18 @@ export function AdminAudioProcessing() {
   const retry = useServerFn(enqueueAudioProcessing);
   const backfill = useServerFn(enqueueAudioBackfill);
   const stats = useServerFn(getAudioProcessingStats);
+  const logs = useServerFn(getAudioProcessingLogs);
 
   const statsQuery = useQuery({
     queryKey: ["audio-stats"],
     queryFn: () => stats(),
     refetchInterval: 10_000,
+  });
+
+  const logsQuery = useQuery({
+    queryKey: ["audio-logs"],
+    queryFn: () => logs({ data: { limit: 100 } }),
+    refetchInterval: 8_000,
   });
 
   const listQuery = useQuery({
@@ -70,6 +78,7 @@ export function AdminAudioProcessing() {
       await retry({ data: { submissionId: id, force: true } });
       await qc.invalidateQueries({ queryKey: ["audio-rows"] });
       await qc.invalidateQueries({ queryKey: ["audio-stats"] });
+      await qc.invalidateQueries({ queryKey: ["audio-logs"] });
     } catch (e) {
       window.alert(e instanceof Error ? e.message : String(e));
     } finally {
@@ -87,6 +96,7 @@ export function AdminAudioProcessing() {
       );
       await qc.invalidateQueries({ queryKey: ["audio-rows"] });
       await qc.invalidateQueries({ queryKey: ["audio-stats"] });
+      await qc.invalidateQueries({ queryKey: ["audio-logs"] });
     } catch (e) {
       setBackfillResult(e instanceof Error ? e.message : String(e));
     } finally {
@@ -220,6 +230,53 @@ export function AdminAudioProcessing() {
           <p className="text-xs text-muted-foreground">Inga låtar matchar filtret.</p>
         )}
       </div>
+
+      <div className="rounded-xl border border-border bg-card p-5">
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <ScrollText className="h-4 w-4 text-primary" />
+            <h3 className="text-sm font-semibold">Bearbetningslogg</h3>
+            <span className="text-[10px] text-muted-foreground">(senaste 100)</span>
+          </div>
+          <button
+            onClick={() => qc.invalidateQueries({ queryKey: ["audio-logs"] })}
+            className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs text-muted-foreground hover:bg-secondary hover:text-foreground"
+          >
+            <RefreshCw className="h-3 w-3" />
+            Uppdatera
+          </button>
+        </div>
+        {logsQuery.isLoading ? (
+          <p className="text-xs text-muted-foreground">Laddar logg…</p>
+        ) : logsQuery.data && logsQuery.data.logs.length > 0 ? (
+          <div className="max-h-[420px] overflow-y-auto">
+            <ul className="space-y-1.5 text-xs">
+              {logsQuery.data.logs.map((l) => (
+                <li
+                  key={l.id}
+                  className="flex items-start gap-2 rounded-md border border-border/60 bg-background/40 p-2 font-mono"
+                >
+                  <span className="shrink-0 text-[10px] text-muted-foreground">
+                    {new Date(l.created_at).toLocaleTimeString("sv-SE")}
+                  </span>
+                  <LogLevelDot level={l.level} />
+                  <span className="shrink-0 text-[10px] uppercase tracking-wide text-muted-foreground">
+                    {l.event}
+                  </span>
+                  <span className="flex-1 break-words text-foreground">{l.message}</span>
+                  {l.submission_id && (
+                    <span className="shrink-0 text-[10px] text-muted-foreground">
+                      {l.submission_id.slice(0, 8)}
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : (
+          <p className="text-xs text-muted-foreground">Inga logghändelser ännu.</p>
+        )}
+      </div>
     </div>
   );
 }
@@ -254,4 +311,14 @@ function StatusBadge({ status }: { status: ProcRow["processing_status"] }) {
       {status}
     </span>
   );
+}
+
+function LogLevelDot({ level }: { level: string }) {
+  const color =
+    level === "error"
+      ? "bg-destructive"
+      : level === "warn"
+        ? "bg-amber-400"
+        : "bg-emerald-400";
+  return <span className={`mt-1 h-1.5 w-1.5 shrink-0 rounded-full ${color}`} />;
 }

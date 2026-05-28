@@ -5,6 +5,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { createHmac, timingSafeEqual } from "crypto";
 import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { logAudio } from "@/lib/audio-processing.server";
 
 const Payload = z.object({
   submissionId: z.string().uuid(),
@@ -72,6 +73,10 @@ export const Route = createFileRoute("/api/public/hooks/audio-processed")({
               processed_at: new Date().toISOString(),
             })
             .eq("id", p.submissionId);
+          await logAudio("callback_failed", p.error ?? "processing failed", {
+            submissionId: p.submissionId,
+            level: "error",
+          });
           return Response.json({ ok: true, status: "failed" });
         }
 
@@ -95,6 +100,14 @@ export const Route = createFileRoute("/api/public/hooks/audio-processed")({
         if (error) {
           return new Response(`db update: ${error.message}`, { status: 500 });
         }
+        await logAudio("callback_done", "Master + web mottagna från worker.", {
+          submissionId: p.submissionId,
+          payload: {
+            masterPath: p.masterPath,
+            webPath: p.webPath,
+            loudness: p.loudness ?? null,
+          },
+        });
         return Response.json({ ok: true });
       },
     },
