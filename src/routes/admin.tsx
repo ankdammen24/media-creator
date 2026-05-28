@@ -192,7 +192,7 @@ function AdminPage() {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [filter, setFilter] = useState<"pending_review" | "approved" | "rejected">("pending_review");
-  const [tab, setTab] = useState<"submissions" | "artists">("submissions");
+  const [tab, setTab] = useState<"submissions" | "artists" | "import">("submissions");
   const notify = useServerFn(notifySubmissionDecision);
 
   const { data, isLoading, refetch } = useQuery({
@@ -270,9 +270,19 @@ function AdminPage() {
         >
           <Users className="h-3.5 w-3.5" /> Artists
         </button>
+        <button
+          onClick={() => setTab("import")}
+          className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition ${
+            tab === "import" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Radio className="h-3.5 w-3.5" /> Import Radio Uppsala
+        </button>
       </div>
 
-      {tab === "artists" ? (
+      {tab === "import" ? (
+        <RadioUppsalaImport />
+      ) : tab === "artists" ? (
         <ArtistsAdmin />
       ) : (
         <>
