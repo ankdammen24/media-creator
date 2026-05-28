@@ -1,7 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Music2, Mic, Loader2 } from "lucide-react";
+import { Music2, Mic, Loader2, Disc3 } from "lucide-react";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
@@ -55,10 +55,20 @@ function MyPage() {
   return (
     <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
       <div className="mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight">My submissions</h1>
-        <p className="text-xs text-muted-foreground">
-          Edit details, replace the artwork, or delete a submission.
-        </p>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight">My submissions</h1>
+            <p className="text-xs text-muted-foreground">
+              Edit details, replace the artwork, or delete a submission.
+            </p>
+          </div>
+          <Link
+            to="/albums/new"
+            className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs hover:bg-accent"
+          >
+            <Disc3 className="h-3.5 w-3.5" /> Skapa album
+          </Link>
+        </div>
       </div>
 
       {isLoading ? (
