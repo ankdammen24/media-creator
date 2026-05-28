@@ -7,6 +7,7 @@ import { EmptyState, ErrorState } from "@/components/StateViews";
 import { supabase } from "@/integrations/supabase/client";
 import { zodValidator, fallback } from "@tanstack/zod-adapter";
 import { z } from "zod";
+import { effectiveArtworkPath } from "@/lib/album-helpers";
 
 const catalogSearchSchema = z.object({
   focus: fallback(z.string(), "").optional(),
@@ -53,13 +54,14 @@ type CatalogItem = {
   created_at: string;
   artist_profile_id: string;
   artist_profiles: { id: string; name: string } | null;
+  albums: { artwork_path: string | null } | null;
 };
 
 async function fetchApproved(): Promise<CatalogItem[]> {
   const { data, error } = await supabase
     .from("submissions")
     .select(
-      "id, title, description, media_type, artwork_path, audio_path, created_at, artist_profile_id, artist_profiles!submissions_artist_profile_id_fkey(id, name)",
+      "id, title, description, media_type, artwork_path, audio_path, created_at, artist_profile_id, artist_profiles!submissions_artist_profile_id_fkey(id, name), albums(artwork_path)",
     )
     .eq("status", "approved")
     .order("created_at", { ascending: false });
@@ -227,7 +229,7 @@ export function CatalogCard({ item }: { item: CatalogItem }) {
     <article className="overflow-hidden rounded-lg border border-border bg-card">
       <div className="aspect-square w-full bg-secondary">
         <img
-          src={artworkUrl(item.artwork_path)}
+          src={artworkUrl(effectiveArtworkPath(item) ?? item.artwork_path)}
           alt={item.title}
           className="h-full w-full object-cover"
           loading="lazy"
