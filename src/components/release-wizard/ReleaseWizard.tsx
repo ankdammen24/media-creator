@@ -520,8 +520,12 @@ export function ReleaseWizard() {
           Release submitted for review
         </h1>
         <p className="mx-auto mt-3 max-w-md text-sm text-muted-foreground">
-          Vi granskar din release och hör av oss inom kort. Du kan följa statusen
-          under "Mine".
+          Releasen har sparats i Media Rosenqvist Catalog och skickats till Radio
+          Uppsala för granskning. Du kan följa statusen under "Mine".
+        </p>
+        <p className="mx-auto mt-3 max-w-md text-xs text-amber-700 dark:text-amber-300">
+          Obs: distribution till Spotify, Apple Music och andra streamingtjänster
+          är inte aktiv — detta är en demo-inskickning.
         </p>
         <div className="mt-8 flex justify-center gap-3">
           <button
