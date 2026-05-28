@@ -509,6 +509,7 @@ function SingleCard({
           <p className="text-[11px] text-muted-foreground">
             {isCurrent ? "Spelas nu" : "Tryck för att spela"}
           </p>
+          <EditorTrackMeta meta={item} />
         </div>
       </div>
     </li>
