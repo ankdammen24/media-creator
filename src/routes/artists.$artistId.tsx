@@ -19,6 +19,12 @@ import { ArtistImageManager, type ArtistImage } from "@/components/ArtistImageMa
 import { useEditorRole } from "@/lib/useEditorRole";
 import { usePlayer, type PlayerTrack } from "@/components/player/PlayerProvider";
 import { ALBUM_TYPE_LABELS, type AlbumType } from "@/lib/album-helpers";
+import {
+  EditButton,
+  EditSubmissionDialog,
+  type EditableSubmission,
+} from "@/components/SubmissionActions";
+import { useAuth as _useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/artists/$artistId")({
   head: () => ({
@@ -39,6 +45,8 @@ type ArtistItem = {
   description: string | null;
   created_at: string;
   album_id: string | null;
+  user_id: string;
+  status: string;
   albums: { artwork_path: string | null } | null;
 };
 
@@ -82,7 +90,7 @@ function ArtistPage() {
         supabase
           .from("submission_artists")
           .select(
-            "submission_id, submissions!inner(id, title, media_type, artwork_path, audio_path, description, created_at, status, album_id, albums(artwork_path))",
+            "submission_id, submissions!inner(id, title, media_type, artwork_path, audio_path, description, created_at, status, album_id, user_id, albums(artwork_path))",
           )
           .eq("artist_profile_id", artistId)
           .eq("submissions.status", "approved"),
