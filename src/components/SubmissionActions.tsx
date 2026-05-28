@@ -250,17 +250,13 @@ export function DeleteSubmissionButton({
   onDeleted: () => void;
 }) {
   const [busy, setBusy] = useState(false);
+  const deleteFn = useServerFn(deleteSubmissionFn);
 
   async function remove() {
     if (!window.confirm(`Delete "${sub.title}"? This cannot be undone.`)) return;
     setBusy(true);
     try {
-      const { error } = await supabase.from("submissions").delete().eq("id", sub.id);
-      if (error) throw error;
-      await Promise.all([
-        supabase.storage.from("audio").remove([sub.audio_path]),
-        supabase.storage.from("artwork").remove([sub.artwork_path]),
-      ]);
+      await deleteFn({ data: { submissionId: sub.id } });
       onDeleted();
     } catch (err) {
       window.alert(err instanceof Error ? err.message : "Delete failed");
