@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Loader2, RefreshCw, Waves, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Loader2, RefreshCw, Waves, AlertCircle, CheckCircle2, ScrollText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   enqueueAudioProcessing,
   enqueueAudioBackfill,
   getAudioProcessingStats,
+  getAudioProcessingLogs,
 } from "@/lib/audio-processing.functions";
 
 type ProcRow = {
@@ -39,11 +40,18 @@ export function AdminAudioProcessing() {
   const retry = useServerFn(enqueueAudioProcessing);
   const backfill = useServerFn(enqueueAudioBackfill);
   const stats = useServerFn(getAudioProcessingStats);
+  const logs = useServerFn(getAudioProcessingLogs);
 
   const statsQuery = useQuery({
     queryKey: ["audio-stats"],
     queryFn: () => stats(),
     refetchInterval: 10_000,
+  });
+
+  const logsQuery = useQuery({
+    queryKey: ["audio-logs"],
+    queryFn: () => logs({ data: { limit: 100 } }),
+    refetchInterval: 8_000,
   });
 
   const listQuery = useQuery({
@@ -70,6 +78,7 @@ export function AdminAudioProcessing() {
       await retry({ data: { submissionId: id, force: true } });
       await qc.invalidateQueries({ queryKey: ["audio-rows"] });
       await qc.invalidateQueries({ queryKey: ["audio-stats"] });
+      await qc.invalidateQueries({ queryKey: ["audio-logs"] });
     } catch (e) {
       window.alert(e instanceof Error ? e.message : String(e));
     } finally {
@@ -87,6 +96,7 @@ export function AdminAudioProcessing() {
       );
       await qc.invalidateQueries({ queryKey: ["audio-rows"] });
       await qc.invalidateQueries({ queryKey: ["audio-stats"] });
+      await qc.invalidateQueries({ queryKey: ["audio-logs"] });
     } catch (e) {
       setBackfillResult(e instanceof Error ? e.message : String(e));
     } finally {
