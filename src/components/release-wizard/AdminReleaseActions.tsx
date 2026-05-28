@@ -25,11 +25,13 @@ export function AdminReleaseActions({
     setBusy(true);
     setErr(null);
     try {
-      const patch: Record<string, unknown> = {
+      const patch = {
         status: next,
         internal_notes: notes.trim() || null,
+        ...(next === "published"
+          ? { published_at: new Date().toISOString() }
+          : {}),
       };
-      if (next === "published") patch.published_at = new Date().toISOString();
       const { error } = await supabase
         .from("albums")
         .update(patch)
