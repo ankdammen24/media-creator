@@ -16,6 +16,8 @@ import {
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
+import { AlbumPicker } from "@/components/AlbumPicker";
+import { nextTrackNumber } from "@/lib/album-helpers";
 
 type ArtistProfile = { id: string; name: string; bio: string | null };
 type MediaType = "music" | "podcast";
@@ -92,6 +94,11 @@ function BatchUploadPage() {
   const [profilesLoading, setProfilesLoading] = useState(true);
   const [profilesError, setProfilesError] = useState<string | null>(null);
   const [profileId, setProfileId] = useState<string>("");
+  const [albumId, setAlbumId] = useState<string>("");
+
+  useEffect(() => {
+    setAlbumId("");
+  }, [profileId]);
 
   // Shared metadata defaults
   const [defaultMediaType, setDefaultMediaType] = useState<MediaType>("music");
@@ -261,6 +268,11 @@ function BatchUploadPage() {
       setGlobalError("Choose an artist profile first.");
       return;
     }
+    const needsAlbum = drafts.some((d) => d.selected && d.mediaType === "music");
+    if (needsAlbum && !albumId) {
+      setGlobalError("Pick an album for the music tracks.");
+      return;
+    }
     setGlobalError(null);
     setSubmitSummary(null);
 
@@ -309,6 +321,9 @@ function BatchUploadPage() {
             audio_path: d.audioPath!,
             artwork_path: artworkPath,
             status: "pending_review",
+            album_id: d.mediaType === "music" ? albumId : null,
+            track_number:
+              d.mediaType === "music" ? await nextTrackNumber(albumId) : null,
           })
           .select("id")
           .single();
@@ -395,6 +410,17 @@ function BatchUploadPage() {
 
       {/* Shared settings */}
       <Section title="2. Shared settings (optional)" icon={<ImageIcon className="h-4 w-4" />}>
+        {profileId && (
+          <div className="mb-4 rounded-lg border border-border bg-background/40 p-3">
+            <label className="mb-2 block text-sm font-medium">
+              Album for music tracks <span className="text-destructive">*</span>
+            </label>
+            <AlbumPicker artistId={profileId} value={albumId} onChange={setAlbumId} />
+            <p className="mt-2 text-xs text-muted-foreground">
+              Required when uploading music. Track numbers are auto-assigned.
+            </p>
+          </div>
+        )}
         <div className="grid gap-4 md:grid-cols-2">
           <div>
             <span className="mb-2 block text-sm font-medium">Default media type for new files</span>

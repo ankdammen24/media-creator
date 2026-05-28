@@ -14,6 +14,8 @@ import {
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
+import { AlbumPicker } from "@/components/AlbumPicker";
+import { nextTrackNumber } from "@/lib/album-helpers";
 
 type ArtistProfile = {
   id: string;
@@ -81,6 +83,14 @@ function UploadPage() {
   const [description, setDescription] = useState("");
   const [audio, setAudio] = useState<File | null>(null);
   const [artwork, setArtwork] = useState<File | null>(null);
+  const [albumId, setAlbumId] = useState<string>("");
+  const [trackNumberInput, setTrackNumberInput] = useState<string>("");
+
+  // Reset album when artist or media type changes
+  useEffect(() => {
+    setAlbumId("");
+    setTrackNumberInput("");
+  }, [profileIds[0], mediaType]);
 
   const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
   const [phase, setPhase] = useState<"" | "presign" | "audio" | "artwork" | "complete">("");
@@ -141,7 +151,8 @@ function UploadPage() {
     !!audio &&
     !audioError &&
     !!artwork &&
-    !artworkError;
+    !artworkError &&
+    (mediaType !== "music" || !!albumId);
 
   function resetForm() {
     setMediaType("");
@@ -149,6 +160,8 @@ function UploadPage() {
     setDescription("");
     setAudio(null);
     setArtwork(null);
+    setAlbumId("");
+    setTrackNumberInput("");
     setStatus("idle");
     setPhase("");
     setAudioPct(0);
@@ -224,6 +237,14 @@ function UploadPage() {
 
       setPhase("complete");
       const primaryId = profileIds[0];
+      const isMusic = mediaType === "music";
+      let resolvedTrackNumber: number | null = null;
+      if (isMusic && albumId) {
+        const parsed = parseInt(trackNumberInput, 10);
+        resolvedTrackNumber = Number.isFinite(parsed) && parsed > 0
+          ? parsed
+          : await nextTrackNumber(albumId);
+      }
       const { data: inserted, error: insertErr } = await supabase
         .from("submissions")
         .insert({
@@ -235,6 +256,8 @@ function UploadPage() {
           audio_path: audioPath,
           artwork_path: artworkPath,
           status: "pending_review",
+          album_id: isMusic ? albumId : null,
+          track_number: isMusic ? resolvedTrackNumber : null,
         })
         .select("id")
         .single();
@@ -530,6 +553,35 @@ function UploadPage() {
                 className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/40 disabled:opacity-60"
               />
             </div>
+            {mediaType === "music" && (
+              <div className="rounded-lg border border-border bg-background/40 p-3">
+                <label className="mb-2 block text-sm font-medium">
+                  Album <span className="text-destructive">*</span>
+                </label>
+                <AlbumPicker
+                  artistId={profileIds[0] ?? null}
+                  value={albumId}
+                  onChange={setAlbumId}
+                  disabled={status === "submitting"}
+                />
+                {albumId && (
+                  <div className="mt-3">
+                    <label className="mb-1 block text-xs font-medium">
+                      Track number{" "}
+                      <span className="font-normal text-muted-foreground">(auto if blank)</span>
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      value={trackNumberInput}
+                      onChange={(e) => setTrackNumberInput(e.target.value)}
+                      placeholder="Auto"
+                      className="w-32 rounded-md border border-border bg-background px-3 py-2 text-sm"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </Step>
 

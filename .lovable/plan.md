@@ -1,63 +1,85 @@
 ## Mål
 
-Förstasidan ska kännas levande — när man kommer in ser man direkt vad som spelas, kan trycka play på vilket spår eller avsnitt som helst, och har en mini-spelare i botten som följer med när man bläddrar vidare.
+Introducera **Album** som en förstaklass-entitet: varje musik-submission måste tillhöra ett album (även singlar), album har egen artwork, beskrivning, releasedatum, typ och genre, och kan skapas av artist- eller admin-användare. Poddar berörs ej.
 
-## 1. Hero — stor "Now Playing"
+## Datamodell
 
-Ersätt dagens lilla hero med en bred hero överst som visar utvalt spår (senaste godkända musik-submission):
+Ny tabell `albums`:
+- `id`, `user_id` (ägare), `artist_profile_id` (en artist per album)
+- `title`, `description`, `release_date` (date, nullable)
+- `album_type` enum: `album` | `ep` | `single` | `compilation`
+- `genre` (text, nullable, fritext tills vidare)
+- `artwork_path` (storage-path i `artwork`-bucket, nullable — får då ärva sitt första spårs artwork i UI:t)
+- `created_at`, `updated_at`
 
-- Stort omslag (kvadrat) till vänster, suddig blow-up av samma omslag som bakgrund i hela hero-sektionen
-- Titel, artistnamn (länk till artistsida), "MUSIC"-badge
-- Stor primär play-knapp → börjar spela spåret i den globala spelaren
-- Sekundära knappar: "Browse catalog" och "Submit media"
-- Hero är responsiv: bild ovanför text på mobil
+Ändring av `submissions`:
+- Ny kolumn `album_id uuid` — **obligatorisk för `media_type='music'`**, måste vara `NULL` för `media_type='podcast'` (CHECK-villkor).
+- Ny kolumn `track_number int` — obligatorisk för musik, NULL för podd.
+- UNIQUE(`album_id`, `track_number`) så ordningen är entydig.
+- Constraint: `submissions.artist_profile_id` på musik måste matcha `albums.artist_profile_id` (valideras i app-lager + trigger).
 
-## 2. Globalt uppspelningssystem
+RLS för `albums`:
+- Publik SELECT (album är bara en container; sp ren styr exponering, men för att kunna lista album behöver de vara läsbara).
+- INSERT/UPDATE/DELETE: ägare (`auth.uid() = user_id`) eller admin.
+- Artist-koppling: precis som `submissions` — `artist_profile_id` måste ägas av användaren vid insert.
 
-Bygg en lättviktig spelar-kontext (`PlayerProvider`) som hanterar nuvarande spår, paus/play och kö. Två synpunkter:
+Migration backfillar befintliga musiksp r:
+- För varje befintlig musik-submission utan album, skapa ett `single`-album med samma titel/artist/artwork, sätt `album_id` och `track_number=1`. Därefter sätts kolumnerna NOT NULL för musik via CHECK.
 
-- **Inline play-knapp på varje spår-kort** (hero, "Nyaste spår", "Senaste podd"). Klick → laddar spåret i den globala spelaren och börjar spela. Andra kort visar pausläge.
-- **Persistent mini-spelare** fäst längst ner på alla sidor när något är laddat. Visar omslag, titel, artist, play/paus, progress-bar och tid. Stänger man inte den så fortsätter den spela vid navigation.
+## UI-flöden
 
-Audio-URL hämtas via `supabase.storage.from("audio").createSignedUrl(...)` precis som idag i `CatalogCard`.
+**1. Albumhantering (ny route `/albums/new` och `/albums/$albumId/edit`)**
+- Formulär: titel, artist (dropdown över egna artist-profiler, admin ser alla), beskrivning, releasedatum, typ, genre, artwork-uppladdning.
+- Knapp "Skapa album" i `/upload`-sidan och i artist-profilen.
+- Admin- och artistägare kan redigera/radera album (radering blockeras om album har sp r — be användaren ta bort sp ren först).
 
-## 3. Nya sektioner under hero
+**2. `/upload.tsx` (musik-läge)**
+- Ny obligatorisk dropdown "Album" som listar användarens album för vald artist + "+ Skapa nytt album"-länk (öppnar `/albums/new?returnTo=/upload`).
+- Nytt fält "Spårnummer" (auto-föreslår nästa lediga nummer i albumet).
+- För podd: ingen album-väljare (oförändrat).
+- `upload-batch.tsx` får samma album-väljare och auto-inkrementerande spårnummer per fil.
 
-- **Nyaste spår** — 8 senaste godkända med `media_type = music`, befintlig grid men varje kort får inline play-knapp som overlay på omslaget
-- **Senaste poddavsnitt** — egen sektion, 4 senaste godkända med `media_type = podcast`, lite bredare kort med beskrivning
-- **Utvalda artister** — rad med 6–8 artistprofiler (avatar + namn) som länkar till `/artists/$artistId`. Hämtas från artister som har minst en godkänd submission
+**3. Album-detaljsida (ny route `/albums/$albumId`)**
+- Visar artwork, titel, artist, beskrivning, typ, releasedatum, genre.
+- Spårlista (endast `approved`-spår för allmänheten; ägare/admin ser även pending/rejected) sorterad på `track_number`, med inline `PlayButton`.
+- "Spela hela albumet"-knapp (sätter första sp ret i global player; köhantering ligger utanför scope).
 
-## 4. Styling
+**4. Katalog och artistsida**
+- `/catalog.tsx`: lägg till filter "Album" + visningsläge som grupperar musik per album.
+- `/artists/$artistId.tsx`: ny sektion "Album" ovanför sp rlistan, med kort som länkar till `/albums/$albumId`.
+- `/index.tsx`: lägg till sektion "Nyaste album" (4–6 senaste album som har minst ett approved-spår).
 
-Behåll befintliga design-tokens (`bg-card`, `border-border`, `primary`). Lägg till lite mer visuell tyngd i hero med:
+**5. Mina submissions (`/my-submissions.tsx`)**
+- Ny flik/sektion "Mina album" med skapa/redigera/radera.
 
-- Suddig artwork-bakgrund med overlay-gradient mot `background`
-- Mjuk skugga under spelarkortet
-- Mini-spelaren använder `backdrop-blur` + `bg-card/80`
+## Kod-/filändringar
 
-## Tekniska detaljer
+Nya filer:
+- `src/routes/albums.new.tsx`, `src/routes/albums.$albumId.tsx`, `src/routes/albums.$albumId.edit.tsx`
+- `src/components/AlbumForm.tsx` (delas av new/edit)
+- `src/components/AlbumPicker.tsx` (dropdown + "skapa nytt"-länk för upload-flödena)
+- Migration `…_albums.sql`
 
-**Nya filer:**
-- `src/components/player/PlayerProvider.tsx` — React Context med `currentTrack`, `isPlaying`, `play(track)`, `toggle()`, `seek()`. Håller ett internt `<audio>`-element via ref.
-- `src/components/player/MiniPlayer.tsx` — fixed bottom bar, läser från contexten
-- `src/components/player/PlayButton.tsx` — återanvändbar knapp som visar play/paus beroende på om kortet matchar `currentTrack`
-- `src/components/home/Hero.tsx` — ny hero med utvalt spår
-- `src/components/home/LatestMusic.tsx`, `LatestPodcasts.tsx`, `FeaturedArtists.tsx` — sektioner
+Ändrade filer:
+- `src/routes/upload.tsx`, `src/routes/upload-batch.tsx` — album-picker + track_number
+- `src/routes/catalog.tsx` — album-filter, "visa per album"
+- `src/routes/artists.$artistId.tsx` — album-sektion
+- `src/routes/index.tsx` — "Nyaste album"-sektion
+- `src/routes/my-submissions.tsx` — egna album
+- `src/routes/admin.tsx` — admin ser alla album, kan redigera/radera
+- `src/components/GlobalSearch.tsx` — sök även i `albums.title`
 
-**Ändrade filer:**
-- `src/routes/__root.tsx` — wrappa `<Outlet />` i `<PlayerProvider>` och rendera `<MiniPlayer />` utanför outlet
-- `src/routes/index.tsx` — byt ut nuvarande layout mot ny hero + tre sektioner
-- `src/routes/catalog.tsx` — använd `PlayButton` istället för `<audio controls>` (frivilligt men konsekvent)
+## Granskning
 
-**Data-queries (alla i `src/lib/queries.ts`):**
-- `featuredTrackQuery` — senaste godkända music-submission
-- `latestMusicQuery(8)`, `latestPodcastsQuery(4)`
-- `featuredArtistsQuery(8)` — distinct artist_profile_id från godkända submissions, joina mot `artist_profiles`
-
-Alla använder den nya FK-hinten `artist_profiles!submissions_artist_profile_id_fkey`.
+Inget nytt admin-flöde för album: de blir publikt synliga så fort de finns, men dyker upp i katalog/hero först när minst ett spår är `approved`. Admin kan fortfarande dölja ett album genom att radera det eller dess sp r.
 
 ## Utanför scope
 
-- Spellistor/kö-hantering (bara "spela detta" för nu)
-- Auto-spela vid sidladdning (kräver user gesture)
-- AzuraCast live-radio-widget (du valde bort den)
+- Album-status/granskning (du valde "endast sp r granskas").
+- Podd-grupperingar (shows/säsonger).
+- Spellistor och kö i global player.
+- Fördefinierade genrer / multi-genre — fritext räcker tills vidare.
+
+## Sammanfattning av "vad mer är logiskt"
+
+Utöver dina val har jag lagt till: `track_number` med UNIQUE per album, backfill-migration för befintliga sp r, konsistens-check så album-artist matchar sp r-artist, album-sektion på hem-/artist-/katalog-sidor, och album i global sökning. Säg till om något ska tas bort eller läggas till innan jag bygger.
