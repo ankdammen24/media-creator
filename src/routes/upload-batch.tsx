@@ -569,6 +569,18 @@ function BatchUploadPage() {
           </button>
         </Section>
       )}
+      <AiArtworkDialog
+        open={sharedAiOpen}
+        aspect="1:1"
+        title="Skapa delat omslag med AI"
+        filenameHint={`shared-${primaryArtistName || "artwork"}`}
+        defaultPrompt={`Abstrakt delat omslag${primaryArtistName ? ` för ${primaryArtistName}` : ""}, konstnärlig komposition som funkar för flera spår, ingen text, inga ansikten`}
+        onClose={() => setSharedAiOpen(false)}
+        onGenerated={(file) => {
+          setSharedArtwork(file);
+          setSharedArtworkError(null);
+        }}
+      />
     </div>
   );
 }
