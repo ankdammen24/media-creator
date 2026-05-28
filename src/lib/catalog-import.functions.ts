@@ -136,11 +136,11 @@ export const applyCatalogImport = createServerFn({ method: "POST" })
         continue;
       }
 
-      const appliedChanges: Record<string, unknown> = {};
+      const appliedChanges: Record<string, { before: string | null; after: string }> = {};
       try {
         // Group by table
-        const albumUpdates: Record<string, unknown> = {};
-        const subUpdates: Record<string, unknown> = {};
+        const albumUpdates: Record<string, string> = {};
+        const subUpdates: Record<string, string> = {};
         for (const [, p] of Object.entries(proposals)) {
           if (p.before !== null && action !== "overwrite") continue; // skip overwrite unless allowed
           if (p.table === "albums") albumUpdates[p.field] = p.after;
@@ -149,20 +149,26 @@ export const applyCatalogImport = createServerFn({ method: "POST" })
         }
 
         if (Object.keys(albumUpdates).length > 0 && row.matched_album_id) {
-          albumUpdates.external_catalog_source = "xlsx";
-          albumUpdates.metadata_imported_at = new Date().toISOString();
+          const payload = {
+            ...albumUpdates,
+            external_catalog_source: "xlsx",
+            metadata_imported_at: new Date().toISOString(),
+          };
           const { error } = await supabaseAdmin
             .from("albums")
-            .update(albumUpdates)
+            .update(payload)
             .eq("id", row.matched_album_id);
           if (error) throw new Error(error.message);
         }
         if (Object.keys(subUpdates).length > 0 && row.matched_submission_id) {
-          subUpdates.external_catalog_source = "xlsx";
-          subUpdates.metadata_imported_at = new Date().toISOString();
+          const payload = {
+            ...subUpdates,
+            external_catalog_source: "xlsx",
+            metadata_imported_at: new Date().toISOString(),
+          };
           const { error } = await supabaseAdmin
             .from("submissions")
-            .update(subUpdates)
+            .update(payload)
             .eq("id", row.matched_submission_id);
           if (error) throw new Error(error.message);
         }
@@ -171,7 +177,7 @@ export const applyCatalogImport = createServerFn({ method: "POST" })
           .from("import_rows")
           .update({
             match_status: Object.keys(appliedChanges).length > 0 ? "matched" : "skipped",
-            applied_changes: appliedChanges,
+            applied_changes: appliedChanges as unknown as Record<string, string>,
           })
           .eq("id", row.id);
 
