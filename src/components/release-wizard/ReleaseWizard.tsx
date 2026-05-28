@@ -563,6 +563,8 @@ export function ReleaseWizard() {
           <ReleaseStatusBadge status={state.status} size="md" />
         </div>
 
+        <DemoNotice className="mb-8" />
+
         <div className="grid gap-8 lg:grid-cols-[260px_1fr]">
           {/* Sidebar (desktop) */}
           <aside className="hidden lg:block">
