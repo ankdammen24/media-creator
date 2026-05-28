@@ -1764,6 +1764,10 @@ function StepReview({
 
         <div className="border-t border-border p-6">
           <h4 className="mb-3 text-sm font-semibold">Distribution</h4>
+          <p className="mb-3 text-xs text-amber-700 dark:text-amber-300">
+            Endast referens — ingen faktisk distribution till streamingtjänster
+            sker i demo-läget. Releasen skickas till katalogen och Radio Uppsala.
+          </p>
           <div className="flex flex-wrap gap-1.5">
             {state.platforms.length === 0 ? (
               <span className="text-xs text-muted-foreground">None selected</span>
