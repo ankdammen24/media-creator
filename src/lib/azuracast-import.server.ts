@@ -146,6 +146,71 @@ async function ensureArtistProfile(
   return created.id;
 }
 
+function albumTitleForTrack(file: AzFile, trackTitle: string): string {
+  return (file.album && file.album.trim()) || trackTitle;
+}
+
+async function ensureAlbum(
+  adminUserId: string,
+  artistProfileId: string,
+  title: string,
+  artworkPath: string,
+  cache: Map<string, string>,
+): Promise<string> {
+  const albumTitle = title.trim() || "Utan titel";
+  const key = `${artistProfileId}:${albumTitle.toLowerCase()}`;
+  const cached = cache.get(key);
+  if (cached) return cached;
+
+  const { data: existing, error: findErr } = await supabaseAdmin
+    .from("albums")
+    .select("id, title")
+    .eq("artist_profile_id", artistProfileId)
+    .ilike("title", albumTitle)
+    .limit(1);
+  if (findErr) throw new Error(`album lookup: ${findErr.message}`);
+  if (existing && existing.length > 0) {
+    cache.set(key, existing[0].id);
+    return existing[0].id;
+  }
+
+  const { data: created, error: insErr } = await supabaseAdmin
+    .from("albums")
+    .insert({
+      title: albumTitle,
+      user_id: adminUserId,
+      artist_profile_id: artistProfileId,
+      album_type: title === albumTitle ? "album" : "single",
+      artwork_path: artworkPath || null,
+    })
+    .select("id")
+    .single();
+  if (insErr) throw new Error(`album insert: ${insErr.message}`);
+  cache.set(key, created.id);
+  return created.id;
+}
+
+async function nextTrackNumber(albumId: string, cache: Map<string, number>): Promise<number> {
+  const cached = cache.get(albumId);
+  if (cached != null) {
+    const next = cached + 1;
+    cache.set(albumId, next);
+    return next;
+  }
+
+  const { data, error } = await supabaseAdmin
+    .from("submissions")
+    .select("track_number")
+    .eq("album_id", albumId)
+    .order("track_number", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw new Error(`track number lookup: ${error.message}`);
+  const next = ((data?.track_number ?? 0) as number) + 1;
+  cache.set(albumId, next);
+  return next;
+}
+
 export async function performAzuracastImport(
   adminUserId: string,
   opts: { dryRun?: boolean; limit?: number } = {},
@@ -197,6 +262,8 @@ export async function performAzuracastImport(
   }
 
   const artistCache = new Map<string, string>();
+  const albumCache = new Map<string, string>();
+  const trackNumberCache = new Map<string, number>();
   let processed = 0;
 
   for (const file of files) {
@@ -272,6 +339,14 @@ export async function performAzuracastImport(
 
       const artistId = await ensureArtistProfile(adminUserId, file.artist, artistCache);
       const title = (file.title && file.title.trim()) || fileBasename(file.path, "Utan titel");
+      const albumId = await ensureAlbum(
+        adminUserId,
+        artistId,
+        albumTitleForTrack(file, title),
+        artworkPath,
+        albumCache,
+      );
+      const trackNumber = await nextTrackNumber(albumId, trackNumberCache);
       const now = new Date().toISOString();
 
       const { error: insErr } = await supabaseAdmin.from("submissions").insert({
@@ -283,6 +358,8 @@ export async function performAzuracastImport(
         artwork_path: artworkPath || "",
         user_id: adminUserId,
         artist_profile_id: artistId,
+        album_id: albumId,
+        track_number: trackNumber,
         approved_at: now,
         approved_by: adminUserId,
         reviewed_at: now,
