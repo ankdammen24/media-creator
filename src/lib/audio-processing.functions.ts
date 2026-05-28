@@ -33,14 +33,10 @@ export const enqueueAudioProcessing = createServerFn({ method: "POST" })
       .maybeSingle();
     if (error) throw new Error(error.message);
     if (!sub) throw new Error("Submission saknas.");
-    if (sub.user_id !== userId) {
-      const { data: roles } = await supabaseAdmin
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", userId)
-        .in("role", ["admin", "artist"]);
-      const allowed = (roles ?? []).some((r) => r.role === "admin" || r.role === "artist");
-      if (!allowed) throw new Error("Du saknar behörighet att köa bearbetning.");
+    // Endast ägaren av låten eller en admin får köa bearbetning. Artist-rollen
+    // ger INTE rätt att bearbeta andra användares låtar (cross-user isolation).
+    if (sub.user_id !== userId && !(await isAdmin(userId))) {
+      throw new Error("Du saknar behörighet att köa bearbetning.");
     }
     await logAudio("enqueue", `Begäran om bearbetning (force=${!!data.force}).`, {
       submissionId: data.submissionId,
