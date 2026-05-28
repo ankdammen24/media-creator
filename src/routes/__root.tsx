@@ -132,12 +132,16 @@ function RootComponent() {
 
 function AppShell() {
   const { current } = usePlayer();
-  // Reserve space at the bottom only when the player is visible, so the
-  // fixed MiniPlayer never covers page content.
-  const playerPad = current ? "pb-[5.5rem] sm:pb-[4.75rem]" : "";
   return (
     <>
-      <div className={`flex min-h-screen flex-col ${playerPad}`}>
+      <div
+        className="flex min-h-screen flex-col"
+        style={
+          current
+            ? { paddingBottom: "calc(5.5rem + env(safe-area-inset-bottom))" }
+            : undefined
+        }
+      >
         <SiteHeader />
         <main className="flex-1">
           <Outlet />
