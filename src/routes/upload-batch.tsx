@@ -5,7 +5,6 @@ import {
   X,
   CheckCircle2,
   AlertCircle,
-  Music,
   Mic,
   User as UserIcon,
   Image as ImageIcon,
@@ -17,14 +16,13 @@ import {
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
-import { AlbumPicker } from "@/components/AlbumPicker";
-import { nextTrackNumber } from "@/lib/album-helpers";
+import { ShowPicker } from "@/components/ShowPicker";
+import { nextEpisodeNumber } from "@/lib/podcast-helpers";
 import { AiArtworkDialog } from "@/components/AiArtworkDialog";
 import { useServerFn } from "@tanstack/react-start";
 import { enqueueAudioProcessing } from "@/lib/audio-processing.functions";
 
 type ArtistProfile = { id: string; name: string; bio: string | null };
-type MediaType = "music" | "podcast";
 
 const AUDIO_EXTS = ["wav", "flac", "aiff", "aif", "mp3", "m4a"];
 const AUDIO_ACCEPT =
@@ -71,7 +69,6 @@ type Draft = {
   // metadata
   title: string;
   description: string;
-  mediaType: MediaType;
   artwork: File | null;
   artworkError: string | null;
 };
