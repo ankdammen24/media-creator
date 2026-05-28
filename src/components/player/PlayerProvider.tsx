@@ -278,13 +278,25 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // Resolve a short-lived signed URL for a track's audio file. Prefers the
-  // smaller AAC/M4A web variant when available.
+  // smaller AAC/M4A web variant when available. Reuses cached URLs when
+  // they haven't expired yet.
   const signedUrlFor = useCallback(async (track: PlayerTrack) => {
     const playbackPath = track.webAudioPath || track.audioPath;
+    const cacheKey = `${track.id}:${playbackPath}`;
+    const cached = signedUrlCacheRef.current.get(cacheKey);
+    const now = Date.now();
+    // Reuse cached URL if it still has at least 5 minutes of life left.
+    if (cached && cached.expiresAt > now + 5 * 60 * 1000) {
+      return cached.signedUrl;
+    }
     const { data, error } = await supabase.storage
       .from("audio")
       .createSignedUrl(playbackPath, 3600);
     if (error || !data) return null;
+    signedUrlCacheRef.current.set(cacheKey, {
+      signedUrl: data.signedUrl,
+      expiresAt: now + 3600 * 1000,
+    });
     return data.signedUrl;
   }, []);
 
