@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { dispatchToWorker } from "./audio-processing.server";
+import { dispatchToWorker, logAudio } from "./audio-processing.server";
 
 async function isAdmin(userId: string) {
   const { data, error } = await supabaseAdmin
@@ -42,6 +42,10 @@ export const enqueueAudioProcessing = createServerFn({ method: "POST" })
       const allowed = (roles ?? []).some((r) => r.role === "admin" || r.role === "artist");
       if (!allowed) throw new Error("Du saknar behörighet att köa bearbetning.");
     }
+    await logAudio("enqueue", `Begäran om bearbetning (force=${!!data.force}).`, {
+      submissionId: data.submissionId,
+      createdBy: userId,
+    });
     return dispatchToWorker(data.submissionId, { force: data.force });
   });
 
@@ -72,6 +76,11 @@ export const enqueueAudioBackfill = createServerFn({ method: "POST" })
       ? await query
       : await query.is("audio_master_path", null).in("processing_status", ["pending", "failed"]);
     if (error) throw new Error(error.message);
+    await logAudio(
+      "backfill_start",
+      `Backfill startad (limit=${data.limit}, force=${!!data.force}, kandidater=${rows?.length ?? 0}).`,
+      { createdBy: context.userId },
+    );
     let queued = 0;
     let failed = 0;
     let skipped = 0;
@@ -87,6 +96,11 @@ export const enqueueAudioBackfill = createServerFn({ method: "POST" })
         failed += 1;
       }
     }
+    await logAudio(
+      "backfill_done",
+      `Backfill klar: köade ${queued}, misslyckade ${failed}, hoppade över ${skipped}.`,
+      { createdBy: context.userId, payload: { queued, failed, skipped } },
+    );
     return { queued, failed, skipped, considered: rows?.length ?? 0 };
   });
 
@@ -122,4 +136,32 @@ export const getAudioProcessingStats = createServerFn({ method: "GET" })
       withMaster: withMaster ?? 0,
       workerConfigured: Boolean(process.env.AUDIO_PROCESSOR_URL),
     };
+  });
+
+/**
+ * Admin-only: returns the most recent processing log entries.
+ */
+export const getAudioProcessingLogs = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        limit: z.number().int().min(1).max(500).default(100),
+        submissionId: z.string().uuid().optional(),
+      })
+      .parse(input ?? {}),
+  )
+  .handler(async ({ data, context }) => {
+    if (!(await isAdmin(context.userId))) {
+      throw new Error("Endast admin.");
+    }
+    let q = supabaseAdmin
+      .from("audio_processing_logs")
+      .select("id, submission_id, event, level, message, payload, created_at")
+      .order("created_at", { ascending: false })
+      .limit(data.limit);
+    if (data.submissionId) q = q.eq("submission_id", data.submissionId);
+    const { data: rows, error } = await q;
+    if (error) throw new Error(error.message);
+    return { logs: rows ?? [] };
   });
