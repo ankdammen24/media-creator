@@ -6,7 +6,10 @@ import {
   downloadImage,
   searchAlbumImage,
   searchArtistImage,
+  searchArtistImageVerified,
+  searchArtistImageDeezerVerified,
 } from "@/lib/itunes.server";
+import { generateArtistFallbackImage } from "@/lib/ai-image.server";
 
 const BUCKET = "artwork";
 
@@ -27,6 +30,23 @@ async function uploadAuto(
   const path = `auto/${folder}/${id}-${Date.now()}.${ext}`;
   const up = await supabaseAdmin.storage.from(BUCKET).upload(path, dl.blob, {
     contentType: dl.contentType,
+    upsert: true,
+    cacheControl: "31536000",
+  });
+  if (up.error) return null;
+  return path;
+}
+
+async function uploadBlob(
+  folder: "artists" | "albums",
+  id: string,
+  blob: Blob,
+  contentType: string,
+): Promise<string | null> {
+  const ext = contentType.includes("png") ? "png" : "jpg";
+  const path = `auto/${folder}/${id}-${Date.now()}.${ext}`;
+  const up = await supabaseAdmin.storage.from(BUCKET).upload(path, blob, {
+    contentType,
     upsert: true,
     cacheControl: "31536000",
   });
@@ -185,6 +205,144 @@ export const bulkFetchMissingArtistArtwork = createServerFn({ method: "POST" })
         });
       }
       await sleep(120);
+    }
+    return result;
+  });
+
+// ── Regenerate ALL artist artwork (admin only) ────────────────────────────
+
+export type RegenerateSource = "itunes" | "deezer" | "ai" | "failed";
+
+export type RegenerateResult = {
+  scanned: number;
+  updated: number;
+  failed: number;
+  bySource: Record<RegenerateSource, number>;
+  details: Array<{
+    id: string;
+    name: string;
+    ok: boolean;
+    source: RegenerateSource;
+    reason?: string;
+  }>;
+};
+
+const RegenerateInput = z.object({
+  limit: z.number().int().min(1).max(500).optional(),
+});
+
+export const bulkRegenerateArtistArtwork = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => RegenerateInput.parse(input ?? {}))
+  .handler(async ({ data, context }): Promise<RegenerateResult> => {
+    if (!(await isAdmin(context.userId))) throw new Error("Endast admin");
+    const limit = data.limit ?? 100;
+
+    const { data: artists, error } = await supabaseAdmin
+      .from("artist_profiles")
+      .select("id, name")
+      .order("created_at", { ascending: true })
+      .limit(limit);
+    if (error) throw new Error(error.message);
+
+    const result: RegenerateResult = {
+      scanned: artists?.length ?? 0,
+      updated: 0,
+      failed: 0,
+      bySource: { itunes: 0, deezer: 0, ai: 0, failed: 0 },
+      details: [],
+    };
+
+    for (const artist of artists ?? []) {
+      try {
+        // Collect this artist's own song titles (approved or any) for verification.
+        const { data: subs } = await supabaseAdmin
+          .from("submissions")
+          .select("title")
+          .eq("artist_profile_id", artist.id)
+          .limit(20);
+        const titles = (subs ?? [])
+          .map((s) => s.title)
+          .filter((t): t is string => typeof t === "string" && t.trim().length > 0);
+
+        let path: string | null = null;
+        let source: RegenerateSource = "failed";
+
+        // 1. iTunes verified (needs at least one song)
+        if (titles.length > 0) {
+          const url = await searchArtistImageVerified(artist.name, titles);
+          if (url) {
+            path = await uploadAuto("artists", artist.id, url);
+            if (path) source = "itunes";
+          }
+        }
+
+        // 2. Deezer verified fallback
+        if (!path && titles.length > 0) {
+          const url = await searchArtistImageDeezerVerified(artist.name, titles);
+          if (url) {
+            path = await uploadAuto("artists", artist.id, url);
+            if (path) source = "deezer";
+          }
+        }
+
+        // 3. AI fallback
+        if (!path) {
+          const ai = await generateArtistFallbackImage(artist.name);
+          if (ai) {
+            path = await uploadBlob("artists", artist.id, ai.blob, ai.contentType);
+            if (path) source = "ai";
+          }
+        }
+
+        if (!path) {
+          result.failed++;
+          result.bySource.failed++;
+          result.details.push({
+            id: artist.id,
+            name: artist.name,
+            ok: false,
+            source: "failed",
+            reason: "no-image-produced",
+          });
+        } else {
+          const { error: upErr } = await supabaseAdmin
+            .from("artist_profiles")
+            .update({ avatar_path: path })
+            .eq("id", artist.id);
+          if (upErr) {
+            result.failed++;
+            result.bySource.failed++;
+            result.details.push({
+              id: artist.id,
+              name: artist.name,
+              ok: false,
+              source: "failed",
+              reason: upErr.message,
+            });
+          } else {
+            result.updated++;
+            result.bySource[source]++;
+            result.details.push({
+              id: artist.id,
+              name: artist.name,
+              ok: true,
+              source,
+            });
+          }
+        }
+      } catch (e) {
+        result.failed++;
+        result.bySource.failed++;
+        result.details.push({
+          id: artist.id,
+          name: artist.name,
+          ok: false,
+          source: "failed",
+          reason: e instanceof Error ? e.message : "error",
+        });
+      }
+      await sleep(150);
     }
     return result;
   });
