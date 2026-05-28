@@ -193,7 +193,7 @@ function Hero() {
   );
 }
 
-function SectionHeader({ title, to }: { title: string; to: "/catalog" | "/artists" }) {
+function SectionHeader({ title, to }: { title: string; to: "/catalog" }) {
   return (
     <div className="mb-4 flex items-end justify-between">
       <h2 className="text-xl font-semibold tracking-tight">{title}</h2>
@@ -380,7 +380,7 @@ function FeaturedArtists() {
 
   return (
     <section className="mb-14">
-      <SectionHeader title="Featured artists" to="/artists" />
+      <SectionHeader title="Featured artists" to="/catalog" />
       {isLoading ? (
         <p className="text-sm text-muted-foreground">Loading…</p>
       ) : (
