@@ -245,3 +245,61 @@ export async function searchTrackImageDeezerVerified(
     return null;
   }
 }
+
+/**
+ * MusicBrainz + Cover Art Archive verified search for a single track.
+ * Free, no auth. MusicBrainz requires a descriptive User-Agent and ~1 req/s.
+ * Docs: https://musicbrainz.org/doc/MusicBrainz_API and https://coverartarchive.org
+ */
+const MB_USER_AGENT =
+  "MediaRosenqvistCatalog/1.0 ( https://catalog.mediarosenqvist.com )";
+
+export async function searchTrackImageCoverArtArchive(
+  artistName: string,
+  trackTitle: string,
+): Promise<string | null> {
+  const a = artistName.trim();
+  const t = trackTitle.trim();
+  if (!a || !t) return null;
+
+  // 1. Find candidate releases on MusicBrainz, verified on artist + title.
+  const query = `release:"${t}" AND artist:"${a}"`;
+  let releaseIds: string[] = [];
+  try {
+    const res = await fetch(
+      `https://musicbrainz.org/ws/2/release?query=${encodeURIComponent(query)}&fmt=json&limit=8`,
+      { headers: { Accept: "application/json", "User-Agent": MB_USER_AGENT } },
+    );
+    if (!res.ok) return null;
+    const json = (await res.json()) as {
+      releases?: Array<{
+        id?: string;
+        title?: string;
+        "artist-credit"?: Array<{ name?: string; artist?: { name?: string } }>;
+      }>;
+    };
+    releaseIds = (json.releases ?? [])
+      .filter((r) => {
+        const credited =
+          r["artist-credit"]?.map((c) => c.artist?.name || c.name).join(" ") ?? "";
+        return fuzzyMatch(credited, a) && fuzzyMatch(r.title, t);
+      })
+      .map((r) => r.id)
+      .filter((id): id is string => typeof id === "string");
+  } catch {
+    return null;
+  }
+
+  // 2. Try to fetch a front cover from Cover Art Archive for each candidate.
+  for (const id of releaseIds.slice(0, 5)) {
+    const url = `https://coverartarchive.org/release/${id}/front-500`;
+    try {
+      const head = await fetch(url, { method: "HEAD", redirect: "follow" });
+      if (head.ok) return url;
+    } catch {
+      // try next candidate
+    }
+    await new Promise((r) => setTimeout(r, 250));
+  }
+  return null;
+}
