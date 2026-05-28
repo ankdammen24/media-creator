@@ -1,37 +1,38 @@
-Plan:
+## Mål
+Möjliggöra drag-and-drop-omsortering av låtar inom ett album på albumsidan (`/albums/$albumId`). Användare med redigeringsrätt (ägare, admin eller artist-roll) ska kunna dra en låt upp/ner och ordningen sparas direkt i databasen via `submissions.track_number`.
 
-1. Samla rättighetsmodellen
-- Sluta låta frontend avgöra bred redigeringsrätt med `artist`-rollen när databasen bara tillåter ägare/admin.
-- Inför en gemensam server-side kontroll för redigering: ägare eller admin, och om vi vill behålla “editor/artist kan redigera katalog” görs det explicit på servern, inte genom osäkra klientuppdateringar.
+## Förändringar
 
-2. Flytta katalogens Spara-flöden till serverfunktioner
-- Skapa/utöka en tunn `catalog-edit.functions.ts` med skyddade serverfunktioner för:
-  - uppdatera artistprofil
-  - uppdatera album
-  - uppdatera låt/submission
-  - koppla/lossa låt till album och sätt track number
-  - uppdatera artwork-path efter bildbyte
-- Serverfunktionerna använder inloggad användare, verifierar behörighet och skriver sedan kontrollerat så RLS inte stoppar legitima admin/editor-flöden.
+### 1. Nytt bibliotek
+- Installera `@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities` (lättviktigt, fungerar bra med både mus och touch, tillgängligt).
 
-3. Rätta befintliga formulär
-- `AlbumForm`: vid edit ska inte `user_id` skrivas om till den som klickar Spara; ägarskapet ska behållas.
-- `ArtistProfileEditor`: byt direkt `supabase.update` mot serverfunktionen.
-- `EditSubmissionDialog`: byt direkt `supabase.update` mot serverfunktionen.
-- `ReplaceArtworkButton` och AI-bildsparning för låtar: behåll uppladdning i storage men låt servern spara databaskolumnen.
-- `AddTracksSection`: byt direkt uppdatering av `album_id`/`track_number` mot serverfunktion.
-- Gå igenom `ArtistImageManager` eftersom den också har flera Spara/Edit-liknande operationer mot `artist_images`.
+### 2. Ny serverfunktion: `reorderAlbumTracks`
+Plats: `src/lib/catalog-edit.functions.ts`
+- Input: `{ albumId: string, orderedSubmissionIds: string[] }` (Zod-validerad).
+- Skyddas med `requireSupabaseAuth`.
+- Verifierar att användaren får redigera albumet (ägare via `albums.user_id`, eller har roll `admin`/`artist`).
+- Verifierar att alla submission-id:n hör till albumet.
+- Uppdaterar `track_number` i `submissions` för varje id enligt position (1-baserat), antingen via en loop eller en `CASE`-baserad batch-update.
 
-4. Gå igenom alla Edit-knappar och gör flödet konsekvent
-- Albumdetalj: Edit album ska gå till samma säkra albumform.
-- Artistsida: Redigera profil, singel-edit och diskografi-edit ska använda samma dialog/serverfunktioner.
-- Albumsida: track-edit ska använda samma `EditSubmissionDialog` och samma serverfunktion.
-- Adminsida: submission-edit ska återanvända samma säkra komponent/flöde där det går.
-- Dölj Edit-knappar när användaren saknar verklig serverbehörighet, så användaren inte kommer till ett Spara som ändå nekas.
+### 3. UI: sorterbar tracklista i `src/routes/albums.$albumId.tsx`
+- Ersätt `<ol>`-listan med en `DndContext` + `SortableContext` (strategi: `verticalListSortingStrategy`).
+- Bryt ut varje låt-rad till en `SortableTrackRow`-komponent som använder `useSortable` — visar ett drag-handtag (GripVertical-ikon från lucide-react) längst till vänster, endast synligt när `canEdit` är true.
+- Sensors: `PointerSensor` + `KeyboardSensor` (tillgänglighet), aktiveringsdistans ~5px så klick på Play/Edit-knappar inte triggar drag.
+- Vid `onDragEnd`:
+  1. Optimistiskt uppdatera lokal ordning + visa de nya `track_number` direkt.
+  2. Anropa `reorderAlbumTracks` via `useServerFn`.
+  3. Vid fel: rollback + toast. Vid lyckat: `queryClient.invalidateQueries(["album", albumId, ...])`.
+- För användare utan redigeringsrätt: rendera samma lista men utan drag-handtag och utan DndContext-wrapping (eller med `disabled`).
 
-5. Databas/RLS
-- I första hand undviker vi bredare RLS genom serverfunktioner med strikt behörighetskontroll.
-- Om nuvarande produktregel verkligen är att `artist`-rollen ska kunna redigera all katalogdata, lägger vi en liten migration som gör RLS-reglerna konsekventa med det. Annars begränsar vi UI till ägare/admin.
+### 4. Touch/mobil
+Använd `TouchSensor` också med liten delay (150ms) så scroll inte krockar med drag på mobil.
 
-6. Validering
-- Testa samtliga Spara/Edit-flöden som finns i koden: artistprofil, album, låt, track-to-album, artwork och admin-edit.
-- Kontrollera att felet “new row violates row-level security policy” försvinner och att ägarskap inte ändras av misstag.
+## Tekniska detaljer
+
+- Behörighet i serverfunktionen följer befintligt mönster i `catalog-edit.functions.ts` (samma kontroll som `attachSubmissionsToAlbum`).
+- Inga DB-migrations behövs — `track_number` finns redan på `submissions` och RLS tillåter redan ägare/admin/artist att uppdatera.
+- Behåll befintliga klick-targets (Play, Edit) genom att lägga drag-listeners endast på drag-handtaget (`{...listeners}` på handle-spannet, inte hela raden).
+
+## Utanför scope
+- Omsortering över flera album (drag-and-drop endast inom samma album).
+- Bulk-omsortering via tangentbordsgenvägar utöver dnd-kits inbyggda (pil-upp/ner när handle har fokus).
