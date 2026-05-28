@@ -568,6 +568,10 @@ function BatchUploadPage() {
             <div className="mb-3 rounded-md border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm">
               Submitted {submitSummary.ok} item{submitSummary.ok === 1 ? "" : "s"} for review
               {submitSummary.failed > 0 ? `, ${submitSummary.failed} failed.` : "."}{" "}
+              <span className="text-amber-700 dark:text-amber-300">
+                Sparas i katalogen och skickas till Radio Uppsala — ingen
+                streamingdistribution i demo-läget.
+              </span>{" "}
               <Link to="/catalog" className="underline">
                 Back to catalog
               </Link>
