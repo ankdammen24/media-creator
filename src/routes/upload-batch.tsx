@@ -271,9 +271,8 @@ function BatchUploadPage() {
       setGlobalError("Choose an artist profile first.");
       return;
     }
-    const needsAlbum = drafts.some((d) => d.selected && d.mediaType === "music");
-    if (needsAlbum && !albumId) {
-      setGlobalError("Pick an album for the music tracks.");
+    if (!showId) {
+      setGlobalError("Pick a show for the episodes.");
       return;
     }
     setGlobalError(null);
@@ -318,16 +317,15 @@ function BatchUploadPage() {
           .insert({
             user_id: user.id,
             artist_profile_id: profileId,
-            media_type: d.mediaType,
+            media_type: "podcast",
             title: d.title.trim(),
             description: d.description.trim() || null,
             audio_path: d.audioPath!,
             artwork_path: artworkPath,
             status: "pending_review",
-            album_id: d.mediaType === "music" ? albumId : null,
-            track_number:
-              d.mediaType === "music" ? await nextTrackNumber(albumId) : null,
-          })
+            album_id: showId,
+            episode_number: await nextEpisodeNumber(showId),
+          } as never)
           .select("id")
           .single();
         if (insErr) {
