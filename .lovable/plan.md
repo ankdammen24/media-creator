@@ -1,42 +1,56 @@
-## Mål
+# EPK för artister – grundarkitektur
 
-Fyll automatiskt i saknade artist- och album-bilder från **iTunes Search API** (gratis, ingen auth, officiella Apple Music-omslag). Ingen AI-fallback — om inget hittas lämnas fältet tomt och du laddar upp manuellt.
+Vi bygger i fyra etapper. Varje etapp är fristående och kan släppas separat. Etapp 1 ger oss `artist_images` direkt; resten i tur och ordning.
 
-## Hur det funkar
+## Datamodell (etapp 1 – migrering nu)
 
-iTunes Search API: `https://itunes.apple.com/search?term=<namn>&entity=musicArtist|album&limit=1&country=SE`
+Ny tabell **`artist_images`**:
+- `artist_profile_id` (uuid)
+- `user_id` (uuid, för RLS)
+- `storage_path` (text, i `artwork`-bucket under `artists/<id>/...`)
+- `kind` enum `('avatar' | 'cover' | 'press')` – avatar = rund profilbild, cover = bred hero, press = pressbild i galleri
+- `is_primary` (bool) – en `avatar` och en `cover` kan vara primary per artist (partial unique index)
+- `visibility` enum `('public' | 'link_only')`
+- `caption`, `credit` (text, för fotografkredd i EPK)
+- `sort_order` (int)
+- `created_at`, `updated_at`
 
-- **Artist** → `artistLinkUrl`-träff har inga konsekvent stora bilder, så vi använder artistens första album-omslag som proxy (1000×1000, kvadratiskt — funkar utmärkt som avatar).
-- **Album** → `results[0].artworkUrl100` byts upp till `600x600bb.jpg` (eller `1000x1000bb.jpg`).
+**Bakåtkompatibilitet:** befintlig `artist_profiles.avatar_path` behålls som fallback. En vy/funktion läser primary avatar från `artist_images` om finns, annars `avatar_path`. Auto-fetch från iTunes fortsätter skriva till `avatar_path` (oförändrat) – kunden kan sen "befordra" till galleriet manuellt.
 
-Bilden laddas ner serverside, sparas i Supabase Storage-bucketen `artwork` under `auto/artists/<id>.jpg` resp. `auto/albums/<id>.jpg`, och stigen skrivs till `artist_profiles.avatar_path` / `albums.artwork_path`.
+**RLS:** publik SELECT där `visibility = 'public'`. Ägare + admin ser allt, kan skriva/radera egna.
 
-## Trigger — två lägen
+## Etapp 2 – Bio kort/lång
 
-### 1. Automatiskt vid skapande (bakgrund)
-När en artist eller ett album skapas utan bild kör vi server-fn:n i bakgrunden (fire-and-forget från klienten efter `insert`). Slår på iTunes, sparar om träff. Inget blockerar UI:t.
+Lägg till `artist_profiles.bio_short` (text, max ~280 tecken UI-validerat) bredvid befintlig `bio` som blir "lång". Inget databasbrott.
 
-### 2. Bulk-knapp i admin
-På `/admin` ny sektion "Auto-omslag":
-- **"Hämta saknade artist-bilder"** — loopar `artist_profiles` där `avatar_path IS NULL`, max ~50 per körning, returnerar `{ found, missed }`.
-- **"Hämta saknade album-omslag"** — samma för `albums.artwork_path IS NULL`.
+## Etapp 3 – Pressmeddelanden (PDF)
 
-## Filer
+Tabell **`artist_press_releases`**: `artist_profile_id`, `user_id`, `title`, `storage_path` (ny bucket `press`, privat), `visibility`, `published_at`. RLS som ovan. Public-länk via signerad URL för `link_only`, direkt publik URL (proxad genom server-fn som kollar visibility) för `public`.
 
-- `src/lib/itunes.server.ts` — `searchArtistImage(name)`, `searchAlbumImage(title, artistName)`, returnerar `{ url, source: 'itunes' } | null`. Använder Node `fetch`, ingen extra dep.
-- `src/lib/artwork.functions.ts` — server-fn:s:
-  - `autoFetchArtistArtwork({ artistId })` — laddar artist, slår på iTunes, laddar ner bilden, `supabaseAdmin.storage.from('artwork').upload(...)`, uppdaterar `artist_profiles.avatar_path`. Returnerar `{ updated: boolean, path: string | null }`.
-  - `autoFetchAlbumArtwork({ albumId })` — samma för album, slår med album-titel + artistnamn.
-  - `bulkFetchMissingArtistArtwork()` / `bulkFetchMissingAlbumArtwork()` — admin-only via `requireSupabaseAuth` + `has_role` check, loopar saknade (max 50), kallar respektive enskild fn.
-- `src/components/AdminAutoArtwork.tsx` — två knappar + resultattoast i admin.
-- `src/routes/admin.tsx` — rendera `<AdminAutoArtwork />`.
-- `src/routes/albums.new.tsx` + `src/components/AlbumForm.tsx` — efter lyckad insert utan uppladdad bild: kalla `autoFetchAlbumArtwork` fire-and-forget, invalidera query.
-- `src/routes/artists.new.tsx` (om finns) eller artistprofil-formuläret — samma för artist.
+## Etapp 4 – Videolänkar
 
-## Notabelt
+Tabell **`artist_videos`**: `artist_profile_id`, `user_id`, `title`, `url` (YouTube/Vimeo), `visibility`, `sort_order`. Bädda in via oEmbed-thumbnail – ingen extern API krävs för YouTube/Vimeo.
 
-- **Ingen AI-fallback** — vid miss visas befintlig platshållare i UI.
-- **Rate limit**: iTunes tillåter ~20 req/min per IP — bulk-jobbet pausar 100ms mellan anrop.
-- **Inga schema-ändringar, inga RLS-ändringar, inget nytt secret** — använder existerande `artwork`-bucket (public) och `supabaseAdmin` (service role) för att skriva oavsett ägare.
-- **Källattribution**: ingen krävs av iTunes Search API för icke-kommersiell katalogvisning, men vi lagrar `source = 'itunes'` i en eventuell framtida loggtabell om du vill (inte i denna iteration).
-- **Uppgraderbarhet**: när du senare laddar upp en egen bild via formuläret skrivs `avatar_path`/`artwork_path` över som vanligt — auto-bilden raderas inte men referensen försvinner.
+## EPK-vy och delningslänk
+
+- Befintlig artistsida visar `public`-innehåll automatiskt (galleri, bio, videos, press).
+- Ny route `/epk/$artistSlug?token=<...>` – om token matchar artistens `epk_share_token` (nytt fält på `artist_profiles`) visas även `link_only`-innehåll. Token kan roteras från admin.
+- "Kopiera EPK-länk"-knapp i artistens redigeringsformulär.
+
+## UI denna omgång (etapp 1)
+
+- `ArtistImageManager`-komponent i artistformuläret: dra-och-släpp uppladdning, välj `kind`, markera primary, sätt `visibility`, omordna.
+- Artistsidan: hero använder primary `cover` om finns, annars primary `avatar`/fallback. Galleri-sektion under bio visar publika `press`-bilder.
+
+## Vad jag gör i denna prompt
+
+Endast **etapp 1** (datamodell + bildgalleri-UI + integration på artistsida). Bio/PDF/video kommer i separata promptar så vi kan testa stegvis.
+
+## Tekniska detaljer
+
+- Migrering skapar `artist_images` med GRANT, RLS, trigger för `updated_at`, partial unique index på `(artist_profile_id, kind) where is_primary`.
+- Storage: `artwork`-bucket (redan publik) under `artists/<artist_id>/<uuid>.<ext>`. För `link_only`-bilder används privat path + signerad URL (servar via server-fn).
+- Frontend: `src/components/ArtistImageManager.tsx`, server-fn `src/lib/artist-images.functions.ts` för uppladdning/sortering/primary-byte.
+- Befintlig auto-fetch logik orörd.
+
+Säg till om något av detta ska justeras innan jag kör igång.
