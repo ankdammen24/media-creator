@@ -439,10 +439,17 @@ function SingleCard({
   return (
     <li>
       <div className="group block w-full text-left">
-        <button
-          type="button"
+        <div
+          role="button"
+          tabIndex={0}
           onClick={onPlay}
-          className="block w-full text-left"
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onPlay();
+            }
+          }}
+          className="block w-full cursor-pointer text-left"
         >
           <div
             className={`relative aspect-square overflow-hidden rounded-lg border bg-secondary ${
@@ -476,7 +483,7 @@ function SingleCard({
           <p className="text-[11px] text-muted-foreground">
             {isCurrent ? "Spelas nu" : "Tryck för att spela"}
           </p>
-        </button>
+        </div>
       </div>
     </li>
   );
