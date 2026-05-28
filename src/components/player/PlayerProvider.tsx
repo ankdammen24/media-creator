@@ -73,6 +73,8 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const historyRef = useRef<PlayerTrack[]>([]);
   const currentRef = useRef<PlayerTrack | null>(null);
   const userRef = useRef(user);
+  // Cache signed URLs per trackId so we don't re-sign the same file unnecessarily.
+  const signedUrlCacheRef = useRef<Map<string, { signedUrl: string; expiresAt: number }>>(new Map());
   useEffect(() => {
     queueRef.current = queue;
   }, [queue]);
