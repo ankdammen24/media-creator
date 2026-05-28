@@ -679,6 +679,15 @@ function UploadPage() {
           </button>
         </Step>
       </form>
+      <AiArtworkDialog
+        open={aiOpen}
+        aspect="1:1"
+        title="Skapa omslag med AI"
+        filenameHint={`track-${title || "untitled"}`}
+        defaultPrompt={`Abstrakt omslag för låten "${title || "låten"}"${primaryProfile ? ` av ${primaryProfile.name}` : ""}, konstnärlig komposition, ingen text, inga ansikten`}
+        onClose={() => setAiOpen(false)}
+        onGenerated={(file) => setArtwork(file)}
+      />
     </div>
   );
 }
