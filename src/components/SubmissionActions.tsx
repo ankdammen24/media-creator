@@ -8,6 +8,7 @@ import {
 } from "@/lib/catalog-edit.functions";
 import { nextTrackNumber } from "@/lib/album-helpers";
 import { AiArtworkDialog } from "@/components/AiArtworkDialog";
+import { useEditorRole } from "@/lib/useEditorRole";
 
 export type EditableSubmission = {
   id: string;
@@ -23,6 +24,7 @@ export type EditableSubmission = {
 };
 
 type AlbumOption = { id: string; title: string };
+type ArtistOption = { id: string; name: string };
 
 export function EditSubmissionDialog({
   sub,
@@ -36,11 +38,14 @@ export function EditSubmissionDialog({
   const [title, setTitle] = useState(sub.title);
   const [description, setDescription] = useState(sub.description ?? "");
   const [mediaType, setMediaType] = useState<"music" | "podcast">(sub.media_type);
+  const [artistId, setArtistId] = useState<string>(sub.artist_profile_id);
   const [albumId, setAlbumId] = useState<string>(sub.album_id ?? "");
   const [albums, setAlbums] = useState<AlbumOption[]>([]);
+  const [artists, setArtists] = useState<ArtistOption[]>([]);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const updateFn = useServerFn(updateSubmissionFn);
+  const { isEditor } = useEditorRole();
 
   useEffect(() => {
     let on = true;
@@ -48,14 +53,33 @@ export function EditSubmissionDialog({
       const { data } = await supabase
         .from("albums")
         .select("id, title")
-        .eq("artist_profile_id", sub.artist_profile_id)
+        .eq("artist_profile_id", artistId)
         .order("title", { ascending: true });
-      if (on) setAlbums((data ?? []) as AlbumOption[]);
+      if (!on) return;
+      const list = (data ?? []) as AlbumOption[];
+      setAlbums(list);
+      // Om nuvarande album inte tillhör den valda artisten, nollställ.
+      setAlbumId((cur) => (list.some((a) => a.id === cur) ? cur : ""));
     })();
     return () => {
       on = false;
     };
-  }, [sub.artist_profile_id]);
+  }, [artistId]);
+
+  useEffect(() => {
+    if (!isEditor) return;
+    let on = true;
+    (async () => {
+      const { data } = await supabase
+        .from("artist_profiles")
+        .select("id, name")
+        .order("name", { ascending: true });
+      if (on) setArtists((data ?? []) as ArtistOption[]);
+    })();
+    return () => {
+      on = false;
+    };
+  }, [isEditor]);
 
   async function save() {
     setBusy(true);
@@ -64,10 +88,12 @@ export function EditSubmissionDialog({
       const nextAlbum = albumId || null;
       const prevAlbum = sub.album_id ?? null;
       const albumChanged = nextAlbum !== prevAlbum;
+      const artistChanged = artistId !== sub.artist_profile_id;
       const patch = {
         title: title.trim(),
         description: description.trim() || null,
         media_type: mediaType,
+        ...(artistChanged ? { artist_profile_id: artistId } : {}),
         ...(albumChanged
           ? {
               album_id: nextAlbum,
@@ -124,6 +150,28 @@ export function EditSubmissionDialog({
               <option value="podcast">Podcast</option>
             </select>
           </label>
+          {isEditor && (
+            <label className="block text-xs">
+              <span className="mb-1 block text-muted-foreground">Artist</span>
+              <select
+                value={artistId}
+                onChange={(e) => setArtistId(e.target.value)}
+                className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm"
+              >
+                {artists.length === 0 && (
+                  <option value={artistId}>Laddar artister…</option>
+                )}
+                {artists.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.name}
+                  </option>
+                ))}
+              </select>
+              <span className="mt-1 block text-[11px] text-muted-foreground">
+                Byter du artist kopplas låten bort från albumet om det tillhör en annan artist.
+              </span>
+            </label>
+          )}
           <label className="block text-xs">
             <span className="mb-1 block text-muted-foreground">Album</span>
             <select
