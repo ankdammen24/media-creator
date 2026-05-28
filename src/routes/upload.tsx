@@ -18,6 +18,7 @@ import { AlbumPicker } from "@/components/AlbumPicker";
 import { nextTrackNumber } from "@/lib/album-helpers";
 import { useServerFn } from "@tanstack/react-start";
 import { autoFetchArtistArtwork } from "@/lib/artwork.functions";
+import { AiArtworkDialog } from "@/components/AiArtworkDialog";
 
 type ArtistProfile = {
   id: string;
@@ -100,6 +101,7 @@ function UploadPage() {
   const [audioPct, setAudioPct] = useState(0);
   const [artworkPct, setArtworkPct] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [aiOpen, setAiOpen] = useState(false);
 
   useEffect(() => {
     let on = true;
@@ -620,6 +622,17 @@ function UploadPage() {
               onChange={(f) => setArtwork(f)}
               preview
             />
+          </div>
+          <div className="mt-2">
+            <button
+              type="button"
+              onClick={() => setAiOpen(true)}
+              disabled={status === "submitting"}
+              className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs hover:bg-accent disabled:opacity-50"
+            >
+              <Sparkles className="h-3.5 w-3.5 text-primary" />
+              Skapa omslag med AI
+            </button>
           </div>
 
           {status === "submitting" && (
