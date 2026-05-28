@@ -1,76 +1,63 @@
-## Två delar
+## Mål
 
-### 1) Flera artister per submission
+Förstasidan ska kännas levande — när man kommer in ser man direkt vad som spelas, kan trycka play på vilket spår eller avsnitt som helst, och har en mini-spelare i botten som följer med när man bläddrar vidare.
 
-Idag har `submissions` ett enda `artist_profile_id`. Vi vill kunna välja flera (collabs, "feat.").
+## 1. Hero — stor "Now Playing"
 
-**Schema** – ny join-tabell:
+Ersätt dagens lilla hero med en bred hero överst som visar utvalt spår (senaste godkända musik-submission):
 
-```sql
-CREATE TABLE public.submission_artists (
-  submission_id uuid NOT NULL REFERENCES public.submissions(id) ON DELETE CASCADE,
-  artist_profile_id uuid NOT NULL REFERENCES public.artist_profiles(id) ON DELETE CASCADE,
-  is_primary boolean NOT NULL DEFAULT false,
-  position int NOT NULL DEFAULT 0,
-  PRIMARY KEY (submission_id, artist_profile_id)
-);
-```
+- Stort omslag (kvadrat) till vänster, suddig blow-up av samma omslag som bakgrund i hela hero-sektionen
+- Titel, artistnamn (länk till artistsida), "MUSIC"-badge
+- Stor primär play-knapp → börjar spela spåret i den globala spelaren
+- Sekundära knappar: "Browse catalog" och "Submit media"
+- Hero är responsiv: bild ovanför text på mobil
 
-- GRANT till anon (SELECT), authenticated (full), service_role (ALL).
-- RLS: SELECT öppet (raderna pekar bara på godkända/egna submissions, och själva data redan publik via befintliga policies). INSERT/UPDATE/DELETE: ägaren av submission ELLER admin.
-- Behåll `submissions.artist_profile_id` som "primary artist" för bakåtkompatibilitet (kataloglistan, sökning, artistsidan visar fortsatt detta som huvudartist).
-- Backfill: kopiera in alla existerande `(submission.id, submission.artist_profile_id, is_primary=true)` i join-tabellen.
+## 2. Globalt uppspelningssystem
 
-**UI (upload + upload-batch + admin)**:
-- Steg 1 "Choose artist profile" blir multi-select av användarens egna artistprofiler (checkboxar/chips). Första valda = primär (markeras "Primary"). Möjlighet att byta primär.
-- Vid submit: skriv `submissions` med primär som `artist_profile_id`, plus insert i `submission_artists` för alla valda.
-- Katalogkortet och `/catalog`-sökningen visar primär artist + " feat. X, Y" om fler.
-- Artistsidan listar submissions där artisten finns i join-tabellen (inte bara där `artist_profile_id` matchar).
+Bygg en lättviktig spelar-kontext (`PlayerProvider`) som hanterar nuvarande spår, paus/play och kö. Två synpunkter:
 
-### 2) Artister redigerar sin egen profil
+- **Inline play-knapp på varje spår-kort** (hero, "Nyaste spår", "Senaste podd"). Klick → laddar spåret i den globala spelaren och börjar spela. Andra kort visar pausläge.
+- **Persistent mini-spelare** fäst längst ner på alla sidor när något är laddat. Visar omslag, titel, artist, play/paus, progress-bar och tid. Stänger man inte den så fortsätter den spela vid navigation.
 
-**Schema** – utöka `artist_profiles`:
+Audio-URL hämtas via `supabase.storage.from("audio").createSignedUrl(...)` precis som idag i `CatalogCard`.
 
-```sql
-ALTER TABLE public.artist_profiles
-  ADD COLUMN avatar_path text,
-  ADD COLUMN website_url text,
-  ADD COLUMN facebook_url text,
-  ADD COLUMN instagram_url text,
-  ADD COLUMN x_url text,
-  ADD COLUMN spotify_url text,
-  ADD COLUMN apple_music_url text,
-  ADD COLUMN amazon_music_url text;
-```
+## 3. Nya sektioner under hero
 
-Befintliga UPDATE-policies (ägare + admin) räcker.
+- **Nyaste spår** — 8 senaste godkända med `media_type = music`, befintlig grid men varje kort får inline play-knapp som overlay på omslaget
+- **Senaste poddavsnitt** — egen sektion, 4 senaste godkända med `media_type = podcast`, lite bredare kort med beskrivning
+- **Utvalda artister** — rad med 6–8 artistprofiler (avatar + namn) som länkar till `/artists/$artistId`. Hämtas från artister som har minst en godkänd submission
 
-**Avatar-lagring**: återanvänd `artwork`-bucketen, sökväg `artists/{user_id}/{artist_id}-{timestamp}.{ext}`. Bucketen är redan publik.
+## 4. Styling
 
-**UI** – på `/artists/$artistId`:
-- Visa avatar (rund, fallback initial), bio, samt sociala ikoner (lucide: Facebook, Instagram, Twitter, Music2 för Spotify/Apple/Amazon, Globe för website) som länkar till respektive URL när ifylld.
-- Om inloggad användare äger profilen (`profile.user_id === user.id`) → knapp "Redigera profil" som öppnar inline-formulär:
-  - Namn (text)
-  - Bio (textarea)
-  - Avatar (filuppladdning, jpg/png/webp ≤ 5 MB, byts via storage upload + uppdatering av `avatar_path`)
-  - 7 URL-fält (website, facebook, instagram, x, spotify, apple_music, amazon_music) — valideras med zod `z.string().url().optional().or(z.literal(""))`, tomt = NULL.
-- Spara via `supabase.from("artist_profiles").update(...).eq("id", artistId)` (RLS sköter resten).
-- Global sök: ta även med träffar på artister även om deras submissions inte är godkända (nuvarande beteende OK, ingen ändring).
+Behåll befintliga design-tokens (`bg-card`, `border-border`, `primary`). Lägg till lite mer visuell tyngd i hero med:
 
-### Filer
+- Suddig artwork-bakgrund med overlay-gradient mot `background`
+- Mjuk skugga under spelarkortet
+- Mini-spelaren använder `backdrop-blur` + `bg-card/80`
 
-- ny migration: `submission_artists`-tabell + GRANT + RLS + backfill + nya kolumner på `artist_profiles`
-- ändra: `src/routes/upload.tsx` (multi-select artister + insert i join-tabell)
-- ändra: `src/routes/upload-batch.tsx` (samma flöde)
-- ändra: `src/routes/admin.tsx` om submissions visas där (lägg till "feat." i listan)
-- ändra: `src/routes/catalog.tsx` (visa featured artists på kort)
-- ändra: `src/routes/artists.$artistId.tsx` (avatar/sociala länkar + redigeringsformulär för ägare; query bytas till join via `submission_artists`)
-- ny komponent: `src/components/ArtistProfileEditor.tsx` (formulär + uppladdning)
-- ändra: `src/components/GlobalSearch.tsx` (ev. visa avatar i artist-träffarna)
+## Tekniska detaljer
 
-Inga edge functions; alla ändringar via klient + Supabase RLS.
+**Nya filer:**
+- `src/components/player/PlayerProvider.tsx` — React Context med `currentTrack`, `isPlaying`, `play(track)`, `toggle()`, `seek()`. Håller ett internt `<audio>`-element via ref.
+- `src/components/player/MiniPlayer.tsx` — fixed bottom bar, läser från contexten
+- `src/components/player/PlayButton.tsx` — återanvändbar knapp som visar play/paus beroende på om kortet matchar `currentTrack`
+- `src/components/home/Hero.tsx` — ny hero med utvalt spår
+- `src/components/home/LatestMusic.tsx`, `LatestPodcasts.tsx`, `FeaturedArtists.tsx` — sektioner
 
-### Frågor innan implementation
+**Ändrade filer:**
+- `src/routes/__root.tsx` — wrappa `<Outlet />` i `<PlayerProvider>` och rendera `<MiniPlayer />` utanför outlet
+- `src/routes/index.tsx` — byt ut nuvarande layout mot ny hero + tre sektioner
+- `src/routes/catalog.tsx` — använd `PlayButton` istället för `<audio controls>` (frivilligt men konsekvent)
 
-1. **Multi-artist på submission**: ska man kunna välja en artistprofil som tillhör en annan användare (collab med någon annans profil), eller bara sina egna? Förslag: bara sina egna i Steg 1, admin kan länka extra artister via admin-panelen senare.
-2. **Avatar-storlek**: är 5 MB / 2048×2048px OK som tak?
+**Data-queries (alla i `src/lib/queries.ts`):**
+- `featuredTrackQuery` — senaste godkända music-submission
+- `latestMusicQuery(8)`, `latestPodcastsQuery(4)`
+- `featuredArtistsQuery(8)` — distinct artist_profile_id från godkända submissions, joina mot `artist_profiles`
+
+Alla använder den nya FK-hinten `artist_profiles!submissions_artist_profile_id_fkey`.
+
+## Utanför scope
+
+- Spellistor/kö-hantering (bara "spela detta" för nu)
+- Auto-spela vid sidladdning (kräver user gesture)
+- AzuraCast live-radio-widget (du valde bort den)
