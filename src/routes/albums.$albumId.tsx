@@ -301,58 +301,29 @@ function AlbumPage() {
                 description="Upload music to this album to populate the tracklist."
               />
             ) : (
-              <ol className="divide-y divide-border overflow-hidden rounded-lg border border-border bg-card">
-                {data!.tracks.map((t) => {
-                  const track: PlayerTrack = {
+              <TrackList
+                tracks={data!.tracks}
+                album={album}
+                artistName={data!.artist?.name ?? null}
+                artistId={data!.artist?.id ?? null}
+                canEdit={canEdit}
+                currentUserId={user?.id ?? null}
+                isAdmin={isAdmin}
+                onEdit={(t) =>
+                  setEditingTrack({
                     id: t.id,
                     title: t.title,
-                    artist: data!.artist?.name ?? null,
-                    artistId: data!.artist?.id ?? null,
-                    artworkPath: t.artwork_path,
-                    audioPath: t.audio_path,
-                    mediaType: "music",
-                  };
-                  const trackCanEdit = !!user && (user.id === t.user_id || isAdmin);
-                  return (
-                    <li
-                      key={t.id}
-                      className="flex items-center gap-4 p-3 transition hover:bg-accent/30"
-                    >
-                      <span className="w-6 text-center text-xs tabular-nums text-muted-foreground">
-                        {t.track_number ?? "—"}
-                      </span>
-                      <PlayButton track={track} size="sm" variant="overlay" />
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium">{t.title}</p>
-                        {t.status !== "approved" && (
-                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                            {t.status.replace("_", " ")}
-                          </p>
-                        )}
-                      </div>
-                      {trackCanEdit && (
-                        <EditButton
-                          onClick={() =>
-                            setEditingTrack({
-                              id: t.id,
-                              title: t.title,
-                              description: t.description,
-                              media_type: t.media_type,
-                              artwork_path: t.artwork_path,
-                              audio_path: t.audio_path,
-                              status: t.status,
-                              user_id: t.user_id,
-                              artist_profile_id: album.artist_profile_id,
-                              album_id: album.id,
-                            })
-                          }
-                        />
-                      )}
-                      <Music2 className="hidden h-4 w-4 text-muted-foreground sm:block" />
-                    </li>
-                  );
-                })}
-              </ol>
+                    description: t.description,
+                    media_type: t.media_type,
+                    artwork_path: t.artwork_path,
+                    audio_path: t.audio_path,
+                    status: t.status,
+                    user_id: t.user_id,
+                    artist_profile_id: album.artist_profile_id,
+                    album_id: album.id,
+                  })
+                }
+              />
             )}
           </section>
 
