@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      albums: {
+        Row: {
+          album_type: Database["public"]["Enums"]["album_type"]
+          artist_profile_id: string
+          artwork_path: string | null
+          created_at: string
+          description: string | null
+          genre: string | null
+          id: string
+          release_date: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          album_type?: Database["public"]["Enums"]["album_type"]
+          artist_profile_id: string
+          artwork_path?: string | null
+          created_at?: string
+          description?: string | null
+          genre?: string | null
+          id?: string
+          release_date?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          album_type?: Database["public"]["Enums"]["album_type"]
+          artist_profile_id?: string
+          artwork_path?: string | null
+          created_at?: string
+          description?: string | null
+          genre?: string | null
+          id?: string
+          release_date?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       artist_profiles: {
         Row: {
           amazon_music_url: string | null
@@ -178,6 +220,7 @@ export type Database = {
       }
       submissions: {
         Row: {
+          album_id: string | null
           approved_at: string | null
           approved_by: string | null
           artist_profile_id: string
@@ -193,10 +236,12 @@ export type Database = {
           reviewed_by: string | null
           status: Database["public"]["Enums"]["submission_status"]
           title: string
+          track_number: number | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          album_id?: string | null
           approved_at?: string | null
           approved_by?: string | null
           artist_profile_id: string
@@ -212,10 +257,12 @@ export type Database = {
           reviewed_by?: string | null
           status?: Database["public"]["Enums"]["submission_status"]
           title: string
+          track_number?: number | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          album_id?: string | null
           approved_at?: string | null
           approved_by?: string | null
           artist_profile_id?: string
@@ -231,10 +278,18 @@ export type Database = {
           reviewed_by?: string | null
           status?: Database["public"]["Enums"]["submission_status"]
           title?: string
+          track_number?: number | null
           updated_at?: string
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "submissions_album_id_fkey"
+            columns: ["album_id"]
+            isOneToOne: false
+            referencedRelation: "albums"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "submissions_artist_profile_id_fkey"
             columns: ["artist_profile_id"]
@@ -279,6 +334,7 @@ export type Database = {
       }
     }
     Enums: {
+      album_type: "album" | "ep" | "single" | "compilation"
       app_language: "sv" | "en"
       app_role: "admin" | "moderator" | "user"
       media_type: "music" | "podcast"
@@ -410,6 +466,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      album_type: ["album", "ep", "single", "compilation"],
       app_language: ["sv", "en"],
       app_role: ["admin", "moderator", "user"],
       media_type: ["music", "podcast"],
