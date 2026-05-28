@@ -222,6 +222,24 @@ function ArtistPage() {
                 userId={profile.user_id}
                 artistName={profile.name}
               />
+              <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-5">
+                <h3 className="text-sm font-semibold text-destructive">Ta bort artist</h3>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Detta raderar artisten samt alla dess album, låtar och bilder permanent.
+                </p>
+                {deleteError && (
+                  <p className="mt-2 text-xs text-destructive">{deleteError}</p>
+                )}
+                <button
+                  type="button"
+                  onClick={handleDeleteArtist}
+                  disabled={deleting}
+                  className="mt-3 inline-flex items-center gap-1.5 rounded-md bg-destructive px-3 py-2 text-xs font-medium text-destructive-foreground hover:bg-destructive/90 disabled:opacity-60"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  {deleting ? "Tar bort…" : "Ta bort artist permanent"}
+                </button>
+              </div>
             </div>
           ) : (
           <>
