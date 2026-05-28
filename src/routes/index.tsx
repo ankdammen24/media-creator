@@ -5,6 +5,7 @@ import { EmptyState, ErrorState } from "@/components/StateViews";
 import { supabase } from "@/integrations/supabase/client";
 import { PlayButton } from "@/components/player/PlayButton";
 import type { PlayerTrack } from "@/components/player/PlayerProvider";
+import { effectiveArtworkPath } from "@/lib/album-helpers";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -34,6 +35,7 @@ type Row = {
   artwork_path: string;
   audio_path: string;
   artist_profiles: { id: string; name: string } | null;
+  albums: { artwork_path: string | null } | null;
 };
 
 type ArtistRow = {
@@ -52,7 +54,7 @@ function toTrack(r: Row): PlayerTrack {
     title: r.title,
     artist: r.artist_profiles?.name ?? null,
     artistId: r.artist_profiles?.id ?? null,
-    artworkPath: r.artwork_path,
+    artworkPath: effectiveArtworkPath(r) ?? r.artwork_path,
     audioPath: r.audio_path,
     mediaType: r.media_type,
   };
