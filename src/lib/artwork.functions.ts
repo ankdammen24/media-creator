@@ -8,8 +8,10 @@ import {
   searchArtistImage,
   searchArtistImageVerified,
   searchArtistImageDeezerVerified,
+  searchTrackImageVerified,
+  searchTrackImageDeezerVerified,
 } from "@/lib/itunes.server";
-import { generateArtistFallbackImage } from "@/lib/ai-image.server";
+import { generateArtistFallbackImage, generateTrackFallbackImage } from "@/lib/ai-image.server";
 
 const BUCKET = "artwork";
 
@@ -20,7 +22,7 @@ export type AutoArtworkResult = {
 };
 
 async function uploadAuto(
-  folder: "artists" | "albums",
+  folder: "artists" | "albums" | "tracks",
   id: string,
   url: string,
 ): Promise<string | null> {
@@ -38,7 +40,7 @@ async function uploadAuto(
 }
 
 async function uploadBlob(
-  folder: "artists" | "albums",
+  folder: "artists" | "albums" | "tracks",
   id: string,
   blob: Blob,
   contentType: string,
