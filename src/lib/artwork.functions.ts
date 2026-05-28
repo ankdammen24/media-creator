@@ -342,7 +342,7 @@ export const bulkRegenerateTrackArtwork = createServerFn({ method: "POST" })
 
 // ── Regenerate ALL artist artwork (admin only) ────────────────────────────
 
-export type RegenerateSource = "itunes" | "deezer" | "ai" | "failed";
+export type RegenerateSource = "itunes" | "deezer" | "musicbrainz" | "ai" | "failed";
 
 export type RegenerateResult = {
   scanned: number;
@@ -380,7 +380,7 @@ export const bulkRegenerateArtistArtwork = createServerFn({ method: "POST" })
       scanned: artists?.length ?? 0,
       updated: 0,
       failed: 0,
-      bySource: { itunes: 0, deezer: 0, ai: 0, failed: 0 },
+      bySource: { itunes: 0, deezer: 0, musicbrainz: 0, ai: 0, failed: 0 },
       details: [],
     };
 
