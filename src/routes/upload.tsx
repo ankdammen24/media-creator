@@ -553,6 +553,35 @@ function UploadPage() {
                 className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/40 disabled:opacity-60"
               />
             </div>
+            {mediaType === "music" && (
+              <div className="rounded-lg border border-border bg-background/40 p-3">
+                <label className="mb-2 block text-sm font-medium">
+                  Album <span className="text-destructive">*</span>
+                </label>
+                <AlbumPicker
+                  artistId={profileIds[0] ?? null}
+                  value={albumId}
+                  onChange={setAlbumId}
+                  disabled={status === "submitting"}
+                />
+                {albumId && (
+                  <div className="mt-3">
+                    <label className="mb-1 block text-xs font-medium">
+                      Track number{" "}
+                      <span className="font-normal text-muted-foreground">(auto if blank)</span>
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      value={trackNumberInput}
+                      onChange={(e) => setTrackNumberInput(e.target.value)}
+                      placeholder="Auto"
+                      className="w-32 rounded-md border border-border bg-background px-3 py-2 text-sm"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </Step>
 
