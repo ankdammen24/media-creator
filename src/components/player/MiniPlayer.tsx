@@ -30,7 +30,10 @@ export function MiniPlayer() {
   const pct = duration > 0 ? (progress / duration) * 100 : 0;
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-card/85 backdrop-blur-lg">
+    <div
+      className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-card/85 backdrop-blur-lg"
+      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+    >
       <div className="mx-auto flex max-w-7xl items-center gap-2 px-3 py-2.5 sm:gap-3 sm:px-6">
         <img
           src={artUrl}
