@@ -46,6 +46,13 @@ export function SiteHeader() {
             Home
           </Link>
           <Link
+            to="/about"
+            className="rounded-md px-3 py-1.5 text-muted-foreground hover:text-foreground"
+            activeProps={{ className: "rounded-md px-3 py-1.5 text-foreground bg-secondary" }}
+          >
+            About
+          </Link>
+          <Link
             to="/catalog"
             className="rounded-md px-3 py-1.5 text-muted-foreground hover:text-foreground"
             activeProps={{ className: "rounded-md px-3 py-1.5 text-foreground bg-secondary" }}
