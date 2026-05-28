@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
 import { Pencil, Trash2, ImageUp, Loader2, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useServerFn } from "@tanstack/react-start";
+import {
+  updateSubmission as updateSubmissionFn,
+  deleteSubmission as deleteSubmissionFn,
+} from "@/lib/catalog-edit.functions";
 import { nextTrackNumber } from "@/lib/album-helpers";
 import { AiArtworkDialog } from "@/components/AiArtworkDialog";
 
@@ -35,6 +40,7 @@ export function EditSubmissionDialog({
   const [albums, setAlbums] = useState<AlbumOption[]>([]);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const updateFn = useServerFn(updateSubmissionFn);
 
   useEffect(() => {
     let on = true;
@@ -69,8 +75,7 @@ export function EditSubmissionDialog({
             }
           : {}),
       };
-      const { error } = await supabase.from("submissions").update(patch).eq("id", sub.id);
-      if (error) throw error;
+      await updateFn({ data: { submissionId: sub.id, patch } });
       onSaved();
       onClose();
     } catch (e) {
