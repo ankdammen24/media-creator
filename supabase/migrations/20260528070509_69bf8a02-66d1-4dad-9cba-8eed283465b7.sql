@@ -1,0 +1,2 @@
+ALTER TABLE public.submissions ADD COLUMN IF NOT EXISTS azuracast_unique_id text;
+CREATE UNIQUE INDEX IF NOT EXISTS submissions_azuracast_unique_id_idx ON public.submissions (azuracast_unique_id) WHERE azuracast_unique_id IS NOT NULL;
