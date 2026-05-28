@@ -339,9 +339,6 @@ function BatchUploadPage() {
             is_primary: true,
             position: 0,
           });
-          void enqueueAudio({ data: { submissionId: inserted.id } }).catch(
-            (e) => console.warn("enqueueAudioProcessing failed:", e),
-          );
         }
         ok += 1;
         updateDraft(d.id, { status: "submitted" });
