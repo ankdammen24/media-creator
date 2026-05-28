@@ -9,8 +9,25 @@ function buildArtistPrompt(artistName: string): string {
   return `Abstract, artistic album-style square cover art inspired by the musical identity of "${artistName}". Minimalist, modern, evocative shapes and rich color palette. No faces, no people, no text, no logos, no letters. 1:1 square composition.`;
 }
 
+function buildTrackPrompt(artistName: string, trackTitle: string): string {
+  return `Abstract, artistic album-style square cover art inspired by the song "${trackTitle}" by "${artistName}". Minimalist, modern, evocative shapes and rich color palette. No faces, no people, no text, no logos, no letters. 1:1 square composition.`;
+}
+
 export async function generateArtistFallbackImage(
   artistName: string,
+): Promise<{ blob: Blob; contentType: string } | null> {
+  return generateImage(buildArtistPrompt(artistName));
+}
+
+export async function generateTrackFallbackImage(
+  artistName: string,
+  trackTitle: string,
+): Promise<{ blob: Blob; contentType: string } | null> {
+  return generateImage(buildTrackPrompt(artistName, trackTitle));
+}
+
+async function generateImage(
+  prompt: string,
 ): Promise<{ blob: Blob; contentType: string } | null> {
   const apiKey = process.env.LOVABLE_API_KEY;
   if (!apiKey) return null;
@@ -24,7 +41,7 @@ export async function generateArtistFallbackImage(
       },
       body: JSON.stringify({
         model: "openai/gpt-image-2",
-        prompt: buildArtistPrompt(artistName),
+        prompt,
         size: "1024x1024",
         quality: "low",
         n: 1,
