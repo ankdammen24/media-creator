@@ -96,6 +96,10 @@ function BatchUploadPage() {
   const [profileId, setProfileId] = useState<string>("");
   const [albumId, setAlbumId] = useState<string>("");
 
+  useEffect(() => {
+    setAlbumId("");
+  }, [profileId]);
+
   // Shared metadata defaults
   const [defaultMediaType, setDefaultMediaType] = useState<MediaType>("music");
   const [sharedArtwork, setSharedArtwork] = useState<File | null>(null);
