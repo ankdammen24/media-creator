@@ -8,10 +8,15 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const Payload = z.object({
   submissionId: z.string().uuid(),
+  status: z.enum(["done", "failed"]).optional(),
   masterPath: z.string().min(1).max(500).optional(),
   webPath: z.string().min(1).max(500).optional(),
   loudness: z
     .object({
+      i: z.number().optional(),
+      tp: z.number().optional(),
+      lra: z.number().optional(),
+      // Legacy fields from earlier worker versions:
       input_i: z.number().optional(),
       input_tp: z.number().optional(),
       input_lra: z.number().optional(),
@@ -57,12 +62,14 @@ export const Route = createFileRoute("/api/public/hooks/audio-processed")({
         }
         const p = parsed.data;
 
-        if (p.error) {
+        const isFailed = p.status === "failed" || (!p.status && !!p.error);
+        if (isFailed) {
           await supabaseAdmin
             .from("submissions")
             .update({
               processing_status: "failed",
-              processing_error: p.error,
+              processing_error: p.error ?? "processing failed",
+              processed_at: new Date().toISOString(),
             })
             .eq("id", p.submissionId);
           return Response.json({ ok: true, status: "failed" });
@@ -79,9 +86,9 @@ export const Route = createFileRoute("/api/public/hooks/audio-processed")({
             processing_error: null,
             audio_master_path: p.masterPath,
             audio_web_path: p.webPath,
-            loudness_i: p.loudness?.input_i ?? null,
-            loudness_tp: p.loudness?.input_tp ?? null,
-            loudness_lra: p.loudness?.input_lra ?? null,
+            loudness_i: p.loudness?.i ?? p.loudness?.input_i ?? null,
+            loudness_tp: p.loudness?.tp ?? p.loudness?.input_tp ?? null,
+            loudness_lra: p.loudness?.lra ?? p.loudness?.input_lra ?? null,
             processed_at: new Date().toISOString(),
           })
           .eq("id", p.submissionId);
