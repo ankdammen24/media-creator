@@ -820,7 +820,7 @@ function StepReleaseDetails({
     <StepCard
       step={1}
       title="Release Details"
-      description="Grunduppgifterna om din release. Allt går att redigera senare."
+      description="Grunduppgifterna om din release. Allt sparas i Media Rosenqvist Catalog och går att redigera senare."
     >
       <div className="grid gap-5 md:grid-cols-2">
         <Field label="Release title" required>
@@ -1145,9 +1145,19 @@ function StepPlatforms({
   return (
     <StepCard
       step={2}
-      title="Streaming Platforms"
-      description="Choose where your release should be distributed."
+      title="Plattformar (endast referens)"
+      description="Markera var releasen skulle distribueras. I demo-läget är distributionen inte aktiv."
     >
+      <div className="mb-4 flex items-start gap-3 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
+        <Info className="mt-0.5 h-4 w-4 shrink-0" />
+        <p>
+          Plattformsvalet sparas endast som referens.{" "}
+          <span className="font-semibold">
+            Ingen faktisk distribution till streamingtjänster sker i demo-läget.
+          </span>{" "}
+          Releasen hamnar i katalogen och skickas till Radio Uppsala.
+        </p>
+      </div>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {PLATFORMS.map((p) => {
           const active = state.platforms.includes(p.code);
