@@ -618,33 +618,6 @@ function Section({
   );
 }
 
-function TypeChoice({
-  active,
-  onClick,
-  icon,
-  label,
-}: {
-  active: boolean;
-  onClick: () => void;
-  icon: React.ReactNode;
-  label: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`flex items-center gap-2 rounded-lg border p-2.5 text-left transition ${
-        active ? "border-primary bg-primary/10" : "border-border bg-background hover:bg-accent/40"
-      }`}
-    >
-      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-secondary">
-        {icon}
-      </span>
-      <span className="text-sm font-medium">{label}</span>
-    </button>
-  );
-}
-
 function SharedArtworkPreview({ file, onRemove }: { file: File; onRemove: () => void }) {
   const [url, setUrl] = useState<string | null>(null);
   useEffect(() => {
