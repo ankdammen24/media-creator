@@ -116,7 +116,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     const { data, error } = await supabase
       .from("submissions")
       .select(
-        "id, title, artwork_path, audio_path, media_type, artist_profiles!submissions_artist_profile_id_fkey(id, name)",
+        "id, title, artwork_path, audio_path, media_type, artist_profiles!submissions_artist_profile_id_fkey(id, name), albums(artwork_path)",
       )
       .eq("status", "approved")
       .eq("media_type", "music")
@@ -130,6 +130,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       audio_path: string;
       media_type: "music" | "podcast";
       artist_profiles: { id: string; name: string } | null;
+      albums: { artwork_path: string | null } | null;
     };
     const tracks: PlayerTrack[] = (data as unknown as Row[])
       .filter((r) => r.id !== excludeId)
@@ -138,7 +139,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
         title: r.title,
         artist: r.artist_profiles?.name ?? null,
         artistId: r.artist_profiles?.id ?? null,
-        artworkPath: r.artwork_path,
+        artworkPath: r.albums?.artwork_path ?? r.artwork_path,
         audioPath: r.audio_path,
         mediaType: r.media_type,
       }));
