@@ -55,16 +55,15 @@ export function AlbumForm({ existing, onSaved, redirectTo, lockArtistId }: Album
     let on = true;
     (async () => {
       if (!user) return;
-      // Admins can see all artists; everyone else only their own.
-      const { data: roleData } = await supabase
+      // Admins and artists can see all artists; everyone else only their own.
+      const { data: roleRows } = await supabase
         .from("user_roles")
         .select("role")
         .eq("user_id", user.id)
-        .eq("role", "admin")
-        .maybeSingle();
-      const isAdmin = !!roleData;
+        .in("role", ["admin", "artist"]);
+      const isEditor = !!(roleRows && roleRows.length > 0);
       let q = supabase.from("artist_profiles").select("id, name").order("name");
-      if (!isAdmin) q = q.eq("user_id", user.id);
+      if (!isEditor) q = q.eq("user_id", user.id);
       const { data, error } = await q;
       if (!on) return;
       if (error) {
