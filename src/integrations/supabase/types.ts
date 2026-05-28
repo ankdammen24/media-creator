@@ -444,7 +444,7 @@ export type Database = {
     Enums: {
       album_type: "album" | "ep" | "single" | "compilation"
       app_language: "sv" | "en"
-      app_role: "admin" | "moderator" | "user"
+      app_role: "admin" | "moderator" | "user" | "artist"
       artist_image_kind: "avatar" | "cover" | "press"
       artist_image_visibility: "public" | "link_only"
       media_type: "music" | "podcast"
@@ -578,7 +578,7 @@ export const Constants = {
     Enums: {
       album_type: ["album", "ep", "single", "compilation"],
       app_language: ["sv", "en"],
-      app_role: ["admin", "moderator", "user"],
+      app_role: ["admin", "moderator", "user", "artist"],
       artist_image_kind: ["avatar", "cover", "press"],
       artist_image_visibility: ["public", "link_only"],
       media_type: ["music", "podcast"],

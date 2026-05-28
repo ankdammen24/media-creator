@@ -10,6 +10,7 @@ import { notifySubmissionDecision } from "@/lib/notifications.functions";
 import { runAzuracastImport } from "@/lib/azuracast-import.functions";
 import { AdminAutoArtwork } from "@/components/AdminAutoArtwork";
 import { AdminOwnershipLog } from "@/components/AdminOwnershipLog";
+import { AdminUsers } from "@/components/AdminUsers";
 import { reassignArtistOwner } from "@/lib/admin-ownership.functions";
 import {
   EditButton,
@@ -386,7 +387,7 @@ function AdminPage() {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [filter, setFilter] = useState<"pending_review" | "approved" | "rejected">("pending_review");
-  const [tab, setTab] = useState<"submissions" | "artists" | "artwork" | "import">("submissions");
+  const [tab, setTab] = useState<"submissions" | "users" | "artists" | "artwork" | "import">("submissions");
   const notify = useServerFn(notifySubmissionDecision);
 
   const { data, isLoading, refetch } = useQuery({
@@ -465,6 +466,14 @@ function AdminPage() {
           <Users className="h-3.5 w-3.5" /> Artists
         </button>
         <button
+          onClick={() => setTab("users")}
+          className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition ${
+            tab === "users" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Users className="h-3.5 w-3.5" /> Users
+        </button>
+        <button
           onClick={() => setTab("artwork")}
           className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition ${
             tab === "artwork" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
@@ -488,6 +497,8 @@ function AdminPage() {
         <AdminAutoArtwork />
       ) : tab === "artists" ? (
         <ArtistsAdmin />
+      ) : tab === "users" ? (
+        <AdminUsers />
       ) : (
         <>
       <div className="mb-6 inline-flex rounded-lg border border-border bg-card p-1">
