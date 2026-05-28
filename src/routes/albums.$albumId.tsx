@@ -73,6 +73,7 @@ type Track = {
   track_number: number | null;
   artwork_path: string;
   audio_path: string;
+  audio_web_path: string | null;
   description: string | null;
   status: string;
   user_id: string;
@@ -127,7 +128,7 @@ function AlbumPage() {
             let q = supabase
               .from("submissions")
               .select(
-                "id, title, track_number, artwork_path, audio_path, description, status, user_id, media_type",
+                "id, title, track_number, artwork_path, audio_path, audio_web_path, description, status, user_id, media_type",
               )
               .eq("album_id", album.id)
               .order("track_number", { ascending: true });
@@ -179,6 +180,7 @@ function AlbumPage() {
       artistId: data.artist?.id ?? null,
       artworkPath: first.artwork_path,
       audioPath: first.audio_path,
+      webAudioPath: first.audio_web_path,
       mediaType: "music",
     };
     player.play(track);
@@ -608,6 +610,7 @@ function SortableTrackRow({
     artistId: artistId,
     artworkPath: track.artwork_path,
     audioPath: track.audio_path,
+    webAudioPath: track.audio_web_path,
     mediaType: "music",
   };
 

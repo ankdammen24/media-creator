@@ -41,6 +41,7 @@ type ArtistItem = {
   media_type: "music" | "podcast";
   artwork_path: string;
   audio_path: string;
+  audio_web_path: string | null;
   description: string | null;
   created_at: string;
   album_id: string | null;
@@ -89,7 +90,7 @@ function ArtistPage() {
         supabase
           .from("submission_artists")
           .select(
-            "submission_id, submissions!inner(id, title, media_type, artwork_path, audio_path, description, created_at, status, album_id, user_id, albums(artwork_path))",
+            "submission_id, submissions!inner(id, title, media_type, artwork_path, audio_path, audio_web_path, description, created_at, status, album_id, user_id, albums(artwork_path))",
           )
           .eq("artist_profile_id", artistId)
           .eq("submissions.status", "approved"),
@@ -339,6 +340,7 @@ function DiscographySection({
     artistId,
     artworkPath: s.albums?.artwork_path ?? s.artwork_path,
     audioPath: s.audio_path,
+    webAudioPath: s.audio_web_path,
     mediaType: s.media_type,
   }));
   if (albums.length === 0 && singles.length === 0) {
