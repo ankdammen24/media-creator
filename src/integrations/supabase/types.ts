@@ -120,6 +120,7 @@ export type Database = {
           artist_profile_id: string
           artwork_path: string
           audio_path: string
+          azuracast_unique_id: string | null
           created_at: string
           description: string | null
           id: string
@@ -138,6 +139,7 @@ export type Database = {
           artist_profile_id: string
           artwork_path: string
           audio_path: string
+          azuracast_unique_id?: string | null
           created_at?: string
           description?: string | null
           id?: string
@@ -156,6 +158,7 @@ export type Database = {
           artist_profile_id?: string
           artwork_path?: string
           audio_path?: string
+          azuracast_unique_id?: string | null
           created_at?: string
           description?: string | null
           id?: string
