@@ -5,6 +5,7 @@ import { Music2, Mic, Loader2, Disc3 } from "lucide-react";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
+import { effectiveArtworkPath } from "@/lib/album-helpers";
 import {
   EditableSubmission,
   EditButton,
@@ -30,6 +31,7 @@ export const Route = createFileRoute("/my-submissions")({
 type Row = EditableSubmission & {
   created_at: string;
   artist_profiles: { name: string } | null;
+  albums: { artwork_path: string | null } | null;
 };
 
 function MyPage() {
@@ -43,7 +45,7 @@ function MyPage() {
       const { data, error } = await supabase
         .from("submissions")
         .select(
-          "id, title, description, media_type, status, audio_path, artwork_path, user_id, created_at, artist_profiles!submissions_artist_profile_id_fkey(name)",
+          "id, title, description, media_type, status, audio_path, artwork_path, user_id, created_at, artist_profiles!submissions_artist_profile_id_fkey(name), albums(artwork_path)",
         )
         .eq("user_id", user!.id)
         .order("created_at", { ascending: false });
@@ -110,7 +112,8 @@ function Row({
   onEdit: () => void;
   onChanged: () => void;
 }) {
-  const artUrl = supabase.storage.from("artwork").getPublicUrl(sub.artwork_path).data.publicUrl;
+  const artPath = effectiveArtworkPath(sub) ?? sub.artwork_path;
+  const artUrl = supabase.storage.from("artwork").getPublicUrl(artPath).data.publicUrl;
   const statusColor =
     sub.status === "approved"
       ? "text-emerald-600"
