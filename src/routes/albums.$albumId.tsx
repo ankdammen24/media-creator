@@ -69,7 +69,7 @@ function publicArt(path: string | null | undefined) {
 function AlbumPage() {
   const { albumId } = Route.useParams();
   const { user } = useAuth();
-  const { isEditor } = useEditorRole();
+  const { isAdmin } = useEditorRole();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const player = usePlayer();
@@ -77,7 +77,7 @@ function AlbumPage() {
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ["album", albumId, user?.id, isEditor],
+    queryKey: ["album", albumId, user?.id, isAdmin],
     queryFn: async (): Promise<AlbumData> => {
       const albumRes = await supabase
         .from("albums")
@@ -104,7 +104,7 @@ function AlbumPage() {
               )
               .eq("album_id", album.id)
               .order("track_number", { ascending: true });
-            if (!isOwner && !isEditor) q = q.eq("status", "approved");
+            if (!isOwner && !isAdmin) q = q.eq("status", "approved");
             return q;
           })(),
         ]);
@@ -118,7 +118,7 @@ function AlbumPage() {
   });
 
   const album = data?.album ?? null;
-  const canEdit = !!album && !!user && (user.id === album.user_id || isEditor);
+  const canEdit = !!album && !!user && (user.id === album.user_id || isAdmin);
   const [editingTrack, setEditingTrack] = useState<EditableSubmission | null>(null);
 
   async function handleDelete() {
@@ -284,8 +284,7 @@ function AlbumPage() {
                     audioPath: t.audio_path,
                     mediaType: "music",
                   };
-                  const trackCanEdit =
-                    !!user && (user.id === t.user_id || isEditor);
+                  const trackCanEdit = !!user && (user.id === t.user_id || isAdmin);
                   return (
                     <li
                       key={t.id}
