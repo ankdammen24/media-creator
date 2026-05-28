@@ -258,7 +258,7 @@ export const bulkRegenerateTrackArtwork = createServerFn({ method: "POST" })
       scanned: list.length,
       updated: 0,
       failed: 0,
-      bySource: { itunes: 0, deezer: 0, ai: 0, failed: 0 },
+      bySource: { itunes: 0, deezer: 0, musicbrainz: 0, ai: 0, failed: 0 },
       details: [],
     };
 
