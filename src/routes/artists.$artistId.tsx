@@ -17,6 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { ArtistProfileEditor, type EditableArtist } from "@/components/ArtistProfileEditor";
 import { ArtistImageManager, type ArtistImage } from "@/components/ArtistImageManager";
+import { useEditorRole } from "@/lib/useEditorRole";
 
 export const Route = createFileRoute("/artists/$artistId")({
   head: () => ({
@@ -42,7 +43,6 @@ type ArtistData = {
   profile: EditableArtist | null;
   items: ArtistItem[];
   images: ArtistImage[];
-  isAdmin: boolean;
 };
 
 function publicArt(path: string) {
@@ -52,12 +52,13 @@ function publicArt(path: string) {
 function ArtistPage() {
   const { artistId } = Route.useParams();
   const { user } = useAuth();
+  const { isEditor } = useEditorRole();
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState(false);
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["artist", artistId],
     queryFn: async (): Promise<ArtistData> => {
-      const [profileRes, linksRes, imagesRes, isAdminRes] = await Promise.all([
+      const [profileRes, linksRes, imagesRes] = await Promise.all([
         supabase
           .from("artist_profiles")
           .select(
@@ -78,14 +79,6 @@ function ArtistPage() {
           .eq("artist_profile_id", artistId)
           .order("sort_order", { ascending: true })
           .order("created_at", { ascending: true }),
-        user
-          ? supabase
-              .from("user_roles")
-              .select("role")
-              .eq("user_id", user.id)
-              .eq("role", "admin")
-              .maybeSingle()
-          : Promise.resolve({ data: null, error: null } as const),
       ]);
       if (profileRes.error) throw profileRes.error;
       if (linksRes.error) throw linksRes.error;
@@ -99,14 +92,13 @@ function ArtistPage() {
         profile: profileRes.data as EditableArtist | null,
         items,
         images: (imagesRes.data ?? []) as ArtistImage[],
-        isAdmin: !!(isAdminRes && "data" in isAdminRes && isAdminRes.data),
       };
     },
   });
 
   const profile = data?.profile;
   const canEdit =
-    !!user && !!profile && (profile.user_id === user.id || !!data?.isAdmin);
+    !!user && !!profile && (profile.user_id === user.id || isEditor);
   const images = data?.images ?? [];
   const primaryCover = images.find((i) => i.kind === "cover" && i.is_primary);
   const primaryAvatar = images.find((i) => i.kind === "avatar" && i.is_primary);
