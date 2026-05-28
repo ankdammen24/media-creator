@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { LogOut, User, Bell, Settings as SettingsIcon, Menu, Send } from "lucide-react";
+import { LogOut, User, Bell, Settings as SettingsIcon, Menu, Send, Info } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -44,6 +44,13 @@ export function SiteHeader() {
             activeProps={{ className: "rounded-md px-3 py-1.5 text-foreground bg-secondary" }}
           >
             Home
+          </Link>
+          <Link
+            to="/about"
+            className="rounded-md px-3 py-1.5 text-muted-foreground hover:text-foreground"
+            activeProps={{ className: "rounded-md px-3 py-1.5 text-foreground bg-secondary" }}
+          >
+            About
           </Link>
           <Link
             to="/catalog"
@@ -165,6 +172,11 @@ export function SiteHeader() {
               </SheetHeader>
               <nav className="flex flex-col p-2 text-sm">
                 <MobileNavLink to="/" exact onSelect={() => setMenuOpen(false)}>Home</MobileNavLink>
+                <MobileNavLink to="/about" onSelect={() => setMenuOpen(false)}>
+                  <span className="inline-flex items-center gap-2">
+                    <Info className="h-4 w-4" /> About
+                  </span>
+                </MobileNavLink>
                 <MobileNavLink to="/catalog" onSelect={() => setMenuOpen(false)}>Catalog</MobileNavLink>
                 {user ? (
                   <>
