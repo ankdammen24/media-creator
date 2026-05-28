@@ -1,40 +1,25 @@
-## Mål
+Problemet är att appen skickar jobben till `AUDIO_PROCESSOR_URL + /process`, men den konfigurerade URL:en verkar redan innehålla pathen `/audio-processing` och träffar en tjänst som svarar `Cannot POST /audio-processing/process`. Workern i repo:t lyssnar på `POST /process`, så vi behöver göra dispatchen tydligare och mer robust.
 
-Edit-knappen på album-sidan ska öppna en fungerande redigeringsvy där man kan ändra metadata **och** ladda upp / AI-generera album-bild i efterhand. Samma stöd ska finnas för enskilda låtar (det finns redan i `EditSubmissionDialog`, vi verifierar bara).
+Plan:
 
-## Diagnos
+1. Uppdatera dispatch-logiken
+   - Bygg worker-endpoint smartare från `AUDIO_PROCESSOR_URL`.
+   - Om URL:en redan slutar med `/process`, använd den exakt.
+   - Annars lägg bara till `/process` på bas-URL:en.
+   - Logga vilken endpoint som används, utan att exponera signed URL eller hemligheter.
 
-- `src/routes/albums.$albumId.tsx` länkar Edit-knappen till `/albums/$albumId/edit` via `<Link>`.
-- Route-filen `src/routes/albums.$albumId.edit.tsx` finns och renderar `<AlbumForm existing={...} />`.
-- `AlbumForm` innehåller redan både filuppladdning (Choose / Replace) **och** "Skapa med AI"-knapp (`AiArtworkDialog`).
-- Att "inget händer" vid klick tyder på att navigationen via `<Link>` inte triggas i den här vyn (t.ex. event som inte propagerar, eller route-resolution som tyst misslyckas). Säkraste fixet: byt navigationsbeteende till en **inline-dialog**, samma mönster som `EditSubmissionDialog` använder för låtar. Då behöver vi inte felsöka router-beteendet och får ett mer konsekvent UX.
+2. Förbättra felmeddelandet i admin
+   - När worker svarar 404 med HTML, spara ett kortare och mer hjälpsamt fel, t.ex. att worker-URL/path troligen är felkonfigurerad.
+   - Behåll teknisk statuskod i payload/loggen för felsökning.
 
-## Ändringar
+3. Gör worker mer tolerant om den faktiskt körs bakom `/audio-processing`
+   - Låt worker acceptera både `POST /process` och `POST /audio-processing/process`.
+   - Lägg även till health på båda path-varianterna om möjligt.
 
-### 1. Ny komponent: `EditAlbumDialog`
+4. Uppdatera worker-dokumentationen
+   - Förtydliga att `AUDIO_PROCESSOR_URL` kan sättas till antingen bas-URL (`https://host`) eller full endpoint (`https://host/process`).
+   - Om reverse proxy använder `/audio-processing`, ska den antingen rewrita till `/process` eller så ska full endpoint anges.
 
-Skapa `src/components/EditAlbumDialog.tsx`:
-- Modal (fixed overlay) i samma stil som `EditSubmissionDialog`.
-- Innehåller `<AlbumForm existing={album} onSaved={...} />` så vi återanvänder all logik (titel, beskrivning, typ, genre, release date, artwork-upload, AI-generering).
-- `onSaved` stänger dialogen och invaliderar `["album", albumId]`-queryn så vyn uppdateras direkt.
-
-### 2. Album-sidan använder dialog istället för navigation
-
-I `src/routes/albums.$albumId.tsx`:
-- Ersätt `<Link to="/albums/$albumId/edit">` med en `<button>` som sätter `editingAlbumOpen = true`.
-- Rendera `<EditAlbumDialog>` när öppet.
-- Behåll route-filen `albums.$albumId.edit.tsx` för djuplänkar (kan vara kvar oförändrad).
-
-### 3. Verifiera låt-redigering
-
-`EditSubmissionDialog` (`src/components/SubmissionActions.tsx`) har redan "Replace artwork" + "Skapa med AI" via `AiArtworkDialog`. Ingen ändring krävs — vi bekräftar bara i UI-test efter bygget.
-
-## Berörda filer
-
-- `src/components/EditAlbumDialog.tsx` (ny)
-- `src/routes/albums.$albumId.tsx` (Edit-knapp → öppnar dialog)
-
-## Out of scope
-
-- Ingen ändring av `AlbumForm`, `AiArtworkDialog`, `EditSubmissionDialog` eller server-funktioner.
-- Inga databas- eller storage-ändringar.
+5. Verifiering
+   - Kontrollera berörda filer efter ändring och bekräfta att appen inte längre hårdkodar fel path.
+   - Efter deploy/uppdaterad worker kan du köra Retry/Backfill igen; befintliga failed-rader behöver retryas eftersom de redan misslyckats.

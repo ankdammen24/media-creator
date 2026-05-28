@@ -71,6 +71,17 @@ export function buildOutputPaths(ownerId: string, submissionId: string) {
   };
 }
 
+/**
+ * Build the worker's /process endpoint from AUDIO_PROCESSOR_URL.
+ * Accepts either a base URL ("https://host") or a full endpoint
+ * ("https://host/process"). Avoids double-appending "/process".
+ */
+export function buildProcessEndpoint(rawUrl: string) {
+  const trimmed = rawUrl.trim().replace(/\/+$/, "");
+  if (/\/process$/i.test(trimmed)) return trimmed;
+  return `${trimmed}/process`;
+}
+
 export function hmacSign(secret: string, body: string) {
   return createHmac("sha256", secret).update(body).digest("hex");
 }
