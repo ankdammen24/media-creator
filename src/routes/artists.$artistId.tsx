@@ -37,6 +37,7 @@ type ArtistItem = {
   audio_path: string;
   description: string | null;
   created_at: string;
+  albums: { artwork_path: string | null } | null;
 };
 
 type ArtistData = {
@@ -69,7 +70,7 @@ function ArtistPage() {
         supabase
           .from("submission_artists")
           .select(
-            "submission_id, submissions!inner(id, title, media_type, artwork_path, audio_path, description, created_at, status)",
+            "submission_id, submissions!inner(id, title, media_type, artwork_path, audio_path, description, created_at, status, albums(artwork_path))",
           )
           .eq("artist_profile_id", artistId)
           .eq("submissions.status", "approved"),
