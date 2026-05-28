@@ -1,48 +1,77 @@
 ## Mål
 
-Skapa nya bilder för **alla artister** och skriv över befintliga. Bilden hämtas bara från en källa om både artistnamnet OCH ett av artistens egna låtnamn (från `submissions`) verifieras i källans svar. Annars genereras en abstrakt, ansiktslös AI-bild.
+Överallt där en inloggad användare (artist eller admin) kan ladda upp en bild ska det också finnas en knapp **"Skapa med AI"** som öppnar en streamande generator och lämnar tillbaka en färdig fil till det vanliga uppladdningsflödet. Inga nya rättigheter införs — knappen visas bara där användaren redan har rätt att ladda upp, så befintlig RLS + UI-gating räcker.
 
-## Sökflöde per artist
+## Identifierade uppladdningsställen
 
-1. Hämta artistens godkända låtar (`submissions.title` där `artist_profile_id = artist.id`, max ~20 titlar).
-2. **iTunes** (`itunes.apple.com/search`, entity `song`, term = `"<artist> <låt>"`). Itererar igenom låtarna tills en träff returnerar:
-   - `artistName` ≈ artistens namn (case/diakritik-okänslig jämförelse), och
-   - `trackName` ≈ någon av artistens låttitlar.
-   Om träff: använd `artworkUrl100` upskalat till 1000×1000.
-3. **Deezer-fallback** (`api.deezer.com/search?q=artist:"X" track:"Y"`). Samma verifiering på `artist.name` + `title`. Använd `album.cover_xl` (eller `cover_big`).
-4. **AI-fallback** om varken iTunes eller Deezer ger verifierad träff: generera 1024×1024 via Lovable AI Gateway (`openai/gpt-image-2`, `quality: "low"`, non-streaming) med en abstrakt prompt baserad på artistens namn/genre — explicit "no faces, no people, no text".
-5. Ladda upp resultatet till bucket `artwork` under `auto/artists/<id>-<ts>.{jpg|png}` och uppdatera `artist_profiles.avatar_path`. Loggas som källa: `itunes` / `deezer` / `ai` / `failed`.
+| # | Plats | Bildtyp | Aspekt |
+|---|---|---|---|
+| 1 | `src/components/ArtistProfileEditor.tsx` | Artistens avatar | 1:1 |
+| 2 | `src/components/AlbumForm.tsx` | Albumomslag | 1:1 |
+| 3 | `src/components/SubmissionActions.tsx` (admin/ägar-byte) | Spår-omslag | 1:1 |
+| 4 | `src/routes/upload.tsx` | Spår-omslag (single) | 1:1 |
+| 5 | `src/routes/upload-batch.tsx` | Spår-omslag (per draft + delad) | 1:1 |
+| 6 | `src/components/ArtistImageManager.tsx` | Artistgalleri — *redan klart via `AiImageGenerator`* | — |
 
-## Ändringar
+## Lösning
 
-### `src/lib/itunes.server.ts`
-- Lägg till `searchArtistImageVerified(artistName, songTitles[])` som söker per låt och returnerar URL endast om både artist + låt matchar.
-- Lägg till `searchArtistImageDeezerVerified(artistName, songTitles[])` med samma kontrakt.
-- Behåll befintliga overifierade funktioner för albumflödet.
+### 1. Generisk server-route — `src/routes/api/generate-artwork.ts`
 
-### Ny fil `src/lib/ai-image.server.ts`
-- `generateArtistFallbackImage(artistName: string): Promise<{ blob, contentType } | null>` som anropar AI Gateway `/v1/images/generations` (non-streaming), parsear `data[0].b64_json` och returnerar binärdata.
+En förenklad, återanvändbar version av `generate-artist-image.ts`:
 
-### `src/lib/artwork.functions.ts`
-- Ny serverfunktion `bulkRegenerateArtistArtwork` (admin-only):
-  - Hämta **alla** rader från `artist_profiles` (ej bara där `avatar_path is null`).
-  - För varje artist: hämta sub­mission-titlar, kör flödet ovan, ladda upp, uppdatera `avatar_path`.
-  - Returnera utökad `BulkResult` med `source: "itunes" | "deezer" | "ai" | "failed"` per post.
-  - Liten paus (~150 ms) mellan poster för att undvika rate-limit.
-- Behåller existerande `bulkFetchMissingArtistArtwork` orörd (används fortfarande för "endast saknade").
+- `POST { prompt: string, aspect: "1:1" | "16:9" | "3:2" }`.
+- Verifierar bara att anroparen är inloggad (samma `verifyUser`-mönster). Ingen ägar-/admin-koll — den görs av RLS när bilden sen laddas upp.
+- Strömmar SSE från Lovable AI Gateway `/v1/images/generations` med `google/gemini-3.1-flash-image-preview` (samma modell + kostnadsprofil som befintlig generator).
+- Skriver **inget** till databasen — returnerar bara strömmen.
 
-### `src/components/AdminAutoArtwork.tsx`
-- Ny knapp "Regenerera ALLA artistbilder (skriver över)" med röd/varnings-styling och `confirm()`-dialog innan körning.
-- Visar källfördelning i resultatet (iTunes / Deezer / AI / Misslyckade).
+### 2. Generisk klient-komponent — `src/components/AiArtworkDialog.tsx`
 
-## Säkerhet & gränser
+Modal med samma look som `AiImageGenerator`, men frikopplad från `artist_images`:
 
-- Bulk-funktionen kräver admin (samma `isAdmin`-check som redan finns).
-- AI-anrop kan kosta credits — varningstext i UI:t innan körningen startar.
-- Default-batch: 100 artister per körning (parameter), så stora kataloger körs i omgångar.
+```ts
+type Props = {
+  open: boolean;
+  defaultPrompt?: string;          // t.ex. "Albumomslag: {titel} av {artist}"
+  aspect?: "1:1" | "16:9" | "3:2"; // default 1:1
+  onClose: () => void;
+  onGenerated: (file: File) => void; // PNG-fil till anroparen
+};
+```
 
-## Tekniska detaljer
+- Återanvänder befintlig SSE-parser, `flushSync`-mönstret och blur-på-partial från `AiImageGenerator` (kopieras, ej delas, för att hålla diff:en lokal).
+- "Använd bild"-knapp anropar `onGenerated(new File([blob], "ai-artwork.png", { type: "image/png" }))` och stänger modal.
+- Anroparen sköter därefter sitt vanliga upload-flöde (Storage + DB-rad) precis som vid manuell filuppladdning.
 
-- Normaliserad jämförelse: `s.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "")`. Träff om ena är substring av den andra.
-- AI-prompt-mall: `"Abstract, artistic album-style square cover art inspired by the musical identity of '<artist>'. Minimalist, modern, evocative shapes and color. No faces, no people, no text, no logos. 1:1."`
-- AI-modell: `openai/gpt-image-2`, `size: "1024x1024"`, `quality: "low"`, `n: 1`, `stream: false` (vi behöver bara den färdiga binären på servern).
+### 3. Knapp + integration på varje ställe
+
+Bredvid varje `<input type="file">` läggs en `<button>` med Sparkles-ikon "Skapa med AI". Klick → öppnar `<AiArtworkDialog>` med en lämplig default-prompt; `onGenerated` matar in filen i samma state-variabel som filinputen sätter (`setArtwork`, `setAvatarFile`, draftens `artwork`-fält osv).
+
+Default-prompter (svenska, abstrakt/konstnärlig stil i linje med tidigare beslut):
+
+- Avatar: `"Stiliserat, abstrakt porträttmotiv för musikartisten {artistName}, lugn färgpalett, inga ansikten, inga texter"`.
+- Albumomslag: `"Abstrakt albumomslag för '{albumTitle}' av {artistName}, konstnärlig komposition, ingen text"`.
+- Spår-omslag: `"Abstrakt omslag för låten '{trackTitle}' av {artistName}, konstnärligt motiv, ingen text"`.
+
+Användaren kan redigera prompten i modalen innan generering.
+
+### 4. Inga ändringar i
+
+- `AiImageGenerator.tsx` / `/api/generate-artist-image` — fortsätter driva artistgalleriet (skriver direkt till `artist_images`).
+- `bulkRegenerateArtistArtwork` och iTunes/Deezer-flöden.
+- RLS-policies, tabeller eller buckets.
+
+## Filer som ändras
+
+- **Ny** `src/routes/api/generate-artwork.ts`
+- **Ny** `src/components/AiArtworkDialog.tsx`
+- **Ändras** `src/components/ArtistProfileEditor.tsx`
+- **Ändras** `src/components/AlbumForm.tsx`
+- **Ändras** `src/components/SubmissionActions.tsx`
+- **Ändras** `src/routes/upload.tsx`
+- **Ändras** `src/routes/upload-batch.tsx` (knapp både per draft och för delat omslag)
+
+## Utelämnat medvetet
+
+- Ingen separat backend-rättighetscheck per resurs — Storage/DB-skrivningen som redan finns kvar bakom RLS är det riktiga skyddet, så vi undviker att duplicera logiken i AI-endpointen.
+- Inga nya tabeller/kolumner.
+- Befintlig generator för artistgalleri rörs inte.
