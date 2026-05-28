@@ -71,6 +71,17 @@ export function buildOutputPaths(ownerId: string, submissionId: string) {
   };
 }
 
+/**
+ * Build the worker's /process endpoint from AUDIO_PROCESSOR_URL.
+ * Accepts either a base URL ("https://host") or a full endpoint
+ * ("https://host/process"). Avoids double-appending "/process".
+ */
+export function buildProcessEndpoint(rawUrl: string) {
+  const trimmed = rawUrl.trim().replace(/\/+$/, "");
+  if (/\/process$/i.test(trimmed)) return trimmed;
+  return `${trimmed}/process`;
+}
+
 export function hmacSign(secret: string, body: string) {
   return createHmac("sha256", secret).update(body).digest("hex");
 }
@@ -173,20 +184,27 @@ export async function dispatchToWorker(submissionId: string, opts?: { force?: bo
     .from("submissions")
     .update({ processing_status: "processing", processing_error: null })
     .eq("id", submissionId);
+  const endpoint = buildProcessEndpoint(url);
   await logAudio("dispatch", `Skickar jobb till worker (force=${!!opts?.force}).`, {
     submissionId,
-    payload: { masterPath, webPath, force: !!opts?.force },
+    payload: { endpoint, masterPath, webPath, force: !!opts?.force },
   });
 
   try {
-    const res = await fetch(`${url.replace(/\/$/, "")}/process`, {
+    const res = await fetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-signature": signature },
       body,
     });
     if (!res.ok) {
       const text = await res.text().catch(() => "");
-      const msg = `worker ${res.status}: ${text.slice(0, 200)}`;
+      const isHtml = /<!DOCTYPE|<html/i.test(text);
+      const msg =
+        res.status === 404
+          ? `worker 404 på ${endpoint} — kontrollera att AUDIO_PROCESSOR_URL pekar på worker-basen (eller .../process) och att proxyn rutar till POST /process.`
+          : isHtml
+            ? `worker ${res.status} på ${endpoint} (HTML-svar, troligen fel URL/proxy).`
+            : `worker ${res.status}: ${text.slice(0, 200)}`;
       await supabaseAdmin
         .from("submissions")
         .update({ processing_status: "failed", processing_error: msg })
@@ -194,7 +212,7 @@ export async function dispatchToWorker(submissionId: string, opts?: { force?: bo
       await logAudio("dispatch_failed", msg, {
         submissionId,
         level: "error",
-        payload: { httpStatus: res.status },
+        payload: { httpStatus: res.status, endpoint },
       });
       return { outcome: "failed" as const, reason: msg };
     }

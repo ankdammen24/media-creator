@@ -245,12 +245,15 @@ async function processJob(job: Job) {
 }
 
 const server = createServer(async (req, res) => {
-  if (req.method === "GET" && req.url === "/health") {
+  const path = (req.url || "").split("?")[0].replace(/\/+$/, "") || "/";
+  const isHealth = path === "/health" || path === "/audio-processing/health";
+  const isProcess = path === "/process" || path === "/audio-processing/process";
+  if (req.method === "GET" && isHealth) {
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ ok: true }));
     return;
   }
-  if (req.method !== "POST" || req.url !== "/process") {
+  if (req.method !== "POST" || !isProcess) {
     res.writeHead(404);
     res.end();
     return;

@@ -62,10 +62,18 @@ Lägg upp som systemd-tjänst för att starta automatiskt vid omstart.
 När workern är nåbar på en HTTPS-URL:
 
 1. Sätt secret i Lovable Cloud:
-   - `AUDIO_PROCESSOR_URL` = t.ex. `https://media-processor.dindomän.se`
+   - `AUDIO_PROCESSOR_URL` = bas-URL, t.ex. `https://media-processor.dindomän.se`
+     (du kan även ange full endpoint `https://media-processor.dindomän.se/process` — appen lägger inte till `/process` två gånger).
    - `AUDIO_PROCESSOR_SECRET` = samma sträng som workern kör med
 2. (Valfritt) `PUBLIC_APP_URL` = `https://media-catalog.lovable.app` så worker når callback-endpointen även om jobbet startas via en preview-domän.
 3. Gå till **Admin → Bearbetning** och tryck **Bakåtfyll** för att börja processa befintliga låtar 50 i taget.
+
+> **Viktigt om reverse proxy:** Workern svarar på `POST /process`. Om din proxy
+> ligger på ett under-path som `/audio-processing`, måste den antingen rewrita
+> `/audio-processing/process` → `/process`, eller så sätter du
+> `AUDIO_PROCESSOR_URL` till full endpoint. Workern accepterar numera även
+> `POST /audio-processing/process` direkt. Felet `Cannot POST /audio-processing/process`
+> betyder att jobbet träffar en tjänst/route som inte är workern.
 
 ## Endpoints
 
@@ -73,6 +81,8 @@ När workern är nåbar på en HTTPS-URL:
 |---|---|---|
 | `GET` | `/health` | Returnerar `{"ok":true}`. |
 | `POST` | `/process` | Tar emot ett signerat jobb, returnerar `202 Accepted`, kör asynkront. |
+
+Workern svarar även på `/audio-processing/health` och `/audio-processing/process` för proxy-uppsättningar.
 
 ## Felsökning
 
