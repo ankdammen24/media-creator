@@ -301,7 +301,19 @@ function UploadPage() {
     );
   }
 
-  const selectedProfile = profiles.find((p) => p.id === profileId);
+  const primaryProfile = profiles.find((p) => p.id === profileIds[0]);
+  const selectedProfiles = profileIds
+    .map((id) => profiles.find((p) => p.id === id))
+    .filter((p): p is ArtistProfile => !!p);
+
+  function toggleProfile(id: string) {
+    setProfileIds((cur) =>
+      cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id],
+    );
+  }
+  function makePrimary(id: string) {
+    setProfileIds((cur) => [id, ...cur.filter((x) => x !== id)]);
+  }
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
@@ -340,12 +352,14 @@ function UploadPage() {
               {profiles.length > 0 && !creatingProfile && (
                 <div className="grid gap-2 sm:grid-cols-2">
                   {profiles.map((p) => {
-                    const active = profileId === p.id;
+                    const idx = profileIds.indexOf(p.id);
+                    const active = idx >= 0;
+                    const isPrimary = idx === 0;
                     return (
                       <button
                         type="button"
                         key={p.id}
-                        onClick={() => setProfileId(p.id)}
+                        onClick={() => toggleProfile(p.id)}
                         className={`flex items-center gap-3 rounded-lg border p-3 text-left transition ${
                           active
                             ? "border-primary bg-primary/10"
@@ -360,11 +374,39 @@ function UploadPage() {
                           {p.bio && (
                             <span className="block truncate text-xs text-muted-foreground">{p.bio}</span>
                           )}
+                          {active && (
+                            <span
+                              role="button"
+                              tabIndex={0}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (!isPrimary) makePrimary(p.id);
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.stopPropagation();
+                                  if (!isPrimary) makePrimary(p.id);
+                                }
+                              }}
+                              className={`mt-1 inline-block rounded px-1.5 py-0.5 text-[10px] font-medium ${
+                                isPrimary
+                                  ? "bg-primary text-primary-foreground"
+                                  : "bg-secondary text-muted-foreground hover:bg-secondary/80"
+                              }`}
+                            >
+                              {isPrimary ? "Primary" : "Sätt som primär"}
+                            </span>
+                          )}
                         </span>
                       </button>
                     );
                   })}
                 </div>
+              )}
+              {profileIds.length > 1 && (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Välj flera profiler för samarbeten (feat.). Den första räknas som huvudartist.
+                </p>
               )}
 
               {profiles.length === 0 && !creatingProfile && (
