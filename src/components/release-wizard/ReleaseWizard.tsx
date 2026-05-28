@@ -29,6 +29,7 @@ import {
   Trash2,
   Upload as UploadIcon,
   X,
+  Info,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
