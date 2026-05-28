@@ -254,6 +254,54 @@ export const attachSubmissionsToAlbum = createServerFn({ method: "POST" })
     return { ok: true, count: data.submissionIds.length };
   });
 
+/* -------------------- Sortera om låtar i album -------------------- */
+
+export const reorderAlbumTracks = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        albumId: z.string().uuid(),
+        orderedSubmissionIds: z.array(z.string().uuid()).min(1).max(500),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { userId } = context;
+    const { data: album, error: alErr } = await supabaseAdmin
+      .from("albums")
+      .select("id, user_id")
+      .eq("id", data.albumId)
+      .maybeSingle();
+    if (alErr) throw new Error(alErr.message);
+    if (!album) throw new Error("Album saknas.");
+    await assertCatalogEditor(userId, album.user_id);
+
+    // Verifiera att alla låtar tillhör albumet.
+    const { data: subs, error: sErr } = await supabaseAdmin
+      .from("submissions")
+      .select("id, album_id")
+      .in("id", data.orderedSubmissionIds);
+    if (sErr) throw new Error(sErr.message);
+    const subMap = new Map((subs ?? []).map((s) => [s.id, s.album_id]));
+    for (const id of data.orderedSubmissionIds) {
+      if (subMap.get(id) !== data.albumId) {
+        throw new Error("En eller flera låtar tillhör inte detta album.");
+      }
+    }
+
+    let n = 1;
+    for (const id of data.orderedSubmissionIds) {
+      const { error } = await supabaseAdmin
+        .from("submissions")
+        .update({ track_number: n })
+        .eq("id", id);
+      if (error) throw new Error(error.message);
+      n += 1;
+    }
+    return { ok: true, count: data.orderedSubmissionIds.length };
+  });
+
 /* -------------------- Artist images -------------------- */
 
 const ImageKind = z.enum(["avatar", "cover", "press"]);
