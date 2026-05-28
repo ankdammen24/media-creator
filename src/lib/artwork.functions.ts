@@ -10,6 +10,7 @@ import {
   searchArtistImageDeezerVerified,
   searchTrackImageVerified,
   searchTrackImageDeezerVerified,
+  searchTrackImageCoverArtArchive,
 } from "@/lib/itunes.server";
 import { generateArtistFallbackImage, generateTrackFallbackImage } from "@/lib/ai-image.server";
 
