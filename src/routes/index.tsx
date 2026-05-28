@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react";
 import { ArrowRight, Music2, Mic, UploadCloud, User } from "lucide-react";
 import { EmptyState, ErrorState } from "@/components/StateViews";
 import { supabase } from "@/integrations/supabase/client";
@@ -47,6 +48,25 @@ type ArtistRow = {
 
 function artworkUrl(path: string) {
   return supabase.storage.from("artwork").getPublicUrl(path).data.publicUrl;
+}
+
+function shuffle<T>(arr: T[]): T[] {
+  const out = [...arr];
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+/** Returns a counter that increments every 5 minutes to trigger a reshuffle. */
+function useShuffleTick() {
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 5 * 60 * 1000);
+    return () => clearInterval(id);
+  }, []);
+  return tick;
 }
 
 function toTrack(r: Row): PlayerTrack {
@@ -220,22 +240,25 @@ function LatestMusic() {
         .eq("status", "approved")
         .eq("media_type", "music")
         .order("created_at", { ascending: false })
-        .limit(8);
+        .limit(30);
       if (error) throw error;
       return (data ?? []) as unknown as Row[];
     },
   });
+
+  const tick = useShuffleTick();
+  const shown = useMemo(() => shuffle(data ?? []).slice(0, 8), [data, tick]);
 
   return (
     <section className="mb-14">
       <SectionHeader title="Latest music" to="/catalog" />
       {isLoading ? (
         <p className="text-sm text-muted-foreground">Loading…</p>
-      ) : !data || data.length === 0 ? (
+      ) : shown.length === 0 ? (
         <EmptyState title="No music yet" description="Approved music will appear here." />
       ) : (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-          {data.map((i) => (
+          {shown.map((i) => (
             <TrackCard key={i.id} item={i} />
           ))}
         </div>
@@ -374,13 +397,16 @@ function FeaturedArtists() {
         if (seen.has(row.artist_profiles.id)) continue;
         seen.add(row.artist_profiles.id);
         out.push(row.artist_profiles);
-        if (out.length >= 8) break;
+        if (out.length >= 24) break;
       }
       return out;
     },
   });
 
-  if (!isLoading && (!data || data.length === 0)) return null;
+  const tick = useShuffleTick();
+  const shown = useMemo(() => shuffle(data ?? []).slice(0, 8), [data, tick]);
+
+  if (!isLoading && shown.length === 0) return null;
 
   return (
     <section className="mb-14">
@@ -389,7 +415,7 @@ function FeaturedArtists() {
         <p className="text-sm text-muted-foreground">Loading…</p>
       ) : (
         <div className="grid grid-cols-3 gap-4 sm:grid-cols-4 lg:grid-cols-8">
-          {data!.map((a) => {
+          {shown.map((a) => {
             const avatar = a.avatar_path
               ? supabase.storage.from("artwork").getPublicUrl(a.avatar_path).data.publicUrl
               : null;

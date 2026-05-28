@@ -1,25 +1,23 @@
-Problemet är att appen skickar jobben till `AUDIO_PROCESSOR_URL + /process`, men den konfigurerade URL:en verkar redan innehålla pathen `/audio-processing` och träffar en tjänst som svarar `Cannot POST /audio-processing/process`. Workern i repo:t lyssnar på `POST /process`, så vi behöver göra dispatchen tydligare och mer robust.
+## Mål
 
-Plan:
+På startsidan ska listan under **Latest music** och **Featured artists** bytas ut lite slumpmässigt automatiskt var 5:e minut, så att sidan känns levande utan att man behöver ladda om.
 
-1. Uppdatera dispatch-logiken
-   - Bygg worker-endpoint smartare från `AUDIO_PROCESSOR_URL`.
-   - Om URL:en redan slutar med `/process`, använd den exakt.
-   - Annars lägg bara till `/process` på bas-URL:en.
-   - Logga vilken endpoint som används, utan att exponera signed URL eller hemligheter.
+## Så fungerar det
 
-2. Förbättra felmeddelandet i admin
-   - När worker svarar 404 med HTML, spara ett kortare och mer hjälpsamt fel, t.ex. att worker-URL/path troligen är felkonfigurerad.
-   - Behåll teknisk statuskod i payload/loggen för felsökning.
+Idag hämtas exakt de 8 senaste godkända låtarna (och 8 senaste artisterna) och visas alltid i samma ordning. Istället:
 
-3. Gör worker mer tolerant om den faktiskt körs bakom `/audio-processing`
-   - Låt worker acceptera både `POST /process` och `POST /audio-processing/process`.
-   - Lägg även till health på båda path-varianterna om möjligt.
+1. Vi hämtar en **större pool** (t.ex. de 30 senaste godkända låtarna respektive ~24 artister).
+2. Vi blandar poolen slumpmässigt och visar **8 stycken**.
+3. En timer som tickar **var 5:e minut** triggar en ny blandning, så urvalet byts ut "lite randomly" – helt på klientsidan, inga omladdningar och ingen backend behövs.
 
-4. Uppdatera worker-dokumentationen
-   - Förtydliga att `AUDIO_PROCESSOR_URL` kan sättas till antingen bas-URL (`https://host`) eller full endpoint (`https://host/process`).
-   - Om reverse proxy använder `/audio-processing`, ska den antingen rewrita till `/process` eller så ska full endpoint anges.
+Eftersom poolen är begränsad till de senaste posterna håller vi det fortfarande relevant (nya låtar/artister kommer med), men ordningen och vilka 8 som syns roterar.
 
-5. Verifiering
-   - Kontrollera berörda filer efter ändring och bekräfta att appen inte längre hårdkodar fel path.
-   - Efter deploy/uppdaterad worker kan du köra Retry/Backfill igen; befintliga failed-rader behöver retryas eftersom de redan misslyckats.
+## Tekniska detaljer
+
+I `src/routes/index.tsx`:
+
+- **`LatestMusic`**: höj `limit(8)` → `limit(30)` i frågan. Lägg till en `shuffleTick`-state (number) som ökas av en `setInterval(..., 5 * 60 * 1000)` i en `useEffect`. Härled den visade listan med `useMemo(() => shuffle(pool).slice(0, 8), [pool, shuffleTick])`.
+- **`FeaturedArtists`**: samma mönster – behåll dedupliceringen men bygg en större unik artistpool (t.ex. upp till 24), och plocka slumpmässigt 8 som roterar var 5:e minut via samma `shuffleTick`-mekanism.
+- Lägg till en liten `shuffle`-hjälpfunktion (Fisher–Yates) i filen.
+
+Intervallet städas upp i `useEffect` cleanup. Allt är ren frontend/presentation – inga ändringar i databas, queries-struktur eller affärslogik utöver den ökade `limit`.
