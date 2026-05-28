@@ -124,8 +124,8 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     ((track: PlayerTrack, opts?: { keepQueue?: boolean }) => Promise<void>) | null
   >(null);
 
-  // Fetch a random shuffled queue of approved music tracks for anon users.
-  const buildAnonQueue = useCallback(async (excludeId: string) => {
+  // Fetch a random shuffled queue of approved music tracks to auto-play next.
+  const buildRandomQueue = useCallback(async (excludeId: string) => {
     // Pull up to ~80 most-recent approved music tracks, then shuffle client-side.
     const { data, error } = await supabase
       .from("submissions")
@@ -184,14 +184,10 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true);
     setProgress(0);
     setDuration(0);
-    // Anonymous users get an auto-generated random queue when they actively
-    // pick a track. Auto-advance plays from that queue and keeps it intact.
+    // Always queue up a random shuffled set of approved music tracks so the
+    // player keeps going after the current track ends.
     if (!opts?.keepQueue) {
-      if (!userRef.current && track.mediaType === "music") {
-        void buildAnonQueue(track.id);
-      } else {
-        setQueue([]);
-      }
+      void buildRandomQueue(track.id);
       setHistory([]);
     }
     const { data, error } = await supabase.storage
@@ -207,7 +203,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     } catch {
       setIsLoading(false);
     }
-  }, [current?.id, buildAnonQueue]);
+  }, [current?.id, buildRandomQueue]);
 
   useEffect(() => {
     playTrackRef.current = play;
