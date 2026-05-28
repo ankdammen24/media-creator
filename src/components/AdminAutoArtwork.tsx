@@ -194,20 +194,20 @@ export function AdminAutoArtwork() {
                   ? "låtar"
                   : "regenerering"}
           </h3>
-          {result.kind === "regen" || result.kind === "tracks" ? (
+          {result.kind === "artists" || result.kind === "albums" ? (
+            <ul className="space-y-1 text-muted-foreground">
+              <li>Genomsökta: {result.res.scanned}</li>
+              <li>Uppdaterade med omslag: {result.res.updated}</li>
+              <li>Ingen träff i iTunes: {result.res.missed}</li>
+              <li>Misslyckade: {result.res.failed}</li>
+            </ul>
+          ) : (
             <ul className="space-y-1 text-muted-foreground">
               <li>Genomsökta: {result.res.scanned}</li>
               <li>Uppdaterade: {result.res.updated}</li>
               <li>Källa iTunes: {result.res.bySource.itunes}</li>
               <li>Källa Deezer: {result.res.bySource.deezer}</li>
               <li>Källa AI: {result.res.bySource.ai}</li>
-              <li>Misslyckade: {result.res.failed}</li>
-            </ul>
-          ) : (
-            <ul className="space-y-1 text-muted-foreground">
-              <li>Genomsökta: {result.res.scanned}</li>
-              <li>Uppdaterade med omslag: {result.res.updated}</li>
-              <li>Ingen träff i iTunes: {result.res.missed}</li>
               <li>Misslyckade: {result.res.failed}</li>
             </ul>
           )}
