@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import type { Database } from "@/integrations/supabase/types";
 
 type Body = {
@@ -29,12 +30,28 @@ async function verifyUser(authHeader: string | null): Promise<string | null> {
   return data.claims.sub as string;
 }
 
+async function userHasCatalogRole(userId: string): Promise<boolean> {
+  const { data, error } = await supabaseAdmin
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userId)
+    .in("role", ["admin", "artist"])
+    .limit(1)
+    .maybeSingle();
+  if (error) return false;
+  return !!data;
+}
+
 export const Route = createFileRoute("/api/generate-artwork")({
   server: {
     handlers: {
       POST: async ({ request }) => {
         const userId = await verifyUser(request.headers.get("authorization"));
         if (!userId) return bad("Unauthorized", 401);
+
+        if (!(await userHasCatalogRole(userId))) {
+          return bad("Forbidden", 403);
+        }
 
         let body: Body;
         try {
