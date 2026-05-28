@@ -606,19 +606,9 @@ function AdminPage() {
         >
           <FileSpreadsheet className="h-3.5 w-3.5" /> Katalog-import
         </button>
-        <button
-          onClick={() => setTab("audio")}
-          className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition ${
-            tab === "audio" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <Waves className="h-3.5 w-3.5" /> Ljud-bearbetning
-        </button>
       </div>
 
-      {tab === "audio" ? (
-        <AdminAudioProcessing />
-      ) : tab === "catalog-import" ? (
+      {tab === "catalog-import" ? (
         <AdminCatalogImport />
       ) : tab === "import" ? (
         <RadioUppsalaImport />
