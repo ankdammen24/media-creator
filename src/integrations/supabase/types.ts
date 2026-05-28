@@ -54,7 +54,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "albums_artist_profile_id_fkey"
+            columns: ["artist_profile_id"]
+            isOneToOne: false
+            referencedRelation: "artist_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       artist_images: {
         Row: {
@@ -99,7 +107,62 @@ export type Database = {
           user_id?: string
           visibility?: Database["public"]["Enums"]["artist_image_visibility"]
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "artist_images_artist_profile_id_fkey"
+            columns: ["artist_profile_id"]
+            isOneToOne: false
+            referencedRelation: "artist_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      artist_ownership_log: {
+        Row: {
+          affected_albums: number
+          affected_images: number
+          affected_submissions: number
+          artist_profile_id: string
+          changed_by: string
+          created_at: string
+          from_user_id: string
+          id: string
+          reason: string | null
+          to_user_id: string
+        }
+        Insert: {
+          affected_albums?: number
+          affected_images?: number
+          affected_submissions?: number
+          artist_profile_id: string
+          changed_by: string
+          created_at?: string
+          from_user_id: string
+          id?: string
+          reason?: string | null
+          to_user_id: string
+        }
+        Update: {
+          affected_albums?: number
+          affected_images?: number
+          affected_submissions?: number
+          artist_profile_id?: string
+          changed_by?: string
+          created_at?: string
+          from_user_id?: string
+          id?: string
+          reason?: string | null
+          to_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "artist_ownership_log_artist_profile_id_fkey"
+            columns: ["artist_profile_id"]
+            isOneToOne: false
+            referencedRelation: "artist_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       artist_profiles: {
         Row: {

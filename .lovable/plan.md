@@ -1,69 +1,113 @@
-# AI-bildgenerering för EPK (etapp 1.5)
+# Komplett ägarbyte av artister + audit-logg + FK-fix
 
-Bygger ovanpå `artist_images` från förra etappen. Inga DB-ändringar krävs — AI-genererade bilder lagras i samma tabell med `credit: 'AI-genererad'`.
+Två sammanhängande problem löses i samma omgång:
 
-## Tre integrationer
+1. **Ägarbyte i admin uppdaterar bara `artist_profiles.user_id`** → relaterade rader (`albums`, `submissions`, `artist_images`) blir kvar hos gamla ägaren och nya ägaren blockas av RLS.
+2. **Saknade foreign keys** → PostgREST kraschar med "Could not find a relationship between 'albums' and 'artist_profiles'" och relaterade joins är ömtåliga.
 
-### 1. Generera EPK-bild från prompt (i `ArtistImageManager`)
+## Steg 1 — Migration
 
-Ny knapp **"Skapa med AI"** bredvid uppladdningsfältet. Öppnar en modal:
-- Fritextfält för prompt (förifyllt mallförslag baserat på vald `kind`, t.ex. *"Studio-pressbild av artist Acme, naturligt ljus, bokeh, 4:3"*)
-- Val av typ (avatar/cover/press) – styr aspect ratio (1:1 / 16:9 / 3:2)
-- Streamad förhandsvisning med blur på partials (sells "renderar nu"), skarp på final
-- "Spara till galleri" knapp → laddar upp PNG till `artwork`-bucket, infogar `artist_images`-rad med vald `kind`, `credit = 'AI-genererad (Gemini 3.1 Flash)'`, `visibility = 'link_only'` som default så artisten medvetet publicerar
+### 1a. Lägg till saknade foreign keys + index
 
-### 2. Fallback i auto-fetch (artist + album)
+```sql
+ALTER TABLE public.albums
+  ADD CONSTRAINT albums_artist_profile_id_fkey
+  FOREIGN KEY (artist_profile_id) REFERENCES public.artist_profiles(id)
+  ON DELETE CASCADE;
 
-I `AdminAutoArtwork.tsx` (befintlig admin-flik): efter iTunes-bulk visas summering "X hittades, Y saknas fortfarande". Ny knapp **"Generera resterande med AI"** som loopar de saknade och skapar bilder via samma server-route. Räknare visar uppskattad kostnad innan körning (`antal × ~$0.035`). Bekräftelse krävs.
+ALTER TABLE public.artist_images
+  ADD CONSTRAINT artist_images_artist_profile_id_fkey
+  FOREIGN KEY (artist_profile_id) REFERENCES public.artist_profiles(id)
+  ON DELETE CASCADE;
 
-I `AlbumForm.tsx` och `upload.tsx` när användaren skapar ny artist/album utan bild: efter att iTunes-auto-fetch misslyckats (idag tyst), erbjud en toast med knapp "Skapa AI-bild istället".
+ALTER TABLE public.submission_artists
+  ADD CONSTRAINT submission_artists_submission_id_fkey
+  FOREIGN KEY (submission_id) REFERENCES public.submissions(id) ON DELETE CASCADE,
+  ADD CONSTRAINT submission_artists_artist_profile_id_fkey
+  FOREIGN KEY (artist_profile_id) REFERENCES public.artist_profiles(id) ON DELETE CASCADE;
+```
 
-### 3. Redigera befintlig bild med AI
+`submissions → artist_profiles` och `submissions → albums` läggs till på samma sätt om de inte redan finns (idempotent via `DO`-block). Index skapas för varje FK-kolumn för join-prestanda. Avslutas med `NOTIFY pgrst, 'reload schema';`.
 
-I `ArtistImageManager`-galleriet, ny knapp per bild **"Variera med AI"** (penselikon). Öppnar samma modal förifyllt med befintlig bild som referens + prompt-fält ("ändra bakgrund till studio", "gör mer dramatisk belysning", etc.). Använder Gemini-redigeringsläge (skickar bilden som input).
+### 1b. Skapa `artist_ownership_log`
 
-## Standardmodell och kostnad
+```sql
+CREATE TABLE public.artist_ownership_log (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  artist_profile_id uuid NOT NULL REFERENCES public.artist_profiles(id) ON DELETE CASCADE,
+  from_user_id uuid NOT NULL,
+  to_user_id uuid NOT NULL,
+  changed_by uuid NOT NULL,           -- admin som gjorde ändringen
+  affected_albums int NOT NULL DEFAULT 0,
+  affected_submissions int NOT NULL DEFAULT 0,
+  affected_images int NOT NULL DEFAULT 0,
+  reason text,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
 
-- Default: **`google/gemini-3.1-flash-image-preview`** (Nano Banana 2) – ~$0.03–0.04/bild
-- Kostnaden visas i UI:t bredvid generera-knappen så artisten ser innan klick
-- Modellval exponeras inte i UI:t i denna etapp (kan läggas till senare om behov uppstår)
+GRANT SELECT ON public.artist_ownership_log TO authenticated;
+GRANT ALL  ON public.artist_ownership_log TO service_role;
 
-## Säkerhet och kreditskydd
+ALTER TABLE public.artist_ownership_log ENABLE ROW LEVEL SECURITY;
 
-- Server-route kräver inloggad användare via `requireSupabaseAuth`-mönster (manuell kontroll i routen eftersom det är en server-route, inte server-fn)
-- Validerar att `auth.uid()` antingen äger `artist_profile_id` eller är admin (`has_role`)
-- Endast ägare/admin ser AI-knappar i UI:t (samma `canEdit`-villkor som befintlig editor)
-- Ingen dygnsgräns initialt (valt av användaren)
-- Prompt loggas i `console.log` på servern för felsökning men sparas inte i DB
+CREATE POLICY "Admins read ownership log"
+  ON public.artist_ownership_log FOR SELECT
+  TO authenticated
+  USING (public.has_role(auth.uid(), 'admin'::app_role));
+-- Inga insert/update/delete-policys: bara service_role (server-fn) får skriva.
+```
 
-## Teknisk struktur
+## Steg 2 — Server-fn för ägarbyte
 
-**Ny server-route** `src/routes/api/generate-artist-image.ts`:
-- POST med `{ artistId, prompt, kind, referenceImagePath? }`
-- Verifierar auth via Supabase access token i `Authorization`-header
-- Verifierar ägarskap via `supabaseAdmin` SQL-fråga
-- Anropar `https://ai.gateway.lovable.dev/v1/images/generations` med Gemini-shape (`messages` + `modalities: ["image", "text"]`), `stream: true`
-- Skickar vidare upstream-SSE-body direkt till klienten (ingen buffering)
-- Felhantering: 402 → "Lägg till credits i workspace", 429 → "Försök igen om en stund", 4xx → visa upstream-fel
+Ny fil `src/lib/admin-ownership.functions.ts` med `reassignArtistOwner` (POST):
 
-**Ny komponent** `src/components/AiImageGenerator.tsx`:
-- Modal med prompt, typ-val, streamad preview
-- `eventsource-parser` för SSE (lägg till som dependency)
-- `flushSync` runt setState så partial frames renderas progressivt
-- Vid final: konvertera base64 → Blob → upload till storage → insert till `artist_images`
+- `inputValidator` (Zod): `{ artistId: uuid, newUserId: uuid, reason?: string }`
+- `middleware: [requireSupabaseAuth]` — hämtar `userId` (= changed_by)
+- Verifierar att anroparen är admin via `has_role` (annars `throw new Error("Forbidden")`)
+- Använder `supabaseAdmin` för att:
+  1. Läsa nuvarande `artist_profiles.user_id` (= `from_user_id`)
+  2. Räkna `albums`, `submissions`, `artist_images` som tillhör artisten
+  3. Uppdatera `user_id` i alla fyra tabellerna (`artist_profiles`, `albums`, `submissions`, `artist_images`) WHERE `artist_profile_id = :artistId`
+  4. Skriva en rad till `artist_ownership_log`
+- Returnerar `{ from, to, counts: { albums, submissions, images } }`
 
-**Uppdateringar**:
-- `ArtistImageManager.tsx`: lägg till "Skapa med AI"-knapp + "Variera"-knapp per bild
-- `AdminAutoArtwork.tsx`: lägg till AI-fallback-knapp efter iTunes-körning, för både artister och album
-- `AlbumForm.tsx` / `upload.tsx`: visa toast med "Skapa AI-bild" om iTunes misslyckas (mjuk integration, ingen blockering)
+Filen läggs i `src/lib/` (inte `src/server/`) och hålls "thin" (bara server-fn + dess imports) — undviker det transitiva `client.server`-importproblemet.
 
-**Ny dependency**: `eventsource-parser` (~4 kB, Vercel-underhållen, behövs för SSE-parsning på klienten)
+Ny fil `src/lib/admin-ownership-log.functions.ts` med `listOwnershipLog` (GET, admin-only) som läser senaste 50 rader joinade med `profiles.display_name` för "from/to/changed_by".
 
-## Vad jag INTE gör nu
+## Steg 3 — UI-ändringar
 
-- Ingen dygnsgräns (kan läggas till om missbruk uppstår)
-- Inget modellval i UI:t (default Gemini 3.1 Flash Image)
-- Ingen separat AI-historik/audit-tabell (sparas som vanliga `artist_images` med credit-fält)
-- Ingen automatisk AI utan klick (kreditkontroll alltid via knapptryck)
+### `src/routes/admin.tsx`
 
-Säg till om något ska justeras innan jag bygger.
+- `<select>` byts mot **Combobox + "Byt ägare"-knapp**. Ingen on-change-mutation.
+- Klick på knapp → öppnar dialog (shadcn `AlertDialog`) med:
+  - "Du flyttar **Artistnamn** från **Gammal ägare** till **Ny ägare**."
+  - Visar antal album, submissions och bilder som flyttas med (förhandshämtat via en lättviktig count-query, eller hämtas i samma server-fn med `{ preview: true }`).
+  - Valfritt textfält "Anledning".
+  - Bekräfta → kallar `reassignArtistOwner` via `useServerFn`.
+- Toast med resultat ("Flyttade 3 album, 12 låtar, 4 bilder").
+- Invalidatar `["admin-artists"]`, `["catalog"]`, `["artist", artistId]`.
+
+### Ny komponent `src/components/AdminOwnershipLog.tsx`
+
+- Tabell: Datum, Artist, Från → Till, Av (admin), Påverkade rader, Anledning.
+- Renderas i `admin.tsx` under "Artists"-sektionen.
+
+## Tekniska detaljer
+
+- All mutation skrivs med `supabaseAdmin` i en server-fn — RLS bypassas medvetet, säkerheten upprätthålls av admin-checken inuti handlern.
+- Atomicitet: Supabase-JS har ingen transaktion klient-side. Vi kör uppdateringarna sekventiellt och loggar **efter** att alla lyckats. Om en update misslyckas: bryt, logga inte, returnera fel. Idempotens säkras av att samma `from == to` ger no-op.
+- `artist_ownership_log` har FK med `ON DELETE CASCADE` mot `artist_profiles` så raderade artister inte lämnar dangling-loggar — anpassa till `SET NULL` om historik ska bevaras (kan diskuteras).
+- Inga ändringar i storage-paths (`artists/{user_id}/...`) — de är bara strängar, RLS på storage gäller bucket-ägarskap inte path-segment.
+
+## Filer som skapas/ändras
+
+- **Migration**: 1 ny SQL-fil (steg 1a + 1b i samma migration).
+- **Skapas**: `src/lib/admin-ownership.functions.ts`, `src/lib/admin-ownership-log.functions.ts`, `src/components/AdminOwnershipLog.tsx`.
+- **Ändras**: `src/routes/admin.tsx` (reassign-flödet + ny sektion för logg).
+
+## Vad detta INTE gör
+
+- Skickar inget mejl till gamla/nya ägaren (kan läggas till senare i `notifications`-tabellen om du vill).
+- Tar inte bort gammal ägares roll/access globalt — bara på den specifika artisten.
+- Berör inte `azuracast`-import eller storage-objekt.
