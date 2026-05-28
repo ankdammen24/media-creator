@@ -33,6 +33,7 @@ export function AlbumPicker({ artistId, value, onChange, disabled }: Props) {
         .from("albums")
         .select("*")
         .eq("artist_profile_id", artistId!)
+        .neq("album_type", "podcast_show")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return (data ?? []) as Album[];
