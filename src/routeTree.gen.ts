@@ -19,6 +19,8 @@ import { Route as CatalogRouteImport } from './routes/catalog'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ArtistsArtistIdRouteImport } from './routes/artists.$artistId'
+import { Route as AlbumsNewRouteImport } from './routes/albums.new'
+import { Route as AlbumsAlbumIdEditRouteImport } from './routes/albums.$albumId.edit'
 
 const UploadBatchRoute = UploadBatchRouteImport.update({
   id: '/upload-batch',
@@ -70,6 +72,16 @@ const ArtistsArtistIdRoute = ArtistsArtistIdRouteImport.update({
   path: '/artists/$artistId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AlbumsNewRoute = AlbumsNewRouteImport.update({
+  id: '/albums/new',
+  path: '/albums/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AlbumsAlbumIdEditRoute = AlbumsAlbumIdEditRouteImport.update({
+  id: '/albums/$albumId/edit',
+  path: '/albums/$albumId/edit',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -81,7 +93,9 @@ export interface FileRoutesByFullPath {
   '/settings': typeof SettingsRoute
   '/upload': typeof UploadRoute
   '/upload-batch': typeof UploadBatchRoute
+  '/albums/new': typeof AlbumsNewRoute
   '/artists/$artistId': typeof ArtistsArtistIdRoute
+  '/albums/$albumId/edit': typeof AlbumsAlbumIdEditRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -93,7 +107,9 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRoute
   '/upload': typeof UploadRoute
   '/upload-batch': typeof UploadBatchRoute
+  '/albums/new': typeof AlbumsNewRoute
   '/artists/$artistId': typeof ArtistsArtistIdRoute
+  '/albums/$albumId/edit': typeof AlbumsAlbumIdEditRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -106,7 +122,9 @@ export interface FileRoutesById {
   '/settings': typeof SettingsRoute
   '/upload': typeof UploadRoute
   '/upload-batch': typeof UploadBatchRoute
+  '/albums/new': typeof AlbumsNewRoute
   '/artists/$artistId': typeof ArtistsArtistIdRoute
+  '/albums/$albumId/edit': typeof AlbumsAlbumIdEditRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -120,7 +138,9 @@ export interface FileRouteTypes {
     | '/settings'
     | '/upload'
     | '/upload-batch'
+    | '/albums/new'
     | '/artists/$artistId'
+    | '/albums/$albumId/edit'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -132,7 +152,9 @@ export interface FileRouteTypes {
     | '/settings'
     | '/upload'
     | '/upload-batch'
+    | '/albums/new'
     | '/artists/$artistId'
+    | '/albums/$albumId/edit'
   id:
     | '__root__'
     | '/'
@@ -144,7 +166,9 @@ export interface FileRouteTypes {
     | '/settings'
     | '/upload'
     | '/upload-batch'
+    | '/albums/new'
     | '/artists/$artistId'
+    | '/albums/$albumId/edit'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -157,7 +181,9 @@ export interface RootRouteChildren {
   SettingsRoute: typeof SettingsRoute
   UploadRoute: typeof UploadRoute
   UploadBatchRoute: typeof UploadBatchRoute
+  AlbumsNewRoute: typeof AlbumsNewRoute
   ArtistsArtistIdRoute: typeof ArtistsArtistIdRoute
+  AlbumsAlbumIdEditRoute: typeof AlbumsAlbumIdEditRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -232,6 +258,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ArtistsArtistIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/albums/new': {
+      id: '/albums/new'
+      path: '/albums/new'
+      fullPath: '/albums/new'
+      preLoaderRoute: typeof AlbumsNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/albums/$albumId/edit': {
+      id: '/albums/$albumId/edit'
+      path: '/albums/$albumId/edit'
+      fullPath: '/albums/$albumId/edit'
+      preLoaderRoute: typeof AlbumsAlbumIdEditRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -245,8 +285,20 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsRoute: SettingsRoute,
   UploadRoute: UploadRoute,
   UploadBatchRoute: UploadBatchRoute,
+  AlbumsNewRoute: AlbumsNewRoute,
   ArtistsArtistIdRoute: ArtistsArtistIdRoute,
+  AlbumsAlbumIdEditRoute: AlbumsAlbumIdEditRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
