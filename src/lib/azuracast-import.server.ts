@@ -7,6 +7,49 @@ const AZURACAST_BASE = "https://stream.radiouppsala.se";
 const STATION_ID = 1;
 const MIN_DURATION_SECONDS = 40;
 
+/**
+ * Strömmar en upstream-Response-body direkt till Supabase Storage utan att
+ * buffra hela filen i workerns minne. supabase-js storage-klienten kräver
+ * en Blob/ArrayBuffer/File och buffrar därmed allt i RAM, vilket spränger
+ * Cloudflare Workers ~128 MB-gräns för stora ljudfiler. REST-endpointen
+ * accepterar däremot en ReadableStream som fetch-body.
+ */
+async function streamUploadToStorage(params: {
+  bucket: string;
+  path: string;
+  body: ReadableStream<Uint8Array> | null;
+  contentType: string;
+  contentLength: string | null;
+}): Promise<void> {
+  if (!params.body) throw new Error(`storage upload: missing body for ${params.path}`);
+  const baseUrl = process.env.SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!baseUrl || !serviceKey) {
+    throw new Error("storage upload: SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY saknas");
+  }
+  const url = `${baseUrl}/storage/v1/object/${params.bucket}/${encodeURI(params.path)}`;
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${serviceKey}`,
+    apikey: serviceKey,
+    "Content-Type": params.contentType,
+    "x-upsert": "true",
+    "cache-control": "3600",
+  };
+  if (params.contentLength) headers["Content-Length"] = params.contentLength;
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers,
+    body: params.body,
+    // @ts-expect-error – duplex krävs av fetch när body är en stream
+    duplex: "half",
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`storage upload ${res.status}: ${text || res.statusText}`);
+  }
+}
+
 export type AzFile = {
   id?: number;
   unique_id?: string;
