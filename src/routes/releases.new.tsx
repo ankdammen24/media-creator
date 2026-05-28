@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { ArtistAccountGate } from "@/components/ArtistAccountGate";
 import { ReleaseWizard } from "@/components/release-wizard/ReleaseWizard";
 
 export const Route = createFileRoute("/releases/new")({
@@ -19,7 +20,9 @@ export const Route = createFileRoute("/releases/new")({
 function NewReleasePage() {
   return (
     <ProtectedRoute>
-      <ReleaseWizard />
+      <ArtistAccountGate>
+        <ReleaseWizard />
+      </ArtistAccountGate>
     </ProtectedRoute>
   );
 }
