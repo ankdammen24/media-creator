@@ -466,6 +466,14 @@ function AdminPage() {
           <Users className="h-3.5 w-3.5" /> Artists
         </button>
         <button
+          onClick={() => setTab("users")}
+          className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition ${
+            tab === "users" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Users className="h-3.5 w-3.5" /> Users
+        </button>
+        <button
           onClick={() => setTab("artwork")}
           className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition ${
             tab === "artwork" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
