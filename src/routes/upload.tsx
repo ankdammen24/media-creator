@@ -81,6 +81,7 @@ function UploadPage() {
   const [newProfileBio, setNewProfileBio] = useState("");
   const [createBusy, setCreateBusy] = useState(false);
   const autoFetchArtistImage = useServerFn(autoFetchArtistArtwork);
+  const enqueueAudio = useServerFn(enqueueAudioProcessing);
 
   // Submission
   const [mediaType, setMediaType] = useState<MediaType | "">("");
@@ -292,7 +293,7 @@ function UploadPage() {
         }
         // Fire-and-forget: kick off FLAC master + AAC web transcode.
         // Failures are non-fatal — the worker URL may not be set yet.
-        void enqueueAudioProcessing({ data: { submissionId: inserted.id } }).catch(
+        void enqueueAudio({ data: { submissionId: inserted.id } }).catch(
           (e) => console.warn("enqueueAudioProcessing failed:", e),
         );
       }
