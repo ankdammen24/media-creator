@@ -5,6 +5,7 @@ import { Image as ImageIcon, X, Loader2, Sparkles } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { autoFetchAlbumArtwork } from "@/lib/artwork.functions";
+import { updateAlbum, createAlbum } from "@/lib/catalog-edit.functions";
 import { AiArtworkDialog } from "@/components/AiArtworkDialog";
 import {
   ALBUM_IMAGE_ACCEPT,
@@ -33,6 +34,8 @@ export function AlbumForm({ existing, onSaved, redirectTo, lockArtistId }: Album
   const { user } = useAuth();
   const navigate = useNavigate();
   const autoFetchArtwork = useServerFn(autoFetchAlbumArtwork);
+  const updateAlbumFn = useServerFn(updateAlbum);
+  const createAlbumFn = useServerFn(createAlbum);
 
   const [artists, setArtists] = useState<ArtistOption[]>([]);
   const [artistId, setArtistId] = useState<string>(
@@ -131,35 +134,33 @@ export function AlbumForm({ existing, onSaved, redirectTo, lockArtistId }: Album
         artworkPath = path;
       }
 
-      const payload = {
-        user_id: user.id,
-        artist_profile_id: artistId,
-        title: title.trim(),
-        description: description.trim() || null,
-        release_date: releaseDate || null,
-        album_type: albumType,
-        genre: genre.trim() || null,
-        artwork_path: artworkPath,
-      };
-
       let saved: Album;
       if (existing) {
-        const { data, error } = await supabase
-          .from("albums")
-          .update(payload)
-          .eq("id", existing.id)
-          .select("*")
-          .single();
-        if (error) throw error;
-        saved = data as Album;
+        // Vid edit ändrar vi INTE ägare eller artist – bara metadata.
+        const patch = {
+          title: title.trim(),
+          description: description.trim() || null,
+          release_date: releaseDate || null,
+          album_type: albumType,
+          genre: genre.trim() || null,
+          artwork_path: artworkPath,
+        };
+        saved = (await updateAlbumFn({
+          data: { albumId: existing.id, patch },
+        })) as Album;
       } else {
-        const { data, error } = await supabase
-          .from("albums")
-          .insert(payload)
-          .select("*")
-          .single();
-        if (error) throw error;
-        saved = data as Album;
+        saved = (await createAlbumFn({
+          data: {
+            user_id: user.id,
+            artist_profile_id: artistId,
+            title: title.trim(),
+            description: description.trim() || null,
+            release_date: releaseDate || null,
+            album_type: albumType,
+            genre: genre.trim() || null,
+            artwork_path: artworkPath,
+          },
+        })) as Album;
         // Fire-and-forget: if user didn't upload artwork, try iTunes in background.
         if (!artworkPath) {
           autoFetchArtwork({ data: { albumId: saved.id } }).catch((e) =>
