@@ -285,29 +285,31 @@ function CatalogPage() {
 }
 
 export function CatalogCard({ item }: { item: CatalogItem }) {
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  useEffect(() => {
-    let on = true;
-    supabase.storage
-      .from("audio")
-      .createSignedUrl(item.audio_path, 3600)
-      .then(({ data }) => {
-        if (on && data) setAudioUrl(data.signedUrl);
-      });
-    return () => {
-      on = false;
-    };
-  }, [item.audio_path]);
+  const track: PlayerTrack = {
+    id: item.id,
+    title: item.title,
+    artist: item.artist_profiles?.name ?? null,
+    artistId: item.artist_profiles?.id ?? null,
+    artworkPath: effectiveArtworkPath(item) ?? item.artwork_path,
+    audioPath: item.audio_path,
+    webAudioPath: item.audio_web_path,
+    mediaType: item.media_type,
+  };
 
   return (
     <article className="overflow-hidden rounded-lg border border-border bg-card">
-      <div className="aspect-square w-full bg-secondary">
+      <div className="group relative aspect-square w-full bg-secondary">
         <img
           src={artworkUrl(effectiveArtworkPath(item) ?? item.artwork_path)}
           alt={item.title}
           className="h-full w-full object-cover"
           loading="lazy"
         />
+        <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition group-hover:bg-black/30">
+          <div className="opacity-0 transition group-hover:opacity-100">
+            <PlayButton track={track} size="lg" variant="overlay" />
+          </div>
+        </div>
       </div>
       <div className="space-y-1 p-3">
         <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-muted-foreground">
@@ -329,13 +331,6 @@ export function CatalogCard({ item }: { item: CatalogItem }) {
           </Link>
         ) : (
           <p className="line-clamp-1 text-xs text-muted-foreground">Unknown artist</p>
-        )}
-        {audioUrl ? (
-          <audio controls preload="none" src={audioUrl} className="mt-2 h-9 w-full">
-            Your browser does not support audio.
-          </audio>
-        ) : (
-          <div className="mt-2 h-9 w-full animate-pulse rounded bg-secondary" />
         )}
       </div>
     </article>
