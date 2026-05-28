@@ -1,9 +1,20 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { Music2, Mic, ArrowLeft } from "lucide-react";
+import {
+  Music2,
+  Mic,
+  ArrowLeft,
+  Globe,
+  Facebook,
+  Instagram,
+  Twitter,
+  Pencil,
+} from "lucide-react";
 import { EmptyState, ErrorState } from "@/components/StateViews";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth";
+import { ArtistProfileEditor, type EditableArtist } from "@/components/ArtistProfileEditor";
 
 export const Route = createFileRoute("/artists/$artistId")({
   head: () => ({
@@ -15,17 +26,19 @@ export const Route = createFileRoute("/artists/$artistId")({
   component: ArtistPage,
 });
 
+type ArtistItem = {
+  id: string;
+  title: string;
+  media_type: "music" | "podcast";
+  artwork_path: string;
+  audio_path: string;
+  description: string | null;
+  created_at: string;
+};
+
 type ArtistData = {
-  profile: { id: string; name: string; bio: string | null } | null;
-  items: Array<{
-    id: string;
-    title: string;
-    media_type: "music" | "podcast";
-    artwork_path: string;
-    audio_path: string;
-    description: string | null;
-    created_at: string;
-  }>;
+  profile: EditableArtist | null;
+  items: ArtistItem[];
 };
 
 function publicArt(path: string) {
@@ -34,30 +47,44 @@ function publicArt(path: string) {
 
 function ArtistPage() {
   const { artistId } = Route.useParams();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const [editing, setEditing] = useState(false);
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["artist", artistId],
     queryFn: async (): Promise<ArtistData> => {
-      const [profileRes, itemsRes] = await Promise.all([
+      const [profileRes, linksRes] = await Promise.all([
         supabase
           .from("artist_profiles")
-          .select("id, name, bio")
+          .select(
+            "id, user_id, name, bio, avatar_path, website_url, facebook_url, instagram_url, x_url, spotify_url, apple_music_url, amazon_music_url",
+          )
           .eq("id", artistId)
           .maybeSingle(),
         supabase
-          .from("submissions")
-          .select("id, title, media_type, artwork_path, audio_path, description, created_at")
-          .eq("status", "approved")
+          .from("submission_artists")
+          .select(
+            "submission_id, submissions!inner(id, title, media_type, artwork_path, audio_path, description, created_at, status)",
+          )
           .eq("artist_profile_id", artistId)
-          .order("created_at", { ascending: false }),
+          .eq("submissions.status", "approved"),
       ]);
       if (profileRes.error) throw profileRes.error;
-      if (itemsRes.error) throw itemsRes.error;
+      if (linksRes.error) throw linksRes.error;
+      const rows = (linksRes.data ?? []) as unknown as Array<{ submissions: ArtistItem }>;
+      const items = rows
+        .map((r) => r.submissions)
+        .filter(Boolean)
+        .sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
       return {
-        profile: profileRes.data as ArtistData["profile"],
-        items: (itemsRes.data ?? []) as ArtistData["items"],
+        profile: profileRes.data as EditableArtist | null,
+        items,
       };
     },
   });
+
+  const profile = data?.profile;
+  const canEdit = !!user && !!profile && profile.user_id === user.id;
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
@@ -71,16 +98,58 @@ function ArtistPage() {
         <p className="text-sm text-muted-foreground">Loading…</p>
       ) : error ? (
         <ErrorState error={error as Error} onRetry={() => refetch()} />
-      ) : !data?.profile ? (
+      ) : !profile ? (
         <EmptyState title="Artist not found" />
       ) : (
         <>
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold tracking-tight">{data.profile.name}</h1>
-            {data.profile.bio && (
-              <p className="mt-2 max-w-2xl text-sm text-muted-foreground">{data.profile.bio}</p>
-            )}
-          </div>
+          {editing && canEdit ? (
+            <div className="mb-8">
+              <ArtistProfileEditor
+                artist={profile}
+                onClose={() => setEditing(false)}
+                onSaved={(updated) => {
+                  queryClient.setQueryData<ArtistData>(["artist", artistId], (prev) =>
+                    prev ? { ...prev, profile: updated } : prev,
+                  );
+                  setEditing(false);
+                }}
+              />
+            </div>
+          ) : (
+            <div className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-start">
+              <div className="h-28 w-28 shrink-0 overflow-hidden rounded-full bg-secondary">
+                {profile.avatar_path ? (
+                  <img
+                    src={publicArt(profile.avatar_path)}
+                    alt={profile.name}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center text-3xl font-semibold text-muted-foreground">
+                    {profile.name.slice(0, 1).toUpperCase()}
+                  </div>
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <h1 className="text-3xl font-bold tracking-tight">{profile.name}</h1>
+                  {canEdit && (
+                    <button
+                      onClick={() => setEditing(true)}
+                      className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs hover:bg-accent"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                      Redigera profil
+                    </button>
+                  )}
+                </div>
+                {profile.bio && (
+                  <p className="mt-2 max-w-2xl text-sm text-muted-foreground">{profile.bio}</p>
+                )}
+                <SocialLinks profile={profile} />
+              </div>
+            </div>
+          )}
           {data.items.length === 0 ? (
             <EmptyState
               title="No approved media yet"
@@ -99,7 +168,38 @@ function ArtistPage() {
   );
 }
 
-function ArtistRow({ item }: { item: ArtistData["items"][number] }) {
+function SocialLinks({ profile }: { profile: EditableArtist }) {
+  const links: Array<{ href: string | null; label: string; Icon: typeof Globe }> = [
+    { href: profile.website_url, label: "Webbplats", Icon: Globe },
+    { href: profile.facebook_url, label: "Facebook", Icon: Facebook },
+    { href: profile.instagram_url, label: "Instagram", Icon: Instagram },
+    { href: profile.x_url, label: "X", Icon: Twitter },
+    { href: profile.spotify_url, label: "Spotify", Icon: Music2 },
+    { href: profile.apple_music_url, label: "Apple Music", Icon: Music2 },
+    { href: profile.amazon_music_url, label: "Amazon Music", Icon: Music2 },
+  ].filter((l) => l.href);
+  if (links.length === 0) return null;
+  return (
+    <div className="mt-3 flex flex-wrap gap-2">
+      {links.map((l) => (
+        <a
+          key={l.label}
+          href={l.href!}
+          target="_blank"
+          rel="noreferrer noopener"
+          aria-label={l.label}
+          title={l.label}
+          className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-accent"
+        >
+          <l.Icon className="h-3.5 w-3.5" />
+          <span>{l.label}</span>
+        </a>
+      ))}
+    </div>
+  );
+}
+
+function ArtistRow({ item }: { item: ArtistItem }) {
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   useEffect(() => {
     let on = true;

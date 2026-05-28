@@ -1,45 +1,76 @@
-## Mål
+## Två delar
 
-Lägg till en global sökfunktion som är tillgänglig från `SiteHeader` på samtliga sidor. Söker över allt vi visar i katalogen (submissions) samt artistprofiler.
+### 1) Flera artister per submission
 
-## UX
+Idag har `submissions` ett enda `artist_profile_id`. Vi vill kunna välja flera (collabs, "feat.").
 
-- En sökruta i `SiteHeader` (centrerad mellan logga och nav, krymper på mobil till en ikon som öppnar en dialog).
-- Kortkommando `⌘K` / `Ctrl+K` öppnar en command palette (shadcn `Command` + `Dialog`).
-- Live-resultat när man skriver (debounce 200ms, min 2 tecken), grupperat:
-  - **Spår & podd** (submissions med status `approved` — titel, beskrivning, artistnamn)
-  - **Artister** (artist_profiles — namn, bio)
-- Klick på ett resultat navigerar:
-  - Submission → `/catalog?focus={id}` (öppnar katalogen och scrollar/markerar kortet)
-  - Artist → `/artists/$artistId`
-- Tom state, laddningstillstånd och "Inga träffar".
+**Schema** – ny join-tabell:
 
-## Implementation
+```sql
+CREATE TABLE public.submission_artists (
+  submission_id uuid NOT NULL REFERENCES public.submissions(id) ON DELETE CASCADE,
+  artist_profile_id uuid NOT NULL REFERENCES public.artist_profiles(id) ON DELETE CASCADE,
+  is_primary boolean NOT NULL DEFAULT false,
+  position int NOT NULL DEFAULT 0,
+  PRIMARY KEY (submission_id, artist_profile_id)
+);
+```
 
-1. **Ny komponent** `src/components/GlobalSearch.tsx`
-   - Använder shadcn `CommandDialog`, `CommandInput`, `CommandList`, `CommandGroup`, `CommandItem`.
-   - `useQuery` med `queryKey: ["global-search", q]`, `enabled: q.length >= 2`.
-   - Två parallella Supabase-queries:
-     - `submissions` med `.eq("status","approved")` + `.or("title.ilike.%q%,description.ilike.%q%")` joinat med `artist_profiles(id,name)`, limit 10. Plus separat query där vi filtrerar på artistnamn via inner-join (`artist_profiles!inner(...)` + `.ilike("artist_profiles.name","%q%")`), limit 10, och dedupar.
-     - `artist_profiles` med `.or("name.ilike.%q%,bio.ilike.%q%")`, limit 10.
-   - Global keybind via `useEffect` på `keydown` (`(e.metaKey||e.ctrlKey) && e.key==="k"`).
-   - Trigger-knapp: inline input-attrapp på desktop (`sm:` synlig), bara `Search`-ikonknapp på mobil.
+- GRANT till anon (SELECT), authenticated (full), service_role (ALL).
+- RLS: SELECT öppet (raderna pekar bara på godkända/egna submissions, och själva data redan publik via befintliga policies). INSERT/UPDATE/DELETE: ägaren av submission ELLER admin.
+- Behåll `submissions.artist_profile_id` som "primary artist" för bakåtkompatibilitet (kataloglistan, sökning, artistsidan visar fortsatt detta som huvudartist).
+- Backfill: kopiera in alla existerande `(submission.id, submission.artist_profile_id, is_primary=true)` i join-tabellen.
 
-2. **`SiteHeader.tsx`**: rendera `<GlobalSearch />` mellan logga och `<nav>`. Justera flex/spacing så det funkar både inloggad och utloggad.
+**UI (upload + upload-batch + admin)**:
+- Steg 1 "Choose artist profile" blir multi-select av användarens egna artistprofiler (checkboxar/chips). Första valda = primär (markeras "Primary"). Möjlighet att byta primär.
+- Vid submit: skriv `submissions` med primär som `artist_profile_id`, plus insert i `submission_artists` för alla valda.
+- Katalogkortet och `/catalog`-sökningen visar primär artist + " feat. X, Y" om fler.
+- Artistsidan listar submissions där artisten finns i join-tabellen (inte bara där `artist_profile_id` matchar).
 
-3. **`catalog.tsx`**: läs sökparam `focus` via `validateSearch` (zod) och scrolla in i vy + lägg en kort ring runt matchande kort i ~2s. Befintlig lokal sökruta på katalogsidan behålls.
+### 2) Artister redigerar sin egen profil
 
-4. Inga schemaändringar. Inga RLS-ändringar (publika `approved`-submissions och `artist_profiles` är redan läsbara för anon).
+**Schema** – utöka `artist_profiles`:
 
-## Tekniska detaljer
+```sql
+ALTER TABLE public.artist_profiles
+  ADD COLUMN avatar_path text,
+  ADD COLUMN website_url text,
+  ADD COLUMN facebook_url text,
+  ADD COLUMN instagram_url text,
+  ADD COLUMN x_url text,
+  ADD COLUMN spotify_url text,
+  ADD COLUMN apple_music_url text,
+  ADD COLUMN amazon_music_url text;
+```
 
-- `Command` från `src/components/ui/command.tsx` finns redan installerad.
-- Använd `supabase` direkt (klientsidan, RLS gäller). Ingen ny serverFn behövs.
-- Debounce med en liten `useEffect`+`setTimeout` (ingen ny dep).
-- Resultatraderna visar artwork-thumbnail (24px) via `supabase.storage.from("artwork").getPublicUrl(...)` för submissions.
+Befintliga UPDATE-policies (ägare + admin) räcker.
 
-## Filer
+**Avatar-lagring**: återanvänd `artwork`-bucketen, sökväg `artists/{user_id}/{artist_id}-{timestamp}.{ext}`. Bucketen är redan publik.
 
-- skapa: `src/components/GlobalSearch.tsx`
-- ändra: `src/components/SiteHeader.tsx` (montera GlobalSearch)
-- ändra: `src/routes/catalog.tsx` (focus-search-param + scroll/highlight)
+**UI** – på `/artists/$artistId`:
+- Visa avatar (rund, fallback initial), bio, samt sociala ikoner (lucide: Facebook, Instagram, Twitter, Music2 för Spotify/Apple/Amazon, Globe för website) som länkar till respektive URL när ifylld.
+- Om inloggad användare äger profilen (`profile.user_id === user.id`) → knapp "Redigera profil" som öppnar inline-formulär:
+  - Namn (text)
+  - Bio (textarea)
+  - Avatar (filuppladdning, jpg/png/webp ≤ 5 MB, byts via storage upload + uppdatering av `avatar_path`)
+  - 7 URL-fält (website, facebook, instagram, x, spotify, apple_music, amazon_music) — valideras med zod `z.string().url().optional().or(z.literal(""))`, tomt = NULL.
+- Spara via `supabase.from("artist_profiles").update(...).eq("id", artistId)` (RLS sköter resten).
+- Global sök: ta även med träffar på artister även om deras submissions inte är godkända (nuvarande beteende OK, ingen ändring).
+
+### Filer
+
+- ny migration: `submission_artists`-tabell + GRANT + RLS + backfill + nya kolumner på `artist_profiles`
+- ändra: `src/routes/upload.tsx` (multi-select artister + insert i join-tabell)
+- ändra: `src/routes/upload-batch.tsx` (samma flöde)
+- ändra: `src/routes/admin.tsx` om submissions visas där (lägg till "feat." i listan)
+- ändra: `src/routes/catalog.tsx` (visa featured artists på kort)
+- ändra: `src/routes/artists.$artistId.tsx` (avatar/sociala länkar + redigeringsformulär för ägare; query bytas till join via `submission_artists`)
+- ny komponent: `src/components/ArtistProfileEditor.tsx` (formulär + uppladdning)
+- ändra: `src/components/GlobalSearch.tsx` (ev. visa avatar i artist-träffarna)
+
+Inga edge functions; alla ändringar via klient + Supabase RLS.
+
+### Frågor innan implementation
+
+1. **Multi-artist på submission**: ska man kunna välja en artistprofil som tillhör en annan användare (collab med någon annans profil), eller bara sina egna? Förslag: bara sina egna i Steg 1, admin kan länka extra artister via admin-panelen senare.
+2. **Avatar-storlek**: är 5 MB / 2048×2048px OK som tak?

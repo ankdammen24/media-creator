@@ -68,7 +68,8 @@ function UploadPage() {
   const [profiles, setProfiles] = useState<ArtistProfile[]>([]);
   const [profilesLoading, setProfilesLoading] = useState(true);
   const [profilesError, setProfilesError] = useState<string | null>(null);
-  const [profileId, setProfileId] = useState<string>("");
+  // Multi-select: ordered list of artist ids; index 0 = primary
+  const [profileIds, setProfileIds] = useState<string[]>([]);
   const [creatingProfile, setCreatingProfile] = useState(false);
   const [newProfileName, setNewProfileName] = useState("");
   const [newProfileBio, setNewProfileBio] = useState("");
@@ -102,7 +103,7 @@ function UploadPage() {
         if (error) throw error;
         const items = (data ?? []) as ArtistProfile[];
         setProfiles(items);
-        if (items.length === 1) setProfileId(items[0].id);
+      if (items.length === 1) setProfileIds([items[0].id]);
       } catch (e) {
         if (on) setProfilesError(e instanceof Error ? e.message : "Could not load profiles");
       } finally {
@@ -134,7 +135,7 @@ function UploadPage() {
 
   const canSubmit =
     status !== "submitting" &&
-    !!profileId &&
+    profileIds.length > 0 &&
     !!mediaType &&
     title.trim().length > 0 &&
     !!audio &&
@@ -173,7 +174,7 @@ function UploadPage() {
       if (error) throw error;
       const p = data as ArtistProfile;
       setProfiles((cur) => [...cur, p]);
-      setProfileId(p.id);
+      setProfileIds((cur) => (cur.includes(p.id) ? cur : [...cur, p.id]));
       setNewProfileName("");
       setNewProfileBio("");
       setCreatingProfile(false);
@@ -222,20 +223,40 @@ function UploadPage() {
       setArtworkPct(100);
 
       setPhase("complete");
-      const { error: insertErr } = await supabase.from("submissions").insert({
-        user_id: uid,
-        artist_profile_id: profileId,
-        media_type: mediaType,
-        title: title.trim(),
-        description: description.trim() || null,
-        audio_path: audioPath,
-        artwork_path: artworkPath,
-        status: "pending_review",
-      });
+      const primaryId = profileIds[0];
+      const { data: inserted, error: insertErr } = await supabase
+        .from("submissions")
+        .insert({
+          user_id: uid,
+          artist_profile_id: primaryId,
+          media_type: mediaType,
+          title: title.trim(),
+          description: description.trim() || null,
+          audio_path: audioPath,
+          artwork_path: artworkPath,
+          status: "pending_review",
+        })
+        .select("id")
+        .single();
       if (insertErr) {
         await supabase.storage.from("audio").remove([audioPath]);
         await supabase.storage.from("artwork").remove([artworkPath]);
         throw insertErr;
+      }
+
+      // Insert join rows for all selected artists
+      if (inserted) {
+        const rows = profileIds.map((aid, idx) => ({
+          submission_id: inserted.id,
+          artist_profile_id: aid,
+          is_primary: idx === 0,
+          position: idx,
+        }));
+        const { error: joinErr } = await supabase.from("submission_artists").insert(rows);
+        if (joinErr) {
+          // Non-fatal: submission already exists with primary artist; surface a warning
+          console.warn("Could not link additional artists:", joinErr.message);
+        }
       }
 
       setStatus("success");
@@ -280,7 +301,19 @@ function UploadPage() {
     );
   }
 
-  const selectedProfile = profiles.find((p) => p.id === profileId);
+  const primaryProfile = profiles.find((p) => p.id === profileIds[0]);
+  const selectedProfiles = profileIds
+    .map((id) => profiles.find((p) => p.id === id))
+    .filter((p): p is ArtistProfile => !!p);
+
+  function toggleProfile(id: string) {
+    setProfileIds((cur) =>
+      cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id],
+    );
+  }
+  function makePrimary(id: string) {
+    setProfileIds((cur) => [id, ...cur.filter((x) => x !== id)]);
+  }
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
@@ -319,12 +352,14 @@ function UploadPage() {
               {profiles.length > 0 && !creatingProfile && (
                 <div className="grid gap-2 sm:grid-cols-2">
                   {profiles.map((p) => {
-                    const active = profileId === p.id;
+                    const idx = profileIds.indexOf(p.id);
+                    const active = idx >= 0;
+                    const isPrimary = idx === 0;
                     return (
                       <button
                         type="button"
                         key={p.id}
-                        onClick={() => setProfileId(p.id)}
+                        onClick={() => toggleProfile(p.id)}
                         className={`flex items-center gap-3 rounded-lg border p-3 text-left transition ${
                           active
                             ? "border-primary bg-primary/10"
@@ -339,11 +374,39 @@ function UploadPage() {
                           {p.bio && (
                             <span className="block truncate text-xs text-muted-foreground">{p.bio}</span>
                           )}
+                          {active && (
+                            <span
+                              role="button"
+                              tabIndex={0}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (!isPrimary) makePrimary(p.id);
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.stopPropagation();
+                                  if (!isPrimary) makePrimary(p.id);
+                                }
+                              }}
+                              className={`mt-1 inline-block rounded px-1.5 py-0.5 text-[10px] font-medium ${
+                                isPrimary
+                                  ? "bg-primary text-primary-foreground"
+                                  : "bg-secondary text-muted-foreground hover:bg-secondary/80"
+                              }`}
+                            >
+                              {isPrimary ? "Primary" : "Sätt som primär"}
+                            </span>
+                          )}
                         </span>
                       </button>
                     );
                   })}
                 </div>
+              )}
+              {profileIds.length > 1 && (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Välj flera profiler för samarbeten (feat.). Den första räknas som huvudartist.
+                </p>
               )}
 
               {profiles.length === 0 && !creatingProfile && (
@@ -523,7 +586,17 @@ function UploadPage() {
             </div>
           )}
           <p className="mb-3 text-xs text-muted-foreground">
-            Submitting as <strong className="text-foreground">{selectedProfile?.name ?? "—"}</strong>. Your upload will be reviewed before going live.
+            Submitting as{" "}
+            <strong className="text-foreground">{primaryProfile?.name ?? "—"}</strong>
+            {selectedProfiles.length > 1 && (
+              <>
+                {" "}feat.{" "}
+                <strong className="text-foreground">
+                  {selectedProfiles.slice(1).map((p) => p.name).join(", ")}
+                </strong>
+              </>
+            )}
+            . Your upload will be reviewed before going live.
           </p>
           <button
             type="submit"

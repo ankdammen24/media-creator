@@ -16,28 +16,52 @@ export type Database = {
     Tables: {
       artist_profiles: {
         Row: {
+          amazon_music_url: string | null
+          apple_music_url: string | null
+          avatar_path: string | null
           bio: string | null
           created_at: string
+          facebook_url: string | null
           id: string
+          instagram_url: string | null
           name: string
+          spotify_url: string | null
           updated_at: string
           user_id: string
+          website_url: string | null
+          x_url: string | null
         }
         Insert: {
+          amazon_music_url?: string | null
+          apple_music_url?: string | null
+          avatar_path?: string | null
           bio?: string | null
           created_at?: string
+          facebook_url?: string | null
           id?: string
+          instagram_url?: string | null
           name: string
+          spotify_url?: string | null
           updated_at?: string
           user_id: string
+          website_url?: string | null
+          x_url?: string | null
         }
         Update: {
+          amazon_music_url?: string | null
+          apple_music_url?: string | null
+          avatar_path?: string | null
           bio?: string | null
           created_at?: string
+          facebook_url?: string | null
           id?: string
+          instagram_url?: string | null
           name?: string
+          spotify_url?: string | null
           updated_at?: string
           user_id?: string
+          website_url?: string | null
+          x_url?: string | null
         }
         Relationships: []
       }
@@ -112,6 +136,45 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      submission_artists: {
+        Row: {
+          artist_profile_id: string
+          created_at: string
+          is_primary: boolean
+          position: number
+          submission_id: string
+        }
+        Insert: {
+          artist_profile_id: string
+          created_at?: string
+          is_primary?: boolean
+          position?: number
+          submission_id: string
+        }
+        Update: {
+          artist_profile_id?: string
+          created_at?: string
+          is_primary?: boolean
+          position?: number
+          submission_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "submission_artists_artist_profile_id_fkey"
+            columns: ["artist_profile_id"]
+            isOneToOne: false
+            referencedRelation: "artist_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "submission_artists_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       submissions: {
         Row: {
