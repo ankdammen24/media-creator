@@ -24,6 +24,7 @@ import {
   EditSubmissionDialog,
   type EditableSubmission,
 } from "@/components/SubmissionActions";
+import { EditorTrackMeta, EditorAlbumMeta } from "@/components/EditorCardMeta";
 
 export const Route = createFileRoute("/artists/$artistId")({
   head: () => ({
@@ -48,6 +49,20 @@ type ArtistItem = {
   user_id: string;
   status: string;
   albums: { artwork_path: string | null } | null;
+  isrc: string | null;
+  upc: string | null;
+  version: string | null;
+  track_number: number | null;
+  duration_seconds: number | null;
+  loudness_lufs: number | null;
+  explicit: boolean | null;
+  instrumental: boolean | null;
+  ai_generated: boolean | null;
+  dolby_atmos_available: boolean | null;
+  songwriters: string[] | null;
+  producers: string[] | null;
+  featured_artists: string[] | null;
+  processing_status: string | null;
 };
 
 type AlbumRow = {
@@ -57,6 +72,14 @@ type AlbumRow = {
   artwork_path: string | null;
   release_date: string | null;
   trackCount: number;
+  status: string | null;
+  upc: string | null;
+  label: string | null;
+  language: string | null;
+  genre: string | null;
+  secondary_genre: string | null;
+  distribution_platforms: string[] | null;
+  previously_released: boolean | null;
 };
 
 type ArtistData = {
@@ -90,7 +113,7 @@ function ArtistPage() {
         supabase
           .from("submission_artists")
           .select(
-            "submission_id, submissions!inner(id, title, media_type, artwork_path, audio_path, audio_web_path, description, created_at, status, album_id, user_id, albums(artwork_path))",
+            "submission_id, submissions!inner(id, title, media_type, artwork_path, audio_path, audio_web_path, description, created_at, status, album_id, user_id, isrc, upc, version, track_number, duration_seconds, loudness_lufs, explicit, instrumental, ai_generated, dolby_atmos_available, songwriters, producers, featured_artists, processing_status, albums(artwork_path))",
           )
           .eq("artist_profile_id", artistId)
           .eq("submissions.status", "approved"),
@@ -102,7 +125,7 @@ function ArtistPage() {
           .order("created_at", { ascending: true }),
         supabase
           .from("albums")
-          .select("id, title, album_type, artwork_path, release_date")
+          .select("id, title, album_type, artwork_path, release_date, status, upc, label, language, genre, secondary_genre, distribution_platforms, previously_released")
           .eq("artist_profile_id", artistId)
           .order("release_date", { ascending: false, nullsFirst: false }),
       ]);
