@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2, Plus, UserCircle2, Disc3, Music2 } from "lucide-react";
+import { Loader2, Plus, UserCircle2, Disc3, Music2, Info } from "lucide-react";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useAuth } from "@/lib/auth";
 import { useEditorRole } from "@/lib/useEditorRole";
