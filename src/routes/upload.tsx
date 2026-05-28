@@ -308,11 +308,6 @@ function UploadPage() {
           // Non-fatal: submission already exists with primary artist; surface a warning
           console.warn("Could not link additional artists:", joinErr.message);
         }
-        // Fire-and-forget: kick off FLAC master + AAC web transcode.
-        // Failures are non-fatal — the worker URL may not be set yet.
-        void enqueueAudio({ data: { submissionId: inserted.id } }).catch(
-          (e) => console.warn("enqueueAudioProcessing failed:", e),
-        );
       }
 
       setStatus("success");
