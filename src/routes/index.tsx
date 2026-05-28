@@ -244,7 +244,7 @@ function LatestMusic() {
 
 function TrackCard({ item }: { item: Row }) {
   const track = toTrack(item);
-  const art = artworkUrl(item.artwork_path);
+  const art = artworkUrl(effectiveArtworkPath(item) ?? item.artwork_path);
   return (
     <article className="group overflow-hidden rounded-lg border border-border bg-card transition hover:border-primary/40">
       <div className="relative aspect-square w-full bg-secondary">
@@ -314,7 +314,7 @@ function LatestPodcasts() {
 
 function PodcastRow({ item }: { item: Row }) {
   const track = toTrack(item);
-  const art = artworkUrl(item.artwork_path);
+  const art = artworkUrl(effectiveArtworkPath(item) ?? item.artwork_path);
   return (
     <article className="flex gap-4 overflow-hidden rounded-lg border border-border bg-card p-3 transition hover:border-primary/40">
       <img
