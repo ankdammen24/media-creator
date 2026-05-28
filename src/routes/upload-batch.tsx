@@ -181,7 +181,6 @@ function BatchUploadPage() {
       selected: true,
       title: baseName(f.name),
       description: "",
-      mediaType: defaultMediaType,
       artwork: null,
       artworkError: null,
     }));
