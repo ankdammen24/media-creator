@@ -34,11 +34,11 @@ export function MiniPlayer() {
       className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-card/85 backdrop-blur-lg"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
-      <div className="mx-auto flex max-w-7xl items-center gap-2 px-3 py-2.5 sm:gap-3 sm:px-6">
+      <div className="mx-auto flex max-w-7xl items-center gap-1.5 px-2 py-2 sm:gap-3 sm:px-6 sm:py-2.5">
         <img
           src={artUrl}
           alt=""
-          className="h-11 w-11 flex-shrink-0 rounded-md object-cover sm:h-12 sm:w-12"
+          className="h-10 w-10 flex-shrink-0 rounded-md object-cover sm:h-12 sm:w-12"
         />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-muted-foreground">
@@ -71,35 +71,35 @@ export function MiniPlayer() {
             onClick={skipPrev}
             disabled={!hasPrev}
             aria-label="Föregående"
-            className="inline-flex h-9 w-9 items-center justify-center rounded-md text-foreground transition hover:bg-secondary disabled:opacity-30"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-md text-foreground transition hover:bg-secondary disabled:opacity-30 sm:h-9 sm:w-9"
           >
-            <SkipBack className="h-4 w-4" />
+            <SkipBack className="h-5 w-5 sm:h-4 sm:w-4" />
           </button>
           <button
             type="button"
             onClick={toggle}
             aria-label={isPlaying ? "Pause" : "Play"}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground transition hover:opacity-90"
+            className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground transition hover:opacity-90 sm:h-10 sm:w-10"
           >
-            {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5 translate-x-[1px]" />}
+            {isPlaying ? <Pause className="h-6 w-6 sm:h-5 sm:w-5" /> : <Play className="h-6 w-6 translate-x-[1px] sm:h-5 sm:w-5" />}
           </button>
           <button
             type="button"
             onClick={skipNext}
             disabled={!hasNext}
             aria-label="Nästa"
-            className="inline-flex h-9 w-9 items-center justify-center rounded-md text-foreground transition hover:bg-secondary disabled:opacity-30"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-md text-foreground transition hover:bg-secondary disabled:opacity-30 sm:h-9 sm:w-9"
           >
-            <SkipForward className="h-4 w-4" />
+            <SkipForward className="h-5 w-5 sm:h-4 sm:w-4" />
           </button>
           <button
             type="button"
             onClick={close}
             aria-label="Stoppa"
-            className="inline-flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition hover:bg-secondary hover:text-foreground"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-md text-muted-foreground transition hover:bg-secondary hover:text-foreground sm:h-9 sm:w-9"
             title="Stoppa"
           >
-            <Square className="h-4 w-4" />
+            <Square className="h-5 w-5 sm:h-4 sm:w-4" />
           </button>
           <button
             type="button"
