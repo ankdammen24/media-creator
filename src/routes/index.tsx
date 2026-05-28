@@ -397,13 +397,16 @@ function FeaturedArtists() {
         if (seen.has(row.artist_profiles.id)) continue;
         seen.add(row.artist_profiles.id);
         out.push(row.artist_profiles);
-        if (out.length >= 8) break;
+        if (out.length >= 24) break;
       }
       return out;
     },
   });
 
-  if (!isLoading && (!data || data.length === 0)) return null;
+  const tick = useShuffleTick();
+  const shown = useMemo(() => shuffle(data ?? []).slice(0, 8), [data, tick]);
+
+  if (!isLoading && shown.length === 0) return null;
 
   return (
     <section className="mb-14">
@@ -412,7 +415,7 @@ function FeaturedArtists() {
         <p className="text-sm text-muted-foreground">Loading…</p>
       ) : (
         <div className="grid grid-cols-3 gap-4 sm:grid-cols-4 lg:grid-cols-8">
-          {data!.map((a) => {
+          {shown.map((a) => {
             const avatar = a.avatar_path
               ? supabase.storage.from("artwork").getPublicUrl(a.avatar_path).data.publicUrl
               : null;
