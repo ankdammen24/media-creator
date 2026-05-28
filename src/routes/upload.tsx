@@ -78,6 +78,7 @@ function UploadPage() {
   const [newProfileName, setNewProfileName] = useState("");
   const [newProfileBio, setNewProfileBio] = useState("");
   const [createBusy, setCreateBusy] = useState(false);
+  const autoFetchArtistImage = useServerFn(autoFetchArtistArtwork);
 
   // Submission
   const [mediaType, setMediaType] = useState<MediaType | "">("");
