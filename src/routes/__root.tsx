@@ -11,6 +11,8 @@ import {
 import appCss from "../styles.css?url";
 import { SiteFooter, SiteHeader } from "@/components/SiteHeader";
 import { AuthProvider } from "@/lib/auth";
+import { PlayerProvider } from "@/components/player/PlayerProvider";
+import { MiniPlayer } from "@/components/player/MiniPlayer";
 
 function NotFoundComponent() {
   return (
@@ -120,13 +122,16 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <div className="flex min-h-screen flex-col">
-          <SiteHeader />
-          <main className="flex-1">
-            <Outlet />
-          </main>
-          <SiteFooter />
-        </div>
+        <PlayerProvider>
+          <div className="flex min-h-screen flex-col pb-20">
+            <SiteHeader />
+            <main className="flex-1">
+              <Outlet />
+            </main>
+            <SiteFooter />
+          </div>
+          <MiniPlayer />
+        </PlayerProvider>
       </AuthProvider>
     </QueryClientProvider>
   );
