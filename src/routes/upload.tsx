@@ -68,7 +68,8 @@ function UploadPage() {
   const [profiles, setProfiles] = useState<ArtistProfile[]>([]);
   const [profilesLoading, setProfilesLoading] = useState(true);
   const [profilesError, setProfilesError] = useState<string | null>(null);
-  const [profileId, setProfileId] = useState<string>("");
+  // Multi-select: ordered list of artist ids; index 0 = primary
+  const [profileIds, setProfileIds] = useState<string[]>([]);
   const [creatingProfile, setCreatingProfile] = useState(false);
   const [newProfileName, setNewProfileName] = useState("");
   const [newProfileBio, setNewProfileBio] = useState("");
@@ -102,7 +103,7 @@ function UploadPage() {
         if (error) throw error;
         const items = (data ?? []) as ArtistProfile[];
         setProfiles(items);
-        if (items.length === 1) setProfileId(items[0].id);
+      if (items.length === 1) setProfileIds([items[0].id]);
       } catch (e) {
         if (on) setProfilesError(e instanceof Error ? e.message : "Could not load profiles");
       } finally {
@@ -134,7 +135,7 @@ function UploadPage() {
 
   const canSubmit =
     status !== "submitting" &&
-    !!profileId &&
+    profileIds.length > 0 &&
     !!mediaType &&
     title.trim().length > 0 &&
     !!audio &&
@@ -173,7 +174,7 @@ function UploadPage() {
       if (error) throw error;
       const p = data as ArtistProfile;
       setProfiles((cur) => [...cur, p]);
-      setProfileId(p.id);
+      setProfileIds((cur) => (cur.includes(p.id) ? cur : [...cur, p.id]));
       setNewProfileName("");
       setNewProfileBio("");
       setCreatingProfile(false);
@@ -222,20 +223,40 @@ function UploadPage() {
       setArtworkPct(100);
 
       setPhase("complete");
-      const { error: insertErr } = await supabase.from("submissions").insert({
-        user_id: uid,
-        artist_profile_id: profileId,
-        media_type: mediaType,
-        title: title.trim(),
-        description: description.trim() || null,
-        audio_path: audioPath,
-        artwork_path: artworkPath,
-        status: "pending_review",
-      });
+      const primaryId = profileIds[0];
+      const { data: inserted, error: insertErr } = await supabase
+        .from("submissions")
+        .insert({
+          user_id: uid,
+          artist_profile_id: primaryId,
+          media_type: mediaType,
+          title: title.trim(),
+          description: description.trim() || null,
+          audio_path: audioPath,
+          artwork_path: artworkPath,
+          status: "pending_review",
+        })
+        .select("id")
+        .single();
       if (insertErr) {
         await supabase.storage.from("audio").remove([audioPath]);
         await supabase.storage.from("artwork").remove([artworkPath]);
         throw insertErr;
+      }
+
+      // Insert join rows for all selected artists
+      if (inserted) {
+        const rows = profileIds.map((aid, idx) => ({
+          submission_id: inserted.id,
+          artist_profile_id: aid,
+          is_primary: idx === 0,
+          position: idx,
+        }));
+        const { error: joinErr } = await supabase.from("submission_artists").insert(rows);
+        if (joinErr) {
+          // Non-fatal: submission already exists with primary artist; surface a warning
+          console.warn("Could not link additional artists:", joinErr.message);
+        }
       }
 
       setStatus("success");
