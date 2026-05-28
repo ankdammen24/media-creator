@@ -4,6 +4,9 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AlbumForm } from "@/components/AlbumForm";
 
 export const Route = createFileRoute("/albums/new")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    artistId: typeof search.artistId === "string" ? search.artistId : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "New album — Media Rosenqvist" },
@@ -18,6 +21,7 @@ export const Route = createFileRoute("/albums/new")({
 });
 
 function NewAlbumPage() {
+  const { artistId } = Route.useSearch();
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
       <Link
@@ -31,7 +35,7 @@ function NewAlbumPage() {
         Albums group your tracks. Even a single belongs to an album.
       </p>
       <div className="rounded-xl border border-border bg-card p-5">
-        <AlbumForm />
+        <AlbumForm lockArtistId={artistId} />
       </div>
     </div>
   );
