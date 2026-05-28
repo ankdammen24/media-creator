@@ -1,0 +1,252 @@
+import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import {
+  downloadImage,
+  searchAlbumImage,
+  searchArtistImage,
+} from "@/lib/itunes.server";
+
+const BUCKET = "artwork";
+
+export type AutoArtworkResult = {
+  updated: boolean;
+  path: string | null;
+  reason?: "no-match" | "already-has-image" | "download-failed" | "not-found";
+};
+
+async function uploadAuto(
+  folder: "artists" | "albums",
+  id: string,
+  url: string,
+): Promise<string | null> {
+  const dl = await downloadImage(url);
+  if (!dl) return null;
+  const ext = dl.contentType.includes("png") ? "png" : "jpg";
+  const path = `auto/${folder}/${id}-${Date.now()}.${ext}`;
+  const up = await supabaseAdmin.storage.from(BUCKET).upload(path, dl.bytes, {
+    contentType: dl.contentType,
+    upsert: true,
+    cacheControl: "31536000",
+  });
+  if (up.error) return null;
+  return path;
+}
+
+async function fetchArtist(id: string) {
+  const { data, error } = await supabaseAdmin
+    .from("artist_profiles")
+    .select("id, name, avatar_path")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+async function fetchAlbum(id: string) {
+  const { data, error } = await supabaseAdmin
+    .from("albums")
+    .select("id, title, artwork_path, artist_profile_id, artist_profiles(name)")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return data as
+    | {
+        id: string;
+        title: string;
+        artwork_path: string | null;
+        artist_profile_id: string;
+        artist_profiles: { name: string } | null;
+      }
+    | null;
+}
+
+async function isAdmin(userId: string): Promise<boolean> {
+  const { data } = await supabaseAdmin
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userId)
+    .eq("role", "admin")
+    .maybeSingle();
+  return !!data;
+}
+
+// ── Single-item server fns ────────────────────────────────────────────────
+
+export const autoFetchArtistArtwork = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ artistId: z.string().uuid() }).parse(input))
+  .handler(async ({ data }): Promise<AutoArtworkResult> => {
+    const artist = await fetchArtist(data.artistId);
+    if (!artist) return { updated: false, path: null, reason: "not-found" };
+    if (artist.avatar_path) return { updated: false, path: artist.avatar_path, reason: "already-has-image" };
+
+    const url = await searchArtistImage(artist.name);
+    if (!url) return { updated: false, path: null, reason: "no-match" };
+
+    const path = await uploadAuto("artists", artist.id, url);
+    if (!path) return { updated: false, path: null, reason: "download-failed" };
+
+    const { error } = await supabaseAdmin
+      .from("artist_profiles")
+      .update({ avatar_path: path })
+      .eq("id", artist.id);
+    if (error) throw new Error(error.message);
+    return { updated: true, path };
+  });
+
+export const autoFetchAlbumArtwork = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ albumId: z.string().uuid() }).parse(input))
+  .handler(async ({ data }): Promise<AutoArtworkResult> => {
+    const album = await fetchAlbum(data.albumId);
+    if (!album) return { updated: false, path: null, reason: "not-found" };
+    if (album.artwork_path) return { updated: false, path: album.artwork_path, reason: "already-has-image" };
+
+    const url = await searchAlbumImage(album.title, album.artist_profiles?.name ?? null);
+    if (!url) return { updated: false, path: null, reason: "no-match" };
+
+    const path = await uploadAuto("albums", album.id, url);
+    if (!path) return { updated: false, path: null, reason: "download-failed" };
+
+    const { error } = await supabaseAdmin
+      .from("albums")
+      .update({ artwork_path: path })
+      .eq("id", album.id);
+    if (error) throw new Error(error.message);
+    return { updated: true, path };
+  });
+
+// ── Bulk server fns (admin only) ──────────────────────────────────────────
+
+export type BulkResult = {
+  scanned: number;
+  updated: number;
+  missed: number;
+  failed: number;
+  details: Array<{ id: string; name: string; ok: boolean; reason?: string }>;
+};
+
+const BulkInput = z.object({ limit: z.number().int().min(1).max(200).optional() });
+
+async function sleep(ms: number) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+export const bulkFetchMissingArtistArtwork = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => BulkInput.parse(input ?? {}))
+  .handler(async ({ data, context }): Promise<BulkResult> => {
+    if (!(await isAdmin(context.userId))) throw new Error("Endast admin");
+    const limit = data.limit ?? 50;
+
+    const { data: rows, error } = await supabaseAdmin
+      .from("artist_profiles")
+      .select("id, name")
+      .is("avatar_path", null)
+      .order("created_at", { ascending: true })
+      .limit(limit);
+    if (error) throw new Error(error.message);
+
+    const result: BulkResult = { scanned: rows?.length ?? 0, updated: 0, missed: 0, failed: 0, details: [] };
+    for (const r of rows ?? []) {
+      try {
+        const url = await searchArtistImage(r.name);
+        if (!url) {
+          result.missed++;
+          result.details.push({ id: r.id, name: r.name, ok: false, reason: "no-match" });
+        } else {
+          const path = await uploadAuto("artists", r.id, url);
+          if (!path) {
+            result.failed++;
+            result.details.push({ id: r.id, name: r.name, ok: false, reason: "download-failed" });
+          } else {
+            const { error: upErr } = await supabaseAdmin
+              .from("artist_profiles")
+              .update({ avatar_path: path })
+              .eq("id", r.id);
+            if (upErr) {
+              result.failed++;
+              result.details.push({ id: r.id, name: r.name, ok: false, reason: upErr.message });
+            } else {
+              result.updated++;
+              result.details.push({ id: r.id, name: r.name, ok: true });
+            }
+          }
+        }
+      } catch (e) {
+        result.failed++;
+        result.details.push({
+          id: r.id,
+          name: r.name,
+          ok: false,
+          reason: e instanceof Error ? e.message : "error",
+        });
+      }
+      await sleep(120);
+    }
+    return result;
+  });
+
+export const bulkFetchMissingAlbumArtwork = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => BulkInput.parse(input ?? {}))
+  .handler(async ({ data, context }): Promise<BulkResult> => {
+    if (!(await isAdmin(context.userId))) throw new Error("Endast admin");
+    const limit = data.limit ?? 50;
+
+    const { data: rows, error } = await supabaseAdmin
+      .from("albums")
+      .select("id, title, artist_profiles(name)")
+      .is("artwork_path", null)
+      .order("created_at", { ascending: true })
+      .limit(limit);
+    if (error) throw new Error(error.message);
+
+    const list = (rows ?? []) as unknown as Array<{
+      id: string;
+      title: string;
+      artist_profiles: { name: string } | null;
+    }>;
+
+    const result: BulkResult = { scanned: list.length, updated: 0, missed: 0, failed: 0, details: [] };
+    for (const r of list) {
+      const label = r.artist_profiles?.name ? `${r.artist_profiles.name} – ${r.title}` : r.title;
+      try {
+        const url = await searchAlbumImage(r.title, r.artist_profiles?.name ?? null);
+        if (!url) {
+          result.missed++;
+          result.details.push({ id: r.id, name: label, ok: false, reason: "no-match" });
+        } else {
+          const path = await uploadAuto("albums", r.id, url);
+          if (!path) {
+            result.failed++;
+            result.details.push({ id: r.id, name: label, ok: false, reason: "download-failed" });
+          } else {
+            const { error: upErr } = await supabaseAdmin
+              .from("albums")
+              .update({ artwork_path: path })
+              .eq("id", r.id);
+            if (upErr) {
+              result.failed++;
+              result.details.push({ id: r.id, name: label, ok: false, reason: upErr.message });
+            } else {
+              result.updated++;
+              result.details.push({ id: r.id, name: label, ok: true });
+            }
+          }
+        }
+      } catch (e) {
+        result.failed++;
+        result.details.push({
+          id: r.id,
+          name: label,
+          ok: false,
+          reason: e instanceof Error ? e.message : "error",
+        });
+      }
+      await sleep(120);
+    }
+    return result;
+  });
