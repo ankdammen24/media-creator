@@ -785,24 +785,6 @@ function DraftRow({
             disabled={disabled}
             className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/40 disabled:opacity-60"
           />
-
-          <div className="mt-3">
-            <span className="mb-1 block text-xs font-medium">Media type</span>
-            <div className="grid grid-cols-2 gap-2">
-              <TypeChoice
-                active={d.mediaType === "music"}
-                onClick={() => !disabled && onChange({ mediaType: "music" })}
-                icon={<Music className="h-4 w-4" />}
-                label="Music"
-              />
-              <TypeChoice
-                active={d.mediaType === "podcast"}
-                onClick={() => !disabled && onChange({ mediaType: "podcast" })}
-                icon={<Mic className="h-4 w-4" />}
-                label="Podcast"
-              />
-            </div>
-          </div>
         </div>
 
         <div>
