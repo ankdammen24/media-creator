@@ -146,14 +146,16 @@ async function ensureArtistProfile(
   return created.id;
 }
 
-function albumTitleForTrack(file: AzFile, trackTitle: string): string {
-  return (file.album && file.album.trim()) || trackTitle;
+function albumTitleForTrack(file: AzFile, trackTitle: string): { title: string; type: "album" | "single" } {
+  const albumTitle = file.album?.trim();
+  return albumTitle ? { title: albumTitle, type: "album" } : { title: trackTitle, type: "single" };
 }
 
 async function ensureAlbum(
   adminUserId: string,
   artistProfileId: string,
   title: string,
+  albumType: "album" | "single",
   artworkPath: string,
   cache: Map<string, string>,
 ): Promise<string> {
@@ -180,7 +182,7 @@ async function ensureAlbum(
       title: albumTitle,
       user_id: adminUserId,
       artist_profile_id: artistProfileId,
-      album_type: title === albumTitle ? "album" : "single",
+      album_type: albumType,
       artwork_path: artworkPath || null,
     })
     .select("id")
@@ -339,10 +341,12 @@ export async function performAzuracastImport(
 
       const artistId = await ensureArtistProfile(adminUserId, file.artist, artistCache);
       const title = (file.title && file.title.trim()) || fileBasename(file.path, "Utan titel");
+      const albumInfo = albumTitleForTrack(file, title);
       const albumId = await ensureAlbum(
         adminUserId,
         artistId,
-        albumTitleForTrack(file, title),
+        albumInfo.title,
+        albumInfo.type,
         artworkPath,
         albumCache,
       );
