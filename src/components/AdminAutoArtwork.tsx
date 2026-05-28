@@ -276,7 +276,9 @@ export function AdminAutoArtwork() {
                 ? "album"
                 : result.kind === "tracks"
                   ? "låtar"
-                  : "regenerering"}
+                  : result.kind === "singles"
+                    ? "singlar"
+                    : "regenerering"}
           </h3>
           {renderSummary(result)}
           {result.res.details.length > 0 && (
