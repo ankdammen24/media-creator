@@ -11,7 +11,7 @@ import {
 import appCss from "../styles.css?url";
 import { SiteFooter, SiteHeader } from "@/components/SiteHeader";
 import { AuthProvider } from "@/lib/auth";
-import { PlayerProvider } from "@/components/player/PlayerProvider";
+import { PlayerProvider, usePlayer } from "@/components/player/PlayerProvider";
 import { MiniPlayer } from "@/components/player/MiniPlayer";
 
 function NotFoundComponent() {
@@ -123,16 +123,28 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <PlayerProvider>
-          <div className="flex min-h-screen flex-col pb-24 sm:pb-20">
-            <SiteHeader />
-            <main className="flex-1">
-              <Outlet />
-            </main>
-            <SiteFooter />
-          </div>
-          <MiniPlayer />
+          <AppShell />
         </PlayerProvider>
       </AuthProvider>
     </QueryClientProvider>
+  );
+}
+
+function AppShell() {
+  const { current } = usePlayer();
+  // Reserve space at the bottom only when the player is visible, so the
+  // fixed MiniPlayer never covers page content.
+  const playerPad = current ? "pb-[5.5rem] sm:pb-[4.75rem]" : "";
+  return (
+    <>
+      <div className={`flex min-h-screen flex-col ${playerPad}`}>
+        <SiteHeader />
+        <main className="flex-1">
+          <Outlet />
+        </main>
+        <SiteFooter />
+      </div>
+      <MiniPlayer />
+    </>
   );
 }
