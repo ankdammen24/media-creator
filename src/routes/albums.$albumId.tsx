@@ -377,6 +377,7 @@ function AddTracksSection({
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const attachFn = useServerFn(attachSubmissionsToAlbum);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["album-available-tracks", album.id, album.artist_profile_id],
@@ -402,15 +403,7 @@ function AddTracksSection({
     setBusy(true);
     setErr(null);
     try {
-      let n = await nextTrackNumber(album.id);
-      for (const id of selectedIds) {
-        const { error } = await supabase
-          .from("submissions")
-          .update({ album_id: album.id, track_number: n })
-          .eq("id", id);
-        if (error) throw error;
-        n += 1;
-      }
+      await attachFn({ data: { albumId: album.id, submissionIds: selectedIds } });
       setSelected({});
       await refetch();
       onAdded();
