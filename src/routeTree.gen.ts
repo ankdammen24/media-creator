@@ -26,6 +26,7 @@ import { Route as ApiGenerateArtworkRouteImport } from './routes/api/generate-ar
 import { Route as ApiGenerateArtistImageRouteImport } from './routes/api/generate-artist-image'
 import { Route as AlbumsNewRouteImport } from './routes/albums.new'
 import { Route as AlbumsAlbumIdRouteImport } from './routes/albums.$albumId'
+import { Route as ApiPublicTestEndpointRouteImport } from './routes/api/public/test-endpoint'
 import { Route as AlbumsAlbumIdEditRouteImport } from './routes/albums.$albumId.edit'
 import { Route as ApiPublicHooksAudioProcessedRouteImport } from './routes/api/public/hooks/audio-processed'
 
@@ -114,6 +115,11 @@ const AlbumsAlbumIdRoute = AlbumsAlbumIdRouteImport.update({
   path: '/albums/$albumId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicTestEndpointRoute = ApiPublicTestEndpointRouteImport.update({
+  id: '/api/public/test-endpoint',
+  path: '/api/public/test-endpoint',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AlbumsAlbumIdEditRoute = AlbumsAlbumIdEditRouteImport.update({
   id: '/edit',
   path: '/edit',
@@ -145,6 +151,7 @@ export interface FileRoutesByFullPath {
   '/artists/new': typeof ArtistsNewRoute
   '/releases/new': typeof ReleasesNewRoute
   '/albums/$albumId/edit': typeof AlbumsAlbumIdEditRoute
+  '/api/public/test-endpoint': typeof ApiPublicTestEndpointRoute
   '/api/public/hooks/audio-processed': typeof ApiPublicHooksAudioProcessedRoute
 }
 export interface FileRoutesByTo {
@@ -166,6 +173,7 @@ export interface FileRoutesByTo {
   '/artists/new': typeof ArtistsNewRoute
   '/releases/new': typeof ReleasesNewRoute
   '/albums/$albumId/edit': typeof AlbumsAlbumIdEditRoute
+  '/api/public/test-endpoint': typeof ApiPublicTestEndpointRoute
   '/api/public/hooks/audio-processed': typeof ApiPublicHooksAudioProcessedRoute
 }
 export interface FileRoutesById {
@@ -188,6 +196,7 @@ export interface FileRoutesById {
   '/artists/new': typeof ArtistsNewRoute
   '/releases/new': typeof ReleasesNewRoute
   '/albums/$albumId/edit': typeof AlbumsAlbumIdEditRoute
+  '/api/public/test-endpoint': typeof ApiPublicTestEndpointRoute
   '/api/public/hooks/audio-processed': typeof ApiPublicHooksAudioProcessedRoute
 }
 export interface FileRouteTypes {
@@ -211,6 +220,7 @@ export interface FileRouteTypes {
     | '/artists/new'
     | '/releases/new'
     | '/albums/$albumId/edit'
+    | '/api/public/test-endpoint'
     | '/api/public/hooks/audio-processed'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -232,6 +242,7 @@ export interface FileRouteTypes {
     | '/artists/new'
     | '/releases/new'
     | '/albums/$albumId/edit'
+    | '/api/public/test-endpoint'
     | '/api/public/hooks/audio-processed'
   id:
     | '__root__'
@@ -253,6 +264,7 @@ export interface FileRouteTypes {
     | '/artists/new'
     | '/releases/new'
     | '/albums/$albumId/edit'
+    | '/api/public/test-endpoint'
     | '/api/public/hooks/audio-processed'
   fileRoutesById: FileRoutesById
 }
@@ -274,6 +286,7 @@ export interface RootRouteChildren {
   ArtistsArtistIdRoute: typeof ArtistsArtistIdRoute
   ArtistsNewRoute: typeof ArtistsNewRoute
   ReleasesNewRoute: typeof ReleasesNewRoute
+  ApiPublicTestEndpointRoute: typeof ApiPublicTestEndpointRoute
   ApiPublicHooksAudioProcessedRoute: typeof ApiPublicHooksAudioProcessedRoute
 }
 
@@ -398,6 +411,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AlbumsAlbumIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/test-endpoint': {
+      id: '/api/public/test-endpoint'
+      path: '/api/public/test-endpoint'
+      fullPath: '/api/public/test-endpoint'
+      preLoaderRoute: typeof ApiPublicTestEndpointRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/albums/$albumId/edit': {
       id: '/albums/$albumId/edit'
       path: '/edit'
@@ -445,6 +465,7 @@ const rootRouteChildren: RootRouteChildren = {
   ArtistsArtistIdRoute: ArtistsArtistIdRoute,
   ArtistsNewRoute: ArtistsNewRoute,
   ReleasesNewRoute: ReleasesNewRoute,
+  ApiPublicTestEndpointRoute: ApiPublicTestEndpointRoute,
   ApiPublicHooksAudioProcessedRoute: ApiPublicHooksAudioProcessedRoute,
 }
 export const routeTree = rootRouteImport
