@@ -56,6 +56,51 @@ export type Database = {
         }
         Relationships: []
       }
+      artist_images: {
+        Row: {
+          artist_profile_id: string
+          caption: string | null
+          created_at: string
+          credit: string | null
+          id: string
+          is_primary: boolean
+          kind: Database["public"]["Enums"]["artist_image_kind"]
+          sort_order: number
+          storage_path: string
+          updated_at: string
+          user_id: string
+          visibility: Database["public"]["Enums"]["artist_image_visibility"]
+        }
+        Insert: {
+          artist_profile_id: string
+          caption?: string | null
+          created_at?: string
+          credit?: string | null
+          id?: string
+          is_primary?: boolean
+          kind?: Database["public"]["Enums"]["artist_image_kind"]
+          sort_order?: number
+          storage_path: string
+          updated_at?: string
+          user_id: string
+          visibility?: Database["public"]["Enums"]["artist_image_visibility"]
+        }
+        Update: {
+          artist_profile_id?: string
+          caption?: string | null
+          created_at?: string
+          credit?: string | null
+          id?: string
+          is_primary?: boolean
+          kind?: Database["public"]["Enums"]["artist_image_kind"]
+          sort_order?: number
+          storage_path?: string
+          updated_at?: string
+          user_id?: string
+          visibility?: Database["public"]["Enums"]["artist_image_visibility"]
+        }
+        Relationships: []
+      }
       artist_profiles: {
         Row: {
           amazon_music_url: string | null
@@ -337,6 +382,8 @@ export type Database = {
       album_type: "album" | "ep" | "single" | "compilation"
       app_language: "sv" | "en"
       app_role: "admin" | "moderator" | "user"
+      artist_image_kind: "avatar" | "cover" | "press"
+      artist_image_visibility: "public" | "link_only"
       media_type: "music" | "podcast"
       submission_status: "pending_review" | "approved" | "rejected"
     }
@@ -469,6 +516,8 @@ export const Constants = {
       album_type: ["album", "ep", "single", "compilation"],
       app_language: ["sv", "en"],
       app_role: ["admin", "moderator", "user"],
+      artist_image_kind: ["avatar", "cover", "press"],
+      artist_image_visibility: ["public", "link_only"],
       media_type: ["music", "podcast"],
       submission_status: ["pending_review", "approved", "rejected"],
     },
