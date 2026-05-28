@@ -88,7 +88,6 @@ export const Route = createFileRoute("/upload-batch")({
 
 function BatchUploadPage() {
   const { user } = useAuth();
-  const enqueueAudio = useServerFn(enqueueAudioProcessing);
 
   // Profiles
   const [profiles, setProfiles] = useState<ArtistProfile[]>([]);
