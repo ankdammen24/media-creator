@@ -12,12 +12,14 @@ import {
   Layers,
   Trash2,
   Loader2,
+  Sparkles,
 } from "lucide-react";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { AlbumPicker } from "@/components/AlbumPicker";
 import { nextTrackNumber } from "@/lib/album-helpers";
+import { AiArtworkDialog } from "@/components/AiArtworkDialog";
 
 type ArtistProfile = { id: string; name: string; bio: string | null };
 type MediaType = "music" | "podcast";
