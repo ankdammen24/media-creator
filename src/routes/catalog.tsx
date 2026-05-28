@@ -348,6 +348,7 @@ export function CatalogCard({ item }: { item: CatalogItem }) {
         ) : (
           <p className="line-clamp-1 text-xs text-muted-foreground">Unknown artist</p>
         )}
+        <EditorTrackMeta meta={item} />
       </div>
     </article>
   );
