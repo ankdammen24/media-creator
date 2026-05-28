@@ -142,7 +142,7 @@ function ArtistPage() {
       : null;
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-6 pb-28 sm:py-10 sm:px-6">
+    <div className="mx-auto max-w-5xl px-4 py-6 sm:py-10 sm:px-6">
       <Link
         to="/catalog"
         className="mb-6 inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
