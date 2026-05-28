@@ -11,6 +11,7 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { supabase } from "@/integrations/supabase/client";
+import { effectiveArtworkPath } from "@/lib/album-helpers";
 
 type SubmissionHit = {
   id: string;
@@ -19,6 +20,7 @@ type SubmissionHit = {
   media_type: "music" | "podcast";
   artwork_path: string;
   artist_profiles: { id: string; name: string } | null;
+  albums: { artwork_path: string | null } | null;
 };
 
 type ArtistHit = {
@@ -47,7 +49,7 @@ async function runSearch(q: string): Promise<{
   const [submissions, albums, artists] = await Promise.all([
     supabase
       .from("submissions")
-      .select("id, title, description, media_type, artwork_path, artist_profiles!submissions_artist_profile_id_fkey(id, name)")
+      .select("id, title, description, media_type, artwork_path, artist_profiles!submissions_artist_profile_id_fkey(id, name), albums(artwork_path)")
       .eq("status", "approved")
       .ilike("title", like)
       .limit(10),
@@ -222,7 +224,7 @@ export function GlobalSearch() {
                       }
                     >
                       <img
-                        src={artworkUrl(s.artwork_path)}
+                        src={artworkUrl(effectiveArtworkPath(s) ?? s.artwork_path)}
                         alt=""
                         className="h-8 w-8 rounded object-cover"
                         loading="lazy"

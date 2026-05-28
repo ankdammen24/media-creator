@@ -5,6 +5,7 @@ import { EmptyState, ErrorState } from "@/components/StateViews";
 import { supabase } from "@/integrations/supabase/client";
 import { PlayButton } from "@/components/player/PlayButton";
 import type { PlayerTrack } from "@/components/player/PlayerProvider";
+import { effectiveArtworkPath } from "@/lib/album-helpers";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -34,6 +35,7 @@ type Row = {
   artwork_path: string;
   audio_path: string;
   artist_profiles: { id: string; name: string } | null;
+  albums: { artwork_path: string | null } | null;
 };
 
 type ArtistRow = {
@@ -52,7 +54,7 @@ function toTrack(r: Row): PlayerTrack {
     title: r.title,
     artist: r.artist_profiles?.name ?? null,
     artistId: r.artist_profiles?.id ?? null,
-    artworkPath: r.artwork_path,
+    artworkPath: effectiveArtworkPath(r) ?? r.artwork_path,
     audioPath: r.audio_path,
     mediaType: r.media_type,
   };
@@ -76,7 +78,7 @@ function Hero() {
       const { data, error } = await supabase
         .from("submissions")
         .select(
-          "id, title, description, media_type, artwork_path, audio_path, artist_profiles!submissions_artist_profile_id_fkey(id, name)",
+          "id, title, description, media_type, artwork_path, audio_path, artist_profiles!submissions_artist_profile_id_fkey(id, name), albums(artwork_path)",
         )
         .eq("status", "approved")
         .eq("media_type", "music")
@@ -126,7 +128,7 @@ function Hero() {
     );
   }
 
-  const art = artworkUrl(data.artwork_path);
+  const art = artworkUrl(effectiveArtworkPath(data) ?? data.artwork_path);
   const track = toTrack(data);
 
   return (
@@ -211,7 +213,7 @@ function LatestMusic() {
       const { data, error } = await supabase
         .from("submissions")
         .select(
-          "id, title, description, media_type, artwork_path, audio_path, artist_profiles!submissions_artist_profile_id_fkey(id, name)",
+          "id, title, description, media_type, artwork_path, audio_path, artist_profiles!submissions_artist_profile_id_fkey(id, name), albums(artwork_path)",
         )
         .eq("status", "approved")
         .eq("media_type", "music")
@@ -242,7 +244,7 @@ function LatestMusic() {
 
 function TrackCard({ item }: { item: Row }) {
   const track = toTrack(item);
-  const art = artworkUrl(item.artwork_path);
+  const art = artworkUrl(effectiveArtworkPath(item) ?? item.artwork_path);
   return (
     <article className="group overflow-hidden rounded-lg border border-border bg-card transition hover:border-primary/40">
       <div className="relative aspect-square w-full bg-secondary">
@@ -281,7 +283,7 @@ function LatestPodcasts() {
       const { data, error } = await supabase
         .from("submissions")
         .select(
-          "id, title, description, media_type, artwork_path, audio_path, artist_profiles!submissions_artist_profile_id_fkey(id, name)",
+          "id, title, description, media_type, artwork_path, audio_path, artist_profiles!submissions_artist_profile_id_fkey(id, name), albums(artwork_path)",
         )
         .eq("status", "approved")
         .eq("media_type", "podcast")
@@ -312,7 +314,7 @@ function LatestPodcasts() {
 
 function PodcastRow({ item }: { item: Row }) {
   const track = toTrack(item);
-  const art = artworkUrl(item.artwork_path);
+  const art = artworkUrl(effectiveArtworkPath(item) ?? item.artwork_path);
   return (
     <article className="flex gap-4 overflow-hidden rounded-lg border border-border bg-card p-3 transition hover:border-primary/40">
       <img

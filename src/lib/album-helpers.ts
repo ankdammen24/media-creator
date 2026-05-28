@@ -28,6 +28,31 @@ export function albumArtworkUrl(album: { artwork_path: string | null }): string 
   return supabase.storage.from("artwork").getPublicUrl(album.artwork_path).data.publicUrl;
 }
 
+/**
+ * Effective artwork path for a submission/track.
+ * Album artwork takes precedence over the track's own artwork when the
+ * track belongs to an album that has artwork set.
+ */
+export function effectiveArtworkPath<
+  T extends {
+    artwork_path: string | null;
+    albums?: { artwork_path: string | null } | null;
+  },
+>(item: T): string | null {
+  return item.albums?.artwork_path ?? item.artwork_path ?? null;
+}
+
+export function effectiveArtworkUrl<
+  T extends {
+    artwork_path: string | null;
+    albums?: { artwork_path: string | null } | null;
+  },
+>(item: T): string | null {
+  const p = effectiveArtworkPath(item);
+  if (!p) return null;
+  return supabase.storage.from("artwork").getPublicUrl(p).data.publicUrl;
+}
+
 export function sanitizeFilename(name: string) {
   return name.replace(/[^a-zA-Z0-9._-]+/g, "_").slice(0, 120);
 }
