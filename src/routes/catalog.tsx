@@ -8,6 +8,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { zodValidator, fallback } from "@tanstack/zod-adapter";
 import { z } from "zod";
 import { effectiveArtworkPath } from "@/lib/album-helpers";
+import { PlayButton } from "@/components/player/PlayButton";
+import type { PlayerTrack } from "@/components/player/PlayerProvider";
 
 const catalogSearchSchema = z.object({
   focus: fallback(z.string(), "").optional(),
@@ -51,6 +53,7 @@ type CatalogItem = {
   media_type: "music" | "podcast";
   artwork_path: string;
   audio_path: string;
+  audio_web_path: string | null;
   created_at: string;
   artist_profile_id: string;
   artist_profiles: { id: string; name: string } | null;
@@ -61,7 +64,7 @@ async function fetchApproved(): Promise<CatalogItem[]> {
   const { data, error } = await supabase
     .from("submissions")
     .select(
-      "id, title, description, media_type, artwork_path, audio_path, created_at, artist_profile_id, artist_profiles!submissions_artist_profile_id_fkey(id, name), albums(artwork_path)",
+      "id, title, description, media_type, artwork_path, audio_path, audio_web_path, created_at, artist_profile_id, artist_profiles!submissions_artist_profile_id_fkey(id, name), albums(artwork_path)",
     )
     .eq("status", "approved")
     .order("created_at", { ascending: false });
