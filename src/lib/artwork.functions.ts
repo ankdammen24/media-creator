@@ -25,7 +25,7 @@ async function uploadAuto(
   if (!dl) return null;
   const ext = dl.contentType.includes("png") ? "png" : "jpg";
   const path = `auto/${folder}/${id}-${Date.now()}.${ext}`;
-  const up = await supabaseAdmin.storage.from(BUCKET).upload(path, dl.bytes, {
+  const up = await supabaseAdmin.storage.from(BUCKET).upload(path, dl.blob, {
     contentType: dl.contentType,
     upsert: true,
     cacheControl: "31536000",
