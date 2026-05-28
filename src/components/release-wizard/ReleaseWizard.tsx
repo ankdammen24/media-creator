@@ -1647,9 +1647,9 @@ function StepRights({
   const items: Array<{ key: keyof ReleaseState["rights"]; label: string }> = [
     { key: "owns", label: "I own or control the rights to this music" },
     { key: "permission", label: "I have permission to distribute this content" },
-    { key: "policies", label: "I understand streaming platform policies" },
+    { key: "policies", label: "I understand this is a demo catalog submission, not streaming distribution" },
     { key: "noManipulation", label: "No artificial stream manipulation" },
-    { key: "terms", label: "I agree to the distribution terms" },
+    { key: "terms", label: "I agree to the catalog submission terms" },
   ];
   return (
     <StepCard
