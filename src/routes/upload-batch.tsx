@@ -5,7 +5,6 @@ import {
   X,
   CheckCircle2,
   AlertCircle,
-  Music,
   Mic,
   User as UserIcon,
   Image as ImageIcon,
@@ -17,14 +16,13 @@ import {
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
-import { AlbumPicker } from "@/components/AlbumPicker";
-import { nextTrackNumber } from "@/lib/album-helpers";
+import { ShowPicker } from "@/components/ShowPicker";
+import { nextEpisodeNumber } from "@/lib/podcast-helpers";
 import { AiArtworkDialog } from "@/components/AiArtworkDialog";
 import { useServerFn } from "@tanstack/react-start";
 import { enqueueAudioProcessing } from "@/lib/audio-processing.functions";
 
 type ArtistProfile = { id: string; name: string; bio: string | null };
-type MediaType = "music" | "podcast";
 
 const AUDIO_EXTS = ["wav", "flac", "aiff", "aif", "mp3", "m4a"];
 const AUDIO_ACCEPT =
@@ -71,7 +69,6 @@ type Draft = {
   // metadata
   title: string;
   description: string;
-  mediaType: MediaType;
   artwork: File | null;
   artworkError: string | null;
 };
@@ -99,14 +96,13 @@ function BatchUploadPage() {
   const [profilesLoading, setProfilesLoading] = useState(true);
   const [profilesError, setProfilesError] = useState<string | null>(null);
   const [profileId, setProfileId] = useState<string>("");
-  const [albumId, setAlbumId] = useState<string>("");
+  const [showId, setShowId] = useState<string>("");
 
   useEffect(() => {
-    setAlbumId("");
+    setShowId("");
   }, [profileId]);
 
   // Shared metadata defaults
-  const [defaultMediaType, setDefaultMediaType] = useState<MediaType>("music");
   const [sharedArtwork, setSharedArtwork] = useState<File | null>(null);
   const [sharedArtworkError, setSharedArtworkError] = useState<string | null>(null);
   const [sharedAiOpen, setSharedAiOpen] = useState(false);
@@ -185,7 +181,6 @@ function BatchUploadPage() {
       selected: true,
       title: baseName(f.name),
       description: "",
-      mediaType: defaultMediaType,
       artwork: null,
       artworkError: null,
     }));
@@ -276,9 +271,8 @@ function BatchUploadPage() {
       setGlobalError("Choose an artist profile first.");
       return;
     }
-    const needsAlbum = drafts.some((d) => d.selected && d.mediaType === "music");
-    if (needsAlbum && !albumId) {
-      setGlobalError("Pick an album for the music tracks.");
+    if (!showId) {
+      setGlobalError("Pick a show for the episodes.");
       return;
     }
     setGlobalError(null);
@@ -323,16 +317,15 @@ function BatchUploadPage() {
           .insert({
             user_id: user.id,
             artist_profile_id: profileId,
-            media_type: d.mediaType,
+            media_type: "podcast",
             title: d.title.trim(),
             description: d.description.trim() || null,
             audio_path: d.audioPath!,
             artwork_path: artworkPath,
             status: "pending_review",
-            album_id: d.mediaType === "music" ? albumId : null,
-            track_number:
-              d.mediaType === "music" ? await nextTrackNumber(albumId) : null,
-          })
+            album_id: showId,
+            episode_number: await nextEpisodeNumber(showId),
+          } as never)
           .select("id")
           .single();
         if (insErr) {

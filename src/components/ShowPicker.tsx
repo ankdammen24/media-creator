@@ -1,52 +1,53 @@
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, X, Disc3, Loader2 } from "lucide-react";
+import { Plus, X, Mic, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
-import { ALBUM_TYPE_LABELS, type Album, type AlbumType } from "@/lib/album-helpers";
+import { PODCAST_CATEGORIES, type PodcastShow } from "@/lib/podcast-helpers";
 
 type Props = {
   artistId: string | null;
   value: string;
-  onChange: (albumId: string) => void;
+  onChange: (showId: string) => void;
   disabled?: boolean;
 };
 
 /**
- * Dropdown listing the user's albums for a chosen artist + inline
- * "create new album" form so the user never leaves the upload flow.
+ * Dropdown listing the user's podcast shows for a chosen artist + inline
+ * "create new show" form so the user never leaves the upload flow.
+ * A "show" is stored as an album with album_type = 'podcast_show'.
  */
-export function AlbumPicker({ artistId, value, onChange, disabled }: Props) {
+export function ShowPicker({ artistId, value, onChange, disabled }: Props) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [creating, setCreating] = useState(false);
   const [newTitle, setNewTitle] = useState("");
-  const [newType, setNewType] = useState<AlbumType>("single");
+  const [newCategory, setNewCategory] = useState<string>(PODCAST_CATEGORIES[0]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const { data: albums = [], isLoading } = useQuery({
-    queryKey: ["albums-for-artist", artistId, user?.id],
+  const { data: shows = [], isLoading } = useQuery({
+    queryKey: ["shows-for-artist", artistId, user?.id],
     enabled: !!artistId && !!user,
-    queryFn: async (): Promise<Album[]> => {
+    queryFn: async (): Promise<PodcastShow[]> => {
       const { data, error } = await supabase
         .from("albums")
         .select("*")
         .eq("artist_profile_id", artistId!)
-        .neq("album_type", "podcast_show")
+        .eq("album_type", "podcast_show")
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return (data ?? []) as Album[];
+      return (data ?? []) as unknown as PodcastShow[];
     },
   });
 
-  // Reset value if it doesn't belong to the current artist's albums
+  // Reset value if it doesn't belong to the current artist's shows
   useEffect(() => {
-    if (value && albums.length > 0 && !albums.find((a) => a.id === value)) {
+    if (value && shows.length > 0 && !shows.find((s) => s.id === value)) {
       onChange("");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [albums, value]);
+  }, [shows, value]);
 
   async function createInline() {
     if (!user || !artistId || !newTitle.trim()) return;
@@ -59,19 +60,20 @@ export function AlbumPicker({ artistId, value, onChange, disabled }: Props) {
           user_id: user.id,
           artist_profile_id: artistId,
           title: newTitle.trim(),
-          album_type: newType,
-        })
+          album_type: "podcast_show",
+          podcast_category: newCategory,
+        } as never)
         .select("*")
         .single();
       if (error) throw error;
-      const created = data as Album;
-      await qc.invalidateQueries({ queryKey: ["albums-for-artist", artistId, user.id] });
+      const created = data as unknown as PodcastShow;
+      await qc.invalidateQueries({ queryKey: ["shows-for-artist", artistId, user.id] });
       onChange(created.id);
       setCreating(false);
       setNewTitle("");
-      setNewType("single");
+      setNewCategory(PODCAST_CATEGORIES[0]);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not create album");
+      setError(err instanceof Error ? err.message : "Could not create show");
     } finally {
       setBusy(false);
     }
@@ -80,7 +82,7 @@ export function AlbumPicker({ artistId, value, onChange, disabled }: Props) {
   if (!artistId) {
     return (
       <p className="text-xs text-muted-foreground">
-        Choose an artist first to pick an album.
+        Choose a profile first to pick a show.
       </p>
     );
   }
@@ -96,11 +98,12 @@ export function AlbumPicker({ artistId, value, onChange, disabled }: Props) {
             className="flex-1 min-w-[200px] rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/40 disabled:opacity-60"
           >
             <option value="">
-              {isLoading ? "Loading…" : albums.length === 0 ? "— No albums yet —" : "— Select album —"}
+              {isLoading ? "Loading…" : shows.length === 0 ? "— No shows yet —" : "— Select show —"}
             </option>
-            {albums.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.title} · {ALBUM_TYPE_LABELS[a.album_type]}
+            {shows.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.title}
+                {s.podcast_category ? ` · ${s.podcast_category}` : ""}
               </option>
             ))}
           </select>
@@ -110,7 +113,7 @@ export function AlbumPicker({ artistId, value, onChange, disabled }: Props) {
             disabled={disabled}
             className="inline-flex items-center gap-1.5 rounded-md border border-dashed border-border bg-background px-3 py-2 text-xs hover:bg-accent/40 disabled:opacity-60"
           >
-            <Plus className="h-3.5 w-3.5" /> New album
+            <Plus className="h-3.5 w-3.5" /> New show
           </button>
         </div>
       )}
@@ -119,7 +122,7 @@ export function AlbumPicker({ artistId, value, onChange, disabled }: Props) {
         <div className="rounded-lg border border-border bg-background p-3">
           <div className="mb-2 flex items-center justify-between">
             <span className="inline-flex items-center gap-1.5 text-xs font-medium">
-              <Disc3 className="h-3.5 w-3.5 text-primary" /> Quick-create album
+              <Mic className="h-3.5 w-3.5 text-primary" /> Quick-create show
             </span>
             <button
               type="button"
@@ -130,22 +133,22 @@ export function AlbumPicker({ artistId, value, onChange, disabled }: Props) {
               <X className="h-4 w-4" />
             </button>
           </div>
-          <div className="grid gap-2 sm:grid-cols-[1fr_140px_auto]">
+          <div className="grid gap-2 sm:grid-cols-[1fr_180px_auto]">
             <input
               value={newTitle}
               onChange={(e) => setNewTitle(e.target.value)}
               maxLength={200}
-              placeholder="Album title"
+              placeholder="Show title"
               className="rounded-md border border-border bg-background px-3 py-2 text-sm"
             />
             <select
-              value={newType}
-              onChange={(e) => setNewType(e.target.value as AlbumType)}
+              value={newCategory}
+              onChange={(e) => setNewCategory(e.target.value)}
               className="rounded-md border border-border bg-background px-3 py-2 text-sm"
             >
-              {(Object.keys(ALBUM_TYPE_LABELS) as AlbumType[]).map((t) => (
-                <option key={t} value={t}>
-                  {ALBUM_TYPE_LABELS[t]}
+              {PODCAST_CATEGORIES.map((c) => (
+                <option key={c} value={c}>
+                  {c}
                 </option>
               ))}
             </select>
@@ -160,7 +163,7 @@ export function AlbumPicker({ artistId, value, onChange, disabled }: Props) {
             </button>
           </div>
           <p className="mt-2 text-xs text-muted-foreground">
-            Add album art, description and release date later on the album page.
+            Add cover art, description and language later on the show page.
           </p>
           {error && <p className="mt-1 text-xs text-destructive">{error}</p>}
         </div>

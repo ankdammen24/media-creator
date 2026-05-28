@@ -29,6 +29,7 @@ export type Database = {
           label: string | null
           language: string | null
           metadata_imported_at: string | null
+          podcast_category: string | null
           previously_released: boolean
           published_at: string | null
           release_date: string | null
@@ -55,6 +56,7 @@ export type Database = {
           label?: string | null
           language?: string | null
           metadata_imported_at?: string | null
+          podcast_category?: string | null
           previously_released?: boolean
           published_at?: string | null
           release_date?: string | null
@@ -81,6 +83,7 @@ export type Database = {
           label?: string | null
           language?: string | null
           metadata_imported_at?: string | null
+          podcast_category?: string | null
           previously_released?: boolean
           published_at?: string | null
           release_date?: string | null
@@ -531,9 +534,13 @@ export type Database = {
           description: string | null
           dolby_atmos_available: boolean
           duration_seconds: number | null
+          episode_number: number | null
+          episode_type: Database["public"]["Enums"]["podcast_episode_type"]
           explicit: boolean
           external_catalog_source: string | null
           featured_artists: string[]
+          guests: string[]
+          hosts: string[]
           id: string
           instrumental: boolean
           isrc: string | null
@@ -551,6 +558,8 @@ export type Database = {
           rejection_reason: string | null
           reviewed_at: string | null
           reviewed_by: string | null
+          scheduled_publish_at: string | null
+          season_number: number | null
           songwriters: string[]
           status: Database["public"]["Enums"]["submission_status"]
           title: string
@@ -576,9 +585,13 @@ export type Database = {
           description?: string | null
           dolby_atmos_available?: boolean
           duration_seconds?: number | null
+          episode_number?: number | null
+          episode_type?: Database["public"]["Enums"]["podcast_episode_type"]
           explicit?: boolean
           external_catalog_source?: string | null
           featured_artists?: string[]
+          guests?: string[]
+          hosts?: string[]
           id?: string
           instrumental?: boolean
           isrc?: string | null
@@ -596,6 +609,8 @@ export type Database = {
           rejection_reason?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
+          scheduled_publish_at?: string | null
+          season_number?: number | null
           songwriters?: string[]
           status?: Database["public"]["Enums"]["submission_status"]
           title: string
@@ -621,9 +636,13 @@ export type Database = {
           description?: string | null
           dolby_atmos_available?: boolean
           duration_seconds?: number | null
+          episode_number?: number | null
+          episode_type?: Database["public"]["Enums"]["podcast_episode_type"]
           explicit?: boolean
           external_catalog_source?: string | null
           featured_artists?: string[]
+          guests?: string[]
+          hosts?: string[]
           id?: string
           instrumental?: boolean
           isrc?: string | null
@@ -641,6 +660,8 @@ export type Database = {
           rejection_reason?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
+          scheduled_publish_at?: string | null
+          season_number?: number | null
           songwriters?: string[]
           status?: Database["public"]["Enums"]["submission_status"]
           title?: string
@@ -702,7 +723,7 @@ export type Database = {
       }
     }
     Enums: {
-      album_type: "album" | "ep" | "single" | "compilation"
+      album_type: "album" | "ep" | "single" | "compilation" | "podcast_show"
       app_language: "sv" | "en"
       app_role: "admin" | "moderator" | "user" | "artist"
       artist_approval_status: "pending" | "approved" | "rejected"
@@ -715,6 +736,7 @@ export type Database = {
         | "failed"
         | "skipped"
       media_type: "music" | "podcast"
+      podcast_episode_type: "full" | "trailer" | "bonus"
       release_status:
         | "draft"
         | "uploaded"
@@ -850,7 +872,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      album_type: ["album", "ep", "single", "compilation"],
+      album_type: ["album", "ep", "single", "compilation", "podcast_show"],
       app_language: ["sv", "en"],
       app_role: ["admin", "moderator", "user", "artist"],
       artist_approval_status: ["pending", "approved", "rejected"],
@@ -864,6 +886,7 @@ export const Constants = {
         "skipped",
       ],
       media_type: ["music", "podcast"],
+      podcast_episode_type: ["full", "trailer", "bonus"],
       release_status: [
         "draft",
         "uploaded",
