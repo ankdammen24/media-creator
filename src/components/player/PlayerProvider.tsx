@@ -8,6 +8,7 @@ import {
   useState,
 } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth";
 
 export type PlayerTrack = {
   id: string;
@@ -29,6 +30,8 @@ type PlayerContextValue = {
   toggle: () => void;
   seek: (seconds: number) => void;
   close: () => void;
+  skipNext: () => void;
+  hasNext: boolean;
 };
 
 const PlayerContext = createContext<PlayerContextValue | null>(null);
@@ -40,12 +43,23 @@ export function usePlayer() {
 }
 
 export function PlayerProvider({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [current, setCurrent] = useState<PlayerTrack | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [queue, setQueue] = useState<PlayerTrack[]>([]);
+  // Refs let event handlers read current values without re-binding listeners
+  const queueRef = useRef<PlayerTrack[]>([]);
+  const userRef = useRef(user);
+  useEffect(() => {
+    queueRef.current = queue;
+  }, [queue]);
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
 
   // Create a single audio element on mount (client only)
   useEffect(() => {
@@ -60,7 +74,16 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     const onMeta = () => setDuration(el.duration || 0);
     const onWaiting = () => setIsLoading(true);
     const onPlaying = () => setIsLoading(false);
-    const onEnded = () => setIsPlaying(false);
+    const onEnded = () => {
+      setIsPlaying(false);
+      // Auto-advance from the anon random queue
+      const next = queueRef.current[0];
+      if (next) {
+        setQueue((q) => q.slice(1));
+        // Defer to next tick so React state settles before play()
+        void playTrackRef.current?.(next, { keepQueue: true });
+      }
+    };
 
     el.addEventListener("play", onPlay);
     el.addEventListener("pause", onPause);
@@ -83,7 +106,51 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  const play = useCallback(async (track: PlayerTrack) => {
+  const playTrackRef = useRef<
+    ((track: PlayerTrack, opts?: { keepQueue?: boolean }) => Promise<void>) | null
+  >(null);
+
+  // Fetch a random shuffled queue of approved music tracks for anon users.
+  const buildAnonQueue = useCallback(async (excludeId: string) => {
+    // Pull up to ~80 most-recent approved music tracks, then shuffle client-side.
+    const { data, error } = await supabase
+      .from("submissions")
+      .select(
+        "id, title, artwork_path, audio_path, media_type, artist_profiles!submissions_artist_profile_id_fkey(id, name)",
+      )
+      .eq("status", "approved")
+      .eq("media_type", "music")
+      .order("created_at", { ascending: false })
+      .limit(80);
+    if (error || !data) return;
+    type Row = {
+      id: string;
+      title: string;
+      artwork_path: string;
+      audio_path: string;
+      media_type: "music" | "podcast";
+      artist_profiles: { id: string; name: string } | null;
+    };
+    const tracks: PlayerTrack[] = (data as unknown as Row[])
+      .filter((r) => r.id !== excludeId)
+      .map((r) => ({
+        id: r.id,
+        title: r.title,
+        artist: r.artist_profiles?.name ?? null,
+        artistId: r.artist_profiles?.id ?? null,
+        artworkPath: r.artwork_path,
+        audioPath: r.audio_path,
+        mediaType: r.media_type,
+      }));
+    // Fisher–Yates shuffle
+    for (let i = tracks.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [tracks[i], tracks[j]] = [tracks[j], tracks[i]];
+    }
+    setQueue(tracks);
+  }, []);
+
+  const play = useCallback(async (track: PlayerTrack, opts?: { keepQueue?: boolean }) => {
     const el = audioRef.current;
     if (!el) return;
     if (current?.id === track.id) {
@@ -102,6 +169,15 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true);
     setProgress(0);
     setDuration(0);
+    // Anonymous users get an auto-generated random queue when they actively
+    // pick a track. Auto-advance plays from that queue and keeps it intact.
+    if (!opts?.keepQueue) {
+      if (!userRef.current && track.mediaType === "music") {
+        void buildAnonQueue(track.id);
+      } else {
+        setQueue([]);
+      }
+    }
     const { data, error } = await supabase.storage
       .from("audio")
       .createSignedUrl(track.audioPath, 3600);
@@ -115,7 +191,18 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     } catch {
       setIsLoading(false);
     }
-  }, [current?.id]);
+  }, [current?.id, buildAnonQueue]);
+
+  useEffect(() => {
+    playTrackRef.current = play;
+  }, [play]);
+
+  const skipNext = useCallback(() => {
+    const next = queueRef.current[0];
+    if (!next) return;
+    setQueue((q) => q.slice(1));
+    void play(next, { keepQueue: true });
+  }, [play]);
 
   const toggle = useCallback(() => {
     const el = audioRef.current;
@@ -141,11 +228,24 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     setIsPlaying(false);
     setProgress(0);
     setDuration(0);
+    setQueue([]);
   }, []);
 
   const value = useMemo<PlayerContextValue>(
-    () => ({ current, isPlaying, isLoading, progress, duration, play, toggle, seek, close }),
-    [current, isPlaying, isLoading, progress, duration, play, toggle, seek, close],
+    () => ({
+      current,
+      isPlaying,
+      isLoading,
+      progress,
+      duration,
+      play,
+      toggle,
+      seek,
+      close,
+      skipNext,
+      hasNext: queue.length > 0,
+    }),
+    [current, isPlaying, isLoading, progress, duration, play, toggle, seek, close, skipNext, queue.length],
   );
 
   return <PlayerContext.Provider value={value}>{children}</PlayerContext.Provider>;
