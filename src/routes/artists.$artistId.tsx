@@ -15,6 +15,7 @@ import { EmptyState, ErrorState } from "@/components/StateViews";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { ArtistProfileEditor, type EditableArtist } from "@/components/ArtistProfileEditor";
+import { ArtistImageManager, type ArtistImage } from "@/components/ArtistImageManager";
 
 export const Route = createFileRoute("/artists/$artistId")({
   head: () => ({
@@ -39,6 +40,7 @@ type ArtistItem = {
 type ArtistData = {
   profile: EditableArtist | null;
   items: ArtistItem[];
+  images: ArtistImage[];
 };
 
 function publicArt(path: string) {
@@ -53,7 +55,7 @@ function ArtistPage() {
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["artist", artistId],
     queryFn: async (): Promise<ArtistData> => {
-      const [profileRes, linksRes] = await Promise.all([
+      const [profileRes, linksRes, imagesRes] = await Promise.all([
         supabase
           .from("artist_profiles")
           .select(
@@ -68,9 +70,16 @@ function ArtistPage() {
           )
           .eq("artist_profile_id", artistId)
           .eq("submissions.status", "approved"),
+        supabase
+          .from("artist_images")
+          .select("*")
+          .eq("artist_profile_id", artistId)
+          .order("sort_order", { ascending: true })
+          .order("created_at", { ascending: true }),
       ]);
       if (profileRes.error) throw profileRes.error;
       if (linksRes.error) throw linksRes.error;
+      if (imagesRes.error) throw imagesRes.error;
       const rows = (linksRes.data ?? []) as unknown as Array<{ submissions: ArtistItem }>;
       const items = rows
         .map((r) => r.submissions)
@@ -79,12 +88,22 @@ function ArtistPage() {
       return {
         profile: profileRes.data as EditableArtist | null,
         items,
+        images: (imagesRes.data ?? []) as ArtistImage[],
       };
     },
   });
 
   const profile = data?.profile;
   const canEdit = !!user && !!profile && profile.user_id === user.id;
+  const images = data?.images ?? [];
+  const primaryCover = images.find((i) => i.kind === "cover" && i.is_primary);
+  const primaryAvatar = images.find((i) => i.kind === "avatar" && i.is_primary);
+  const pressImages = images.filter((i) => i.kind === "press");
+  const avatarSrc = primaryAvatar
+    ? publicArt(primaryAvatar.storage_path)
+    : profile?.avatar_path
+      ? publicArt(profile.avatar_path)
+      : null;
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
@@ -103,7 +122,7 @@ function ArtistPage() {
       ) : (
         <>
           {editing && canEdit ? (
-            <div className="mb-8">
+            <div className="mb-8 space-y-6">
               <ArtistProfileEditor
                 artist={profile}
                 onClose={() => setEditing(false)}
@@ -114,13 +133,29 @@ function ArtistPage() {
                   setEditing(false);
                 }}
               />
+              <ArtistImageManager artistId={profile.id} userId={profile.user_id} />
             </div>
           ) : (
+          <>
+            {primaryCover && (
+              <div className="relative mb-6 h-48 w-full overflow-hidden rounded-2xl bg-secondary sm:h-64">
+                <img
+                  src={publicArt(primaryCover.storage_path)}
+                  alt={primaryCover.caption ?? profile.name}
+                  className="h-full w-full object-cover"
+                />
+                {primaryCover.credit && (
+                  <span className="absolute bottom-2 right-3 rounded bg-background/70 px-2 py-0.5 text-[10px] text-muted-foreground backdrop-blur">
+                    Foto: {primaryCover.credit}
+                  </span>
+                )}
+              </div>
+            )}
             <div className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-start">
               <div className="h-28 w-28 shrink-0 overflow-hidden rounded-full bg-secondary">
-                {profile.avatar_path ? (
+                {avatarSrc ? (
                   <img
-                    src={publicArt(profile.avatar_path)}
+                    src={avatarSrc}
                     alt={profile.name}
                     className="h-full w-full object-cover"
                   />
@@ -149,6 +184,38 @@ function ArtistPage() {
                 <SocialLinks profile={profile} />
               </div>
             </div>
+            {pressImages.length > 0 && (
+              <section className="mb-10">
+                <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                  Pressbilder
+                </h2>
+                <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                  {pressImages.map((img) => (
+                    <li
+                      key={img.id}
+                      className="overflow-hidden rounded-lg border border-border bg-card"
+                    >
+                      <div className="aspect-square bg-secondary">
+                        <img
+                          src={publicArt(img.storage_path)}
+                          alt={img.caption ?? profile.name}
+                          className="h-full w-full object-cover"
+                        />
+                      </div>
+                      {(img.caption || img.credit) && (
+                        <div className="space-y-0.5 p-2 text-xs">
+                          {img.caption && <p className="truncate">{img.caption}</p>}
+                          {img.credit && (
+                            <p className="truncate text-muted-foreground">Foto: {img.credit}</p>
+                          )}
+                        </div>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+          </>
           )}
           {data.items.length === 0 ? (
             <EmptyState
