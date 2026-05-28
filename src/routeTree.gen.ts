@@ -27,6 +27,7 @@ import { Route as ApiGenerateArtistImageRouteImport } from './routes/api/generat
 import { Route as AlbumsNewRouteImport } from './routes/albums.new'
 import { Route as AlbumsAlbumIdRouteImport } from './routes/albums.$albumId'
 import { Route as AlbumsAlbumIdEditRouteImport } from './routes/albums.$albumId.edit'
+import { Route as ApiPublicHooksAudioProcessedRouteImport } from './routes/api/public/hooks/audio-processed'
 
 const UploadBatchRoute = UploadBatchRouteImport.update({
   id: '/upload-batch',
@@ -118,6 +119,12 @@ const AlbumsAlbumIdEditRoute = AlbumsAlbumIdEditRouteImport.update({
   path: '/edit',
   getParentRoute: () => AlbumsAlbumIdRoute,
 } as any)
+const ApiPublicHooksAudioProcessedRoute =
+  ApiPublicHooksAudioProcessedRouteImport.update({
+    id: '/api/public/hooks/audio-processed',
+    path: '/api/public/hooks/audio-processed',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -138,6 +145,7 @@ export interface FileRoutesByFullPath {
   '/artists/new': typeof ArtistsNewRoute
   '/releases/new': typeof ReleasesNewRoute
   '/albums/$albumId/edit': typeof AlbumsAlbumIdEditRoute
+  '/api/public/hooks/audio-processed': typeof ApiPublicHooksAudioProcessedRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -158,6 +166,7 @@ export interface FileRoutesByTo {
   '/artists/new': typeof ArtistsNewRoute
   '/releases/new': typeof ReleasesNewRoute
   '/albums/$albumId/edit': typeof AlbumsAlbumIdEditRoute
+  '/api/public/hooks/audio-processed': typeof ApiPublicHooksAudioProcessedRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -179,6 +188,7 @@ export interface FileRoutesById {
   '/artists/new': typeof ArtistsNewRoute
   '/releases/new': typeof ReleasesNewRoute
   '/albums/$albumId/edit': typeof AlbumsAlbumIdEditRoute
+  '/api/public/hooks/audio-processed': typeof ApiPublicHooksAudioProcessedRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -201,6 +211,7 @@ export interface FileRouteTypes {
     | '/artists/new'
     | '/releases/new'
     | '/albums/$albumId/edit'
+    | '/api/public/hooks/audio-processed'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -221,6 +232,7 @@ export interface FileRouteTypes {
     | '/artists/new'
     | '/releases/new'
     | '/albums/$albumId/edit'
+    | '/api/public/hooks/audio-processed'
   id:
     | '__root__'
     | '/'
@@ -241,6 +253,7 @@ export interface FileRouteTypes {
     | '/artists/new'
     | '/releases/new'
     | '/albums/$albumId/edit'
+    | '/api/public/hooks/audio-processed'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -261,6 +274,7 @@ export interface RootRouteChildren {
   ArtistsArtistIdRoute: typeof ArtistsArtistIdRoute
   ArtistsNewRoute: typeof ArtistsNewRoute
   ReleasesNewRoute: typeof ReleasesNewRoute
+  ApiPublicHooksAudioProcessedRoute: typeof ApiPublicHooksAudioProcessedRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -391,6 +405,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AlbumsAlbumIdEditRouteImport
       parentRoute: typeof AlbumsAlbumIdRoute
     }
+    '/api/public/hooks/audio-processed': {
+      id: '/api/public/hooks/audio-processed'
+      path: '/api/public/hooks/audio-processed'
+      fullPath: '/api/public/hooks/audio-processed'
+      preLoaderRoute: typeof ApiPublicHooksAudioProcessedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -424,6 +445,7 @@ const rootRouteChildren: RootRouteChildren = {
   ArtistsArtistIdRoute: ArtistsArtistIdRoute,
   ArtistsNewRoute: ArtistsNewRoute,
   ReleasesNewRoute: ReleasesNewRoute,
+  ApiPublicHooksAudioProcessedRoute: ApiPublicHooksAudioProcessedRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
