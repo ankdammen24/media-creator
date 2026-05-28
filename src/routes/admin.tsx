@@ -99,17 +99,73 @@ function ArtistsAdmin() {
     },
   });
 
-  async function reassign(artistId: string, newUserId: string) {
-    const { error } = await supabase
-      .from("artist_profiles")
-      .update({ user_id: newUserId })
-      .eq("id", artistId);
-    if (error) {
-      window.alert(error.message);
-      return;
+  const reassignFn = useServerFn(reassignArtistOwner);
+  // pending = { artistId, newUserId } chosen but not yet confirmed
+  const [pending, setPending] = useState<{
+    artistId: string;
+    artistName: string;
+    fromUserId: string;
+    newUserId: string;
+  } | null>(null);
+  const [preview, setPreview] = useState<{
+    counts: { albums: number; submissions: number; images: number };
+  } | null>(null);
+  const [reason, setReason] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function openConfirm(
+    artistId: string,
+    artistName: string,
+    fromUserId: string,
+    newUserId: string,
+  ) {
+    setPending({ artistId, artistName, fromUserId, newUserId });
+    setPreview(null);
+    setReason("");
+    setError(null);
+    setBusy(true);
+    try {
+      const res = await reassignFn({
+        data: { artistId, newUserId, preview: true },
+      });
+      if (res.preview) setPreview({ counts: res.counts });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
     }
-    await refetch();
-    qc.invalidateQueries({ queryKey: ["catalog"] });
+  }
+
+  async function confirmReassign() {
+    if (!pending) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await reassignFn({
+        data: {
+          artistId: pending.artistId,
+          newUserId: pending.newUserId,
+          reason: reason.trim() || undefined,
+        },
+      });
+      setPending(null);
+      setPreview(null);
+      setReason("");
+      await refetch();
+      qc.invalidateQueries({ queryKey: ["catalog"] });
+      qc.invalidateQueries({ queryKey: ["admin-ownership-log"] });
+      qc.invalidateQueries({ queryKey: ["artist", pending.artistId] });
+      window.alert(
+        res.noop
+          ? "Ingen ändring (samma ägare)."
+          : `Flyttade ${res.counts.albums} album, ${res.counts.submissions} låtar och ${res.counts.images} bilder.`,
+      );
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function rename(artistId: string, current: string) {
@@ -136,6 +192,7 @@ function ArtistsAdmin() {
   }
 
   return (
+    <div className="space-y-6">
     <ul className="space-y-3">
       {(artists ?? []).map((a) => (
         <li
@@ -155,19 +212,13 @@ function ArtistsAdmin() {
             >
               Rename
             </button>
-            <select
-              value={a.user_id}
-              onChange={(e) => {
-                if (e.target.value !== a.user_id) reassign(a.id, e.target.value);
-              }}
-              className="rounded-md border border-border bg-background px-2 py-1.5 text-xs"
-            >
-              {(users ?? []).map((u) => (
-                <option key={u.user_id} value={u.user_id}>
-                  {u.display_name ?? u.user_id}
-                </option>
-              ))}
-            </select>
+            <ReassignControl
+              artist={a}
+              users={users ?? []}
+              onPick={(newUserId) =>
+                openConfirm(a.id, a.name, a.user_id, newUserId)
+              }
+            />
           </div>
         </li>
       ))}
@@ -175,6 +226,146 @@ function ArtistsAdmin() {
         <p className="text-sm text-muted-foreground">No artist profiles.</p>
       )}
     </ul>
+
+    {pending && (
+      <ConfirmReassignDialog
+        pending={pending}
+        users={users ?? []}
+        preview={preview}
+        busy={busy}
+        error={error}
+        reason={reason}
+        onReason={setReason}
+        onCancel={() => {
+          setPending(null);
+          setPreview(null);
+          setError(null);
+        }}
+        onConfirm={confirmReassign}
+      />
+    )}
+
+    <AdminOwnershipLog />
+    </div>
+  );
+}
+
+function ReassignControl({
+  artist,
+  users,
+  onPick,
+}: {
+  artist: { id: string; user_id: string };
+  users: Array<{ user_id: string; display_name: string | null }>;
+  onPick: (newUserId: string) => void;
+}) {
+  const [value, setValue] = useState(artist.user_id);
+  return (
+    <div className="flex items-center gap-2">
+      <select
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        className="rounded-md border border-border bg-background px-2 py-1.5 text-xs"
+      >
+        {users.map((u) => (
+          <option key={u.user_id} value={u.user_id}>
+            {u.display_name ?? u.user_id}
+          </option>
+        ))}
+      </select>
+      <button
+        type="button"
+        disabled={value === artist.user_id}
+        onClick={() => onPick(value)}
+        className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-40"
+      >
+        Byt ägare
+      </button>
+    </div>
+  );
+}
+
+function ConfirmReassignDialog({
+  pending,
+  users,
+  preview,
+  busy,
+  error,
+  reason,
+  onReason,
+  onCancel,
+  onConfirm,
+}: {
+  pending: { artistId: string; artistName: string; fromUserId: string; newUserId: string };
+  users: Array<{ user_id: string; display_name: string | null }>;
+  preview: { counts: { albums: number; submissions: number; images: number } } | null;
+  busy: boolean;
+  error: string | null;
+  reason: string;
+  onReason: (v: string) => void;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  const fromName = users.find((u) => u.user_id === pending.fromUserId)?.display_name ?? pending.fromUserId;
+  const toName = users.find((u) => u.user_id === pending.newUserId)?.display_name ?? pending.newUserId;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="w-full max-w-md rounded-xl border border-border bg-card p-5 shadow-xl">
+        <h3 className="mb-2 text-base font-semibold">Byta ägare?</h3>
+        <p className="text-sm text-muted-foreground">
+          Du flyttar <span className="font-medium text-foreground">{pending.artistName}</span> från{" "}
+          <span className="font-medium text-foreground">{fromName}</span> till{" "}
+          <span className="font-medium text-foreground">{toName}</span>.
+        </p>
+        <div className="mt-3 rounded-md border border-border bg-background p-3 text-xs">
+          {preview ? (
+            <ul className="space-y-0.5 text-muted-foreground">
+              <li>Album som flyttas: <span className="text-foreground font-medium">{preview.counts.albums}</span></li>
+              <li>Låtar / submissions: <span className="text-foreground font-medium">{preview.counts.submissions}</span></li>
+              <li>EPK-bilder: <span className="text-foreground font-medium">{preview.counts.images}</span></li>
+            </ul>
+          ) : (
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" /> Räknar påverkade rader…
+            </div>
+          )}
+        </div>
+        <label className="mt-4 block text-xs font-medium">Anledning (valfritt)</label>
+        <input
+          type="text"
+          value={reason}
+          onChange={(e) => onReason(e.target.value)}
+          maxLength={500}
+          className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+          placeholder="t.ex. artisten har bytt konto"
+        />
+        {error && (
+          <p className="mt-3 rounded-md border border-destructive/30 bg-destructive/10 p-2 text-xs text-destructive">
+            {error}
+          </p>
+        )}
+        <div className="mt-4 flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={busy}
+            className="rounded-md border border-border px-3 py-2 text-xs hover:bg-accent disabled:opacity-50"
+          >
+            Avbryt
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={busy || !preview}
+            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+          >
+            {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+            Bekräfta ägarbyte
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
