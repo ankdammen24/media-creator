@@ -298,19 +298,31 @@ function BatchUploadPage() {
           throw new Error("Missing artwork");
         }
 
-        const { error: insErr } = await supabase.from("submissions").insert({
-          user_id: user.id,
-          artist_profile_id: profileId,
-          media_type: d.mediaType,
-          title: d.title.trim(),
-          description: d.description.trim() || null,
-          audio_path: d.audioPath!,
-          artwork_path: artworkPath,
-          status: "pending_review",
-        });
+        const { data: inserted, error: insErr } = await supabase
+          .from("submissions")
+          .insert({
+            user_id: user.id,
+            artist_profile_id: profileId,
+            media_type: d.mediaType,
+            title: d.title.trim(),
+            description: d.description.trim() || null,
+            audio_path: d.audioPath!,
+            artwork_path: artworkPath,
+            status: "pending_review",
+          })
+          .select("id")
+          .single();
         if (insErr) {
           await supabase.storage.from("artwork").remove([artworkPath]);
           throw insErr;
+        }
+        if (inserted) {
+          await supabase.from("submission_artists").insert({
+            submission_id: inserted.id,
+            artist_profile_id: profileId,
+            is_primary: true,
+            position: 0,
+          });
         }
         ok += 1;
         updateDraft(d.id, { status: "submitted" });
