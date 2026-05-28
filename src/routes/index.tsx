@@ -78,7 +78,7 @@ function Hero() {
       const { data, error } = await supabase
         .from("submissions")
         .select(
-          "id, title, description, media_type, artwork_path, audio_path, artist_profiles!submissions_artist_profile_id_fkey(id, name)",
+          "id, title, description, media_type, artwork_path, audio_path, artist_profiles!submissions_artist_profile_id_fkey(id, name), albums(artwork_path)",
         )
         .eq("status", "approved")
         .eq("media_type", "music")
@@ -213,7 +213,7 @@ function LatestMusic() {
       const { data, error } = await supabase
         .from("submissions")
         .select(
-          "id, title, description, media_type, artwork_path, audio_path, artist_profiles!submissions_artist_profile_id_fkey(id, name)",
+          "id, title, description, media_type, artwork_path, audio_path, artist_profiles!submissions_artist_profile_id_fkey(id, name), albums(artwork_path)",
         )
         .eq("status", "approved")
         .eq("media_type", "music")
@@ -283,7 +283,7 @@ function LatestPodcasts() {
       const { data, error } = await supabase
         .from("submissions")
         .select(
-          "id, title, description, media_type, artwork_path, audio_path, artist_profiles!submissions_artist_profile_id_fkey(id, name)",
+          "id, title, description, media_type, artwork_path, audio_path, artist_profiles!submissions_artist_profile_id_fkey(id, name), albums(artwork_path)",
         )
         .eq("status", "approved")
         .eq("media_type", "podcast")
