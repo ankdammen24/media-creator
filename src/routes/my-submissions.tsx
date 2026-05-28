@@ -96,6 +96,15 @@ function MyPage() {
         </Link>
       </div>
 
+      <div className="mb-6 flex items-start gap-3 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
+        <Info className="mt-0.5 h-4 w-4 shrink-0" />
+        <p>
+          <span className="font-semibold">Demo-läge.</span> Inskickad musik sparas
+          i Media Rosenqvist Catalog och skickas till Radio Uppsala för granskning.
+          Distribution till Spotify, Apple Music m.fl. är inte aktiv.
+        </p>
+      </div>
+
       {isLoading ? (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" /> Laddar…
