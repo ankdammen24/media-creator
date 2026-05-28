@@ -1,13 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ShieldCheck, CheckCircle2, XCircle, Music2, Mic, Loader2, Users, Radio } from "lucide-react";
+import { ShieldCheck, CheckCircle2, XCircle, Music2, Mic, Loader2, Users, Radio, ImagePlus } from "lucide-react";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
 import { notifySubmissionDecision } from "@/lib/notifications.functions";
 import { runAzuracastImport } from "@/lib/azuracast-import.functions";
+import { AdminAutoArtwork } from "@/components/AdminAutoArtwork";
 import {
   EditButton,
   EditSubmissionDialog,
@@ -192,7 +193,7 @@ function AdminPage() {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [filter, setFilter] = useState<"pending_review" | "approved" | "rejected">("pending_review");
-  const [tab, setTab] = useState<"submissions" | "artists" | "import">("submissions");
+  const [tab, setTab] = useState<"submissions" | "artists" | "artwork" | "import">("submissions");
   const notify = useServerFn(notifySubmissionDecision);
 
   const { data, isLoading, refetch } = useQuery({
@@ -271,6 +272,14 @@ function AdminPage() {
           <Users className="h-3.5 w-3.5" /> Artists
         </button>
         <button
+          onClick={() => setTab("artwork")}
+          className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition ${
+            tab === "artwork" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <ImagePlus className="h-3.5 w-3.5" /> Auto-omslag
+        </button>
+        <button
           onClick={() => setTab("import")}
           className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition ${
             tab === "import" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
@@ -282,6 +291,8 @@ function AdminPage() {
 
       {tab === "import" ? (
         <RadioUppsalaImport />
+      ) : tab === "artwork" ? (
+        <AdminAutoArtwork />
       ) : tab === "artists" ? (
         <ArtistsAdmin />
       ) : (

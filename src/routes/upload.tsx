@@ -16,6 +16,8 @@ import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { AlbumPicker } from "@/components/AlbumPicker";
 import { nextTrackNumber } from "@/lib/album-helpers";
+import { useServerFn } from "@tanstack/react-start";
+import { autoFetchArtistArtwork } from "@/lib/artwork.functions";
 
 type ArtistProfile = {
   id: string;
@@ -76,6 +78,7 @@ function UploadPage() {
   const [newProfileName, setNewProfileName] = useState("");
   const [newProfileBio, setNewProfileBio] = useState("");
   const [createBusy, setCreateBusy] = useState(false);
+  const autoFetchArtistImage = useServerFn(autoFetchArtistArtwork);
 
   // Submission
   const [mediaType, setMediaType] = useState<MediaType | "">("");
@@ -191,6 +194,10 @@ function UploadPage() {
       setNewProfileName("");
       setNewProfileBio("");
       setCreatingProfile(false);
+      // Fire-and-forget: try to grab a default avatar from iTunes.
+      autoFetchArtistImage({ data: { artistId: p.id } }).catch((e) =>
+        console.warn("autoFetchArtistArtwork failed", e),
+      );
     } catch (err) {
       setProfilesError(err instanceof Error ? err.message : "Could not create profile");
     } finally {
