@@ -106,6 +106,9 @@ function BatchUploadPage() {
   const [defaultMediaType, setDefaultMediaType] = useState<MediaType>("music");
   const [sharedArtwork, setSharedArtwork] = useState<File | null>(null);
   const [sharedArtworkError, setSharedArtworkError] = useState<string | null>(null);
+  const [sharedAiOpen, setSharedAiOpen] = useState(false);
+
+  const primaryArtistName = profiles.find((p) => p.id === profileId)?.name ?? "";
 
   // Drafts
   const [drafts, setDrafts] = useState<Draft[]>([]);
