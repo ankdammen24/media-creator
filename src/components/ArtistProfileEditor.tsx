@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { X, Upload as UploadIcon } from "lucide-react";
+import { X, Upload as UploadIcon, Sparkles } from "lucide-react";
+import { AiArtworkDialog } from "@/components/AiArtworkDialog";
 
 export type EditableArtist = {
   id: string;
@@ -64,6 +65,7 @@ export function ArtistProfileEditor({
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [aiOpen, setAiOpen] = useState(false);
 
   const invalidUrls = URL_FIELDS.filter((f) => !validUrlOrEmpty(urls[f.key as string]));
 
@@ -158,16 +160,27 @@ export function ArtistProfileEditor({
 
       <div>
         <label className="mb-1 block text-xs font-medium">Profilbild (JPG/PNG/WEBP, max 5 MB)</label>
-        <label className="flex h-24 cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-border bg-background text-sm text-muted-foreground hover:bg-accent/40">
-          <UploadIcon className="h-4 w-4" />
-          {avatarFile ? avatarFile.name : "Välj ny bild (valfritt)"}
-          <input
-            type="file"
-            accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
-            className="sr-only"
-            onChange={(e) => setAvatarFile(e.target.files?.[0] ?? null)}
-          />
-        </label>
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="flex h-24 flex-1 cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-border bg-background text-sm text-muted-foreground hover:bg-accent/40">
+            <UploadIcon className="h-4 w-4" />
+            {avatarFile ? avatarFile.name : "Välj ny bild (valfritt)"}
+            <input
+              type="file"
+              accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+              className="sr-only"
+              onChange={(e) => setAvatarFile(e.target.files?.[0] ?? null)}
+            />
+          </label>
+          <button
+            type="button"
+            onClick={() => setAiOpen(true)}
+            className="inline-flex h-24 items-center gap-1.5 rounded-md border border-border bg-background px-3 text-sm hover:bg-accent"
+            title="Skapa bild med AI"
+          >
+            <Sparkles className="h-4 w-4 text-primary" />
+            Skapa med AI
+          </button>
+        </div>
         {avatarFileError && <p className="mt-1 text-xs text-destructive">{avatarFileError}</p>}
       </div>
 
@@ -213,6 +226,16 @@ export function ArtistProfileEditor({
           {saving ? "Sparar…" : "Spara"}
         </button>
       </div>
+
+      <AiArtworkDialog
+        open={aiOpen}
+        aspect="1:1"
+        title="Skapa profilbild med AI"
+        filenameHint={`avatar-${name || "artist"}`}
+        defaultPrompt={`Stiliserat, abstrakt porträttmotiv för musikartisten ${name || "artisten"}, lugn färgpalett, modern grafisk komposition, inga ansikten, inga texter`}
+        onClose={() => setAiOpen(false)}
+        onGenerated={(file) => setAvatarFile(file)}
+      />
     </form>
   );
 }
