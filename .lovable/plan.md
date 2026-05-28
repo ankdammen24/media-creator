@@ -1,47 +1,56 @@
-## Vad som ska fixas
+## Mål
 
-Tre småfix för att kunna förvalta artister och album i efterhand.
+Förenkla flödet under **Mine**: istället för en platt lista över alla submissions, visa de **artistprofiler du äger** (eller alla, om du är artist/admin). Därifrån går man in på artisten och får en hierarki: **Artist → Album → Låt**. En låt utan album räknas som en **Single** (album = låtens namn).
 
-### 1. Redigera artist i efterhand (även som admin)
+```text
+Mine (lista över egna artister)
+ ├─ [+ Skapa ny artist]
+ └─ Artist X ──► /artists/:id
+                  ├─ Profil + redigera
+                  ├─ Album (kort: riktiga album + "singlar" för albumlösa låtar)
+                  │    └─ [+ Nytt album]  (befintlig sida listar redan lediga låtar att koppla in)
+                  └─ Lösa låtar (singles) listade som egna "album-kort"
+```
 
-På `/artists/$artistId` visas knappen "Redigera profil" och bildhanteraren bara när inloggad användare äger profilen (`profile.user_id === user.id`). Admins ser ingen knapp.
+## Ändringar
 
-**Ändring:** Slå även på `canEdit` när användaren har rollen `admin`. Hämta admin‑status i samma query (samma mönster som `albums.$albumId.tsx` redan använder). Då blir `ArtistProfileEditor` + `ArtistImageManager` (inkl. AI‑bilder) tillgängliga för admins och ägaren även efter att artisten skapats.
+### 1. `/my-submissions` görs om till en artistlista
+- Hämta `artist_profiles` där `user_id = auth.uid()` (icke-editorer) eller alla (editorer), tillsammans med antal album och antal submissions per artist.
+- Visa varje artist som ett kort: avatar, namn, "N album · M låtar", länk till `/artists/:id`.
+- Primär CTA högst upp: **"Skapa ny artist"** → `/artists/new`.
+- Tomt läge: kort som uppmanar att skapa första artisten.
+- Behåll sidans titel "Mine" men beskrivningen blir "Dina artister, deras album och låtar". Den gamla submission-redigeringen (`EditSubmissionDialog`, `DeleteSubmissionButton`, osv.) flyttas inte hit — den når man fortfarande via album-/artistsidan respektive på sikt via en låt-vy. Inget gammalt admin-flöde tas bort, bara den här sidans roll.
 
-Backend behöver inget nytt — RLS på `artist_profiles` och `artist_images` tillåter redan både ägare och admin.
+### 2. Ny route `/artists/new`
+- Enkel skapaformulär: `name` (krav), `bio`, ev. `website_url`. Skriver till `artist_profiles` med `user_id = auth.uid()`. Vid lyckad insert navigera till `/artists/:id`.
+- Skyddad route (`ProtectedRoute`).
 
-### 2. AI‑bilder och bildbyte i efterhand
+### 3. Artistsidan `/artists/$artistId` får sektion **Album**
+- Hämta även `albums` för artisten (id, title, album_type, artwork_path, release_date, tracks-räkning via separat liten join eller count).
+- Hämta artistens submissions där `album_id IS NULL` — dessa visas som "Singles" i samma album-rutnät, men korten länkar direkt till låten/spelar den (ingen album-route, eftersom det inte finns något album-id).
+- Layout: profil-header (oförändrad) → **Album**-grid (riktiga album + singel-kort blandade, singlar märks med badge "Single") → behåll befintlig "godkända media"-lista längre ner som fallback/översikt, eller ersätt den med Album-griden om listan blir överflödig. Förslag: ersätt nuvarande platta lista med album-grid; för albumlösa låtar visa "Singles"-kort som spelar låten direkt.
+- Befintlig **"Nytt album"**-knapp behålls; den leder redan till `/albums/new?artistId=...`, och album-sidan har redan en "Lägg till låtar"-sektion som listar artistens albumlösa submissions — så kravet "lista potentiella låtar förknippade med artisten" är redan löst där och kräver ingen ny kod.
 
-Faller ut automatiskt av punkt 1: `ArtistImageManager` (knapparna "Skapa med AI", "Variera med AI", ladda upp, ta bort, sätt primär, byt typ) renderas så snart `editing && canEdit` är sant. Inget nytt UI behövs — bara gaten som öppnas i punkt 1.
+### 4. Header
+- "Album"-snabblänken i `SiteHeader` är inte längre nödvändig (eftersom man skapar album inifrån en artist). Ta bort den för att undvika dubbletter.
 
-### 3. Skapa album i efterhand och samla låtar i det
+## Tekniska detaljer
 
-Knappen för att skapa album finns redan (`/albums/new`), men det är svårt att hitta och det går inte att flytta in befintliga låtar.
+- **Filer som ändras / skapas**
+  - `src/routes/my-submissions.tsx` — byggs om från grunden till artistlista (filnamnet behålls så header-länken fortsätter fungera).
+  - `src/routes/artists.new.tsx` — ny route med skapaformulär.
+  - `src/routes/artists.$artistId.tsx` — lägg till album-/singles-grid; behåll profilredigerings­logik.
+  - `src/components/SiteHeader.tsx` — ta bort `Album`-länken.
 
-**A. Genväg till "Skapa album"**
+- **Queries**
+  - Mine: `artist_profiles` filtrerad på `user_id` (eller alla för editor) + parallella `count`-queries på `albums` och `submissions` per artist (eller en samlad fetch + gruppera i klienten).
+  - Artistsidan: extra hämtning av `albums` för artist + submissions med `album_id IS NULL`.
 
-Lägg till en "Skapa album"‑knapp:
-- På `/my-submissions` högst upp (länk till `/albums/new`).
-- På `/artists/$artistId` när `canEdit` är sant — länk till `/albums/new` med `?artistId=<id>` så att `AlbumForm` förväljer rätt artist (utökar `AlbumForm` att läsa `artistId` från search params som default).
+- **RLS** — inga ändringar behövs. Insert på `artist_profiles` är redan tillåtet via *"Users create own artist profiles"* (`auth.uid() = user_id`). Befintliga album-/submission-policies fortsätter gälla.
 
-**B. Lägg till befintliga låtar i ett album**
+- **Singles utan album** — visas som UI-kort i album-griden men sparas inte som riktiga albumrader. Ingen schemaändring.
 
-På `/albums/$albumId`, när `canEdit`, lägg till en ny sektion "Lägg till låtar":
-- Lista alla submissions som tillhör albumets `artist_profile_id` och som ännu inte har något `album_id` (eller är kopplade till ett annat album om vi vill tillåta flytt — vi börjar med "inga `album_id`"). Filtreras till submissions som användaren får se via RLS.
-- Checkbox‑lista + knapp "Lägg till valda". Vid klick: för varje vald submission, `UPDATE submissions SET album_id = <album.id>, track_number = <nästa lediga>`. Återanvänd `nextTrackNumber` från `src/lib/album-helpers.ts` (kör sekventiellt för att undvika kollisioner).
-- Efter sparat: invalidate album‑query.
-
-**C. Byta album på en submission**
-
-I `EditSubmissionDialog` (`src/components/SubmissionActions.tsx`): lägg till ett "Album"‑fält (select över ägarens album för aktuell artist, plus "Inget album"). Vid spar uppdateras `album_id` och `track_number` (sätts till nästa lediga om ett nytt album väljs, annars nollas). DB‑triggern `check_submission_album_artist` säkerställer att albumets artist matchar.
-
-## Filer som ändras
-
-- `src/routes/artists.$artistId.tsx` — hämta admin‑status, utvidga `canEdit`.
-- `src/routes/my-submissions.tsx` — "Skapa album"‑knapp.
-- `src/components/AlbumForm.tsx` — läs `artistId` från search params som default.
-- `src/routes/albums.new.tsx` — typad search‑validator för `artistId`.
-- `src/routes/albums.$albumId.tsx` — ny "Lägg till låtar"‑sektion (admin/ägare).
-- `src/components/SubmissionActions.tsx` — album‑select i `EditSubmissionDialog`.
-
-Inga DB‑migrationer behövs.
+## Utanför scope
+- Ingen ändring i databasen.
+- Ingen ändring i ladda-upp-flödet.
+- Ingen ändring i admin-vyn.

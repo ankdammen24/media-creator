@@ -1,9 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Music2,
-  Mic,
   ArrowLeft,
   Globe,
   Facebook,
@@ -11,6 +10,7 @@ import {
   Twitter,
   Pencil,
   Disc3,
+  Play,
 } from "lucide-react";
 import { EmptyState, ErrorState } from "@/components/StateViews";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,6 +18,9 @@ import { useAuth } from "@/lib/auth";
 import { ArtistProfileEditor, type EditableArtist } from "@/components/ArtistProfileEditor";
 import { ArtistImageManager, type ArtistImage } from "@/components/ArtistImageManager";
 import { useEditorRole } from "@/lib/useEditorRole";
+import { PlayButton } from "@/components/player/PlayButton";
+import type { PlayerTrack } from "@/components/player/PlayerProvider";
+import { ALBUM_TYPE_LABELS, type AlbumType } from "@/lib/album-helpers";
 
 export const Route = createFileRoute("/artists/$artistId")({
   head: () => ({
@@ -37,12 +40,23 @@ type ArtistItem = {
   audio_path: string;
   description: string | null;
   created_at: string;
+  album_id: string | null;
   albums: { artwork_path: string | null } | null;
+};
+
+type AlbumRow = {
+  id: string;
+  title: string;
+  album_type: AlbumType;
+  artwork_path: string | null;
+  release_date: string | null;
+  trackCount: number;
 };
 
 type ArtistData = {
   profile: EditableArtist | null;
   items: ArtistItem[];
+  albums: AlbumRow[];
   images: ArtistImage[];
 };
 
@@ -59,7 +73,7 @@ function ArtistPage() {
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["artist", artistId],
     queryFn: async (): Promise<ArtistData> => {
-      const [profileRes, linksRes, imagesRes] = await Promise.all([
+      const [profileRes, linksRes, imagesRes, albumsRes] = await Promise.all([
         supabase
           .from("artist_profiles")
           .select(
@@ -70,7 +84,7 @@ function ArtistPage() {
         supabase
           .from("submission_artists")
           .select(
-            "submission_id, submissions!inner(id, title, media_type, artwork_path, audio_path, description, created_at, status, albums(artwork_path))",
+            "submission_id, submissions!inner(id, title, media_type, artwork_path, audio_path, description, created_at, status, album_id, albums(artwork_path))",
           )
           .eq("artist_profile_id", artistId)
           .eq("submissions.status", "approved"),
@@ -80,18 +94,30 @@ function ArtistPage() {
           .eq("artist_profile_id", artistId)
           .order("sort_order", { ascending: true })
           .order("created_at", { ascending: true }),
+        supabase
+          .from("albums")
+          .select("id, title, album_type, artwork_path, release_date")
+          .eq("artist_profile_id", artistId)
+          .order("release_date", { ascending: false, nullsFirst: false }),
       ]);
       if (profileRes.error) throw profileRes.error;
       if (linksRes.error) throw linksRes.error;
       if (imagesRes.error) throw imagesRes.error;
+      if (albumsRes.error) throw albumsRes.error;
       const rows = (linksRes.data ?? []) as unknown as Array<{ submissions: ArtistItem }>;
       const items = rows
         .map((r) => r.submissions)
         .filter(Boolean)
         .sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
+      const rawAlbums = (albumsRes.data ?? []) as Array<Omit<AlbumRow, "trackCount">>;
+      const albums: AlbumRow[] = rawAlbums.map((al) => ({
+        ...al,
+        trackCount: items.filter((i) => i.album_id === al.id).length,
+      }));
       return {
         profile: profileRes.data as EditableArtist | null,
         items,
+        albums,
         images: (imagesRes.data ?? []) as ArtistImage[],
       };
     },
@@ -236,18 +262,12 @@ function ArtistPage() {
             )}
           </>
           )}
-          {data.items.length === 0 ? (
-            <EmptyState
-              title="No approved media yet"
-              description="Once submissions from this artist are approved they'll appear here."
-            />
-          ) : (
-            <ul className="space-y-3">
-              {data.items.map((i) => (
-                <ArtistRow key={i.id} item={i} />
-              ))}
-            </ul>
-          )}
+          <DiscographySection
+            albums={data.albums}
+            singles={data.items.filter((i) => !i.album_id)}
+            artistName={profile.name}
+            artistId={profile.id}
+          />
         </>
       )}
     </div>
@@ -285,46 +305,110 @@ function SocialLinks({ profile }: { profile: EditableArtist }) {
   );
 }
 
-function ArtistRow({ item }: { item: ArtistItem }) {
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  useEffect(() => {
-    let on = true;
-    supabase.storage
-      .from("audio")
-      .createSignedUrl(item.audio_path, 3600)
-      .then(({ data }) => {
-        if (on && data) setAudioUrl(data.signedUrl);
-      });
-    return () => {
-      on = false;
-    };
-  }, [item.audio_path]);
-
-  return (
-    <li className="flex flex-col gap-4 rounded-xl border border-border bg-card p-4 sm:flex-row">
-      <img
-        src={publicArt(item.albums?.artwork_path ?? item.artwork_path)}
-        alt={item.title}
-        className="h-32 w-32 shrink-0 rounded-md object-cover"
+function DiscographySection({
+  albums,
+  singles,
+  artistName,
+  artistId,
+}: {
+  albums: AlbumRow[];
+  singles: ArtistItem[];
+  artistName: string;
+  artistId: string;
+}) {
+  if (albums.length === 0 && singles.length === 0) {
+    return (
+      <EmptyState
+        title="Ingen musik ännu"
+        description="Skapa ett album eller ladda upp en låt så dyker det upp här."
       />
-      <div className="min-w-0 flex-1">
-        <div className="mb-1 flex items-center gap-2 text-[10px] uppercase tracking-wide text-muted-foreground">
-          {item.media_type === "music" ? <Music2 className="h-3 w-3" /> : <Mic className="h-3 w-3" />}
-          {item.media_type}
-          <span>·</span>
-          <span>{new Date(item.created_at).toLocaleDateString()}</span>
+    );
+  }
+  return (
+    <section>
+      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+        Diskografi
+      </h2>
+      <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+        {albums.map((al) => (
+          <li key={al.id}>
+            <Link
+              to="/albums/$albumId"
+              params={{ albumId: al.id }}
+              className="group block"
+            >
+              <div className="relative aspect-square overflow-hidden rounded-lg border border-border bg-secondary">
+                {al.artwork_path ? (
+                  <img
+                    src={publicArt(al.artwork_path)}
+                    alt={al.title}
+                    className="h-full w-full object-cover transition group-hover:scale-105"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center text-muted-foreground">
+                    <Disc3 className="h-10 w-10" />
+                  </div>
+                )}
+                <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-background/80 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-foreground backdrop-blur">
+                  {ALBUM_TYPE_LABELS[al.album_type]}
+                </span>
+              </div>
+              <p className="mt-2 truncate text-sm font-medium">{al.title}</p>
+              <p className="text-[11px] text-muted-foreground">
+                {al.trackCount} låt{al.trackCount === 1 ? "" : "ar"}
+                {al.release_date && (
+                  <> · {new Date(al.release_date).getFullYear()}</>
+                )}
+              </p>
+            </Link>
+          </li>
+        ))}
+        {singles.map((s) => (
+          <SingleCard key={s.id} item={s} artistName={artistName} artistId={artistId} />
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+function SingleCard({
+  item,
+  artistName,
+  artistId,
+}: {
+  item: ArtistItem;
+  artistName: string;
+  artistId: string;
+}) {
+  const track: PlayerTrack = {
+    id: item.id,
+    title: item.title,
+    artist: artistName,
+    artistId,
+    artworkPath: item.albums?.artwork_path ?? item.artwork_path,
+    audioPath: item.audio_path,
+    mediaType: item.media_type,
+  };
+  return (
+    <li>
+      <div className="group block">
+        <div className="relative aspect-square overflow-hidden rounded-lg border border-border bg-secondary">
+          <img
+            src={publicArt(item.albums?.artwork_path ?? item.artwork_path)}
+            alt={item.title}
+            className="h-full w-full object-cover transition group-hover:scale-105"
+          />
+          <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-background/80 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-foreground backdrop-blur">
+            <Music2 className="h-3 w-3" /> Single
+          </span>
+          <div className="absolute bottom-2 right-2 opacity-0 transition group-hover:opacity-100">
+            <PlayButton track={track} size="sm" variant="overlay" />
+          </div>
         </div>
-        <h2 className="truncate text-base font-semibold">{item.title}</h2>
-        {item.description && (
-          <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{item.description}</p>
-        )}
-        {audioUrl ? (
-          <audio controls preload="none" src={audioUrl} className="mt-3 h-9 w-full max-w-md">
-            Your browser does not support audio.
-          </audio>
-        ) : (
-          <div className="mt-3 h-9 w-full max-w-md animate-pulse rounded bg-secondary" />
-        )}
+        <p className="mt-2 truncate text-sm font-medium">{item.title}</p>
+        <p className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+          <Play className="h-3 w-3" /> Spela
+        </p>
       </div>
     </li>
   );
