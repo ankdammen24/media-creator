@@ -289,6 +289,7 @@ export function ReleaseWizard() {
           .from("artist_profiles")
           .select("id, name")
           .eq("user_id", user.id)
+          .eq("approval_status", "approved")
           .order("created_at", { ascending: true });
         if (!on) return;
         if (error) throw error;
