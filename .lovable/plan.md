@@ -1,102 +1,58 @@
-# Catalog Metadata Import (UPC/ISRC från Excel)
+# Track-artwork: iTunes → Deezer → AI
 
-Importerar metadata för befintliga artister, album och låtar från en .xlsx-fil. Skapar **aldrig** nya poster automatiskt — bara matchar och berikar.
+Spegla artist-regenereringsflödet, men för låtar (submissions). Identifiera låtar där `artwork_path` är ett AzuraCast-importerat default (path innehåller `/azuracast/`) och försök hämta riktigt omslag via iTunes, sedan Deezer, sedan AI som sista utväg.
 
-## Excel-format som filen följer
+## Server (`src/lib/itunes.server.ts`)
 
-Filen `ISRC.xlsx` har ett blad per artist. Bladets namn = artistens namn.
-Inuti varje blad ligger flera album-block i kolumn B:
+Lägg till två nya verifierade sökningar — returnerar URL endast om både artist och låttitel matchar fuzzy:
 
-```
-Rich Evans                        ← A1 = artistnamn
-  Motel Liing                     ← albumtitel
-  UPC: 194694854466
-  (tom rad)
-  Lucky Didn't Make It: QZES71974920   ← "Låttitel: ISRC"
-  Drown in Your Love: QZES71974921
-  ...
-  (tom rad)
-  Kentucky Bourbon                ← nästa album
-  UPC: 194694853797
-  ...
-```
+- `searchTrackImageVerified(artistName, trackTitle)` — iTunes `entity=song`, plockar `artworkUrl100` från första matchande träff.
+- `searchTrackImageDeezerVerified(artistName, trackTitle)` — Deezer `/search`, plockar `album.cover_xl/big/medium`.
 
-Parsern delar bladet på tomma rader, första raden i blocket = albumtitel, rad som börjar med `UPC:` ger UPC, övriga rader splittas på sista `:` till `title` + `ISRC`.
+(Återanvänder befintlig `fuzzyMatch` och `upscale`.)
 
-## Databasändringar (migration)
+## Server (`src/lib/ai-image.server.ts`)
 
-Lägger till frivilliga (nullable) fält. Inget destruktivt.
+Lägg till `generateTrackFallbackImage(artistName, trackTitle)` — samma mönster som `generateArtistFallbackImage` men prompten beskriver låten:
+> "Abstract album-style square cover art inspired by the song '{title}' by '{artist}'. Minimalist, evocative, no faces, no text, no logos. 1:1 square."
 
-**`albums`**
-- `upc text` (nullable)
-- `external_catalog_source text` (nullable)
-- `metadata_imported_at timestamptz` (nullable)
-- index `idx_albums_upc` på `upc`
+## Server fn (`src/lib/artwork.functions.ts`)
 
-**`submissions`** (låtar) — `isrc` finns redan
-- `upc text` (nullable, ärver releasens UPC)
-- `external_catalog_source text` (nullable)
-- `metadata_imported_at timestamptz` (nullable)
-- index `idx_submissions_isrc` på `isrc`
+Lägg till nytt bucket-uppladdningshelper `uploadAuto("tracks", id, url)` (lägg till `"tracks"` i folder-union för båda upload-helpers).
 
-**`import_runs`** (ny tabell, admin-only)
-- `source` (`'xlsx'`), `filename`, `created_by uuid`, `status`, `summary jsonb`, `created_at`, `completed_at`
+Ny server fn `bulkRegenerateTrackArtwork` (admin-only, mönstrad efter `bulkRegenerateArtistArtwork`):
 
-**`import_rows`** (ny tabell, admin-only)
-- `run_id`, `sheet_name`, `row_index`, `artist_name_raw`, `album_title_raw`, `track_title_raw`, `upc_raw`, `isrc_raw`
-- `match_status` (`matched | partial | unmatched | duplicate | skipped | conflict | applied`)
-- `matched_artist_id`, `matched_album_id`, `matched_submission_id`
-- `proposed_changes jsonb`, `applied_changes jsonb`, `notes text`
+1. Plocka `submissions` där `artwork_path ILIKE '%/azuracast/%'` (default-importerade), join `artist_profiles(name)`, limit 100 per körning.
+2. Per rad:
+   - iTunes verified på artist + låttitel → om träff, ladda upp, källa `itunes`.
+   - Annars Deezer verified → källa `deezer`.
+   - Annars AI fallback → källa `ai`.
+3. Uppdatera `submissions.artwork_path` med nytt path.
+4. Returnera `RegenerateResult`-liknande struktur (samma typ kan återanvändas).
 
-RLS: bara admin (`has_role(auth.uid(),'admin')`) får läsa/skriva. GRANTs på `authenticated` + `service_role`.
+Lägg också till `autoFetchTrackArtwork({ submissionId })` (single, ej admin-only — för per-låt-knapp i framtiden, valfritt nu men billigt att inkludera).
 
-## Server-funktioner (`src/lib/catalog-import.functions.ts`)
+## UI (`src/components/AdminAutoArtwork.tsx`)
 
-Alla skyddade med `requireSupabaseAuth` + admin-check.
+Lägg till en tredje sektion under existerande "Regenerera ALLA artistbilder":
 
-1. **`parseCatalogImport(fileBytes, filename)`** — parsar xlsx (med `xlsx`-paket), kör matchning mot DB **utan att skriva**, skapar `import_runs`-rad + `import_rows`, returnerar förhandsgranskning (alla rader med status och föreslagna ändringar).
-2. **`applyCatalogImport(runId, decisions[])`** — `decisions` = lista per rad `{rowId, action: 'apply'|'overwrite'|'skip'}`. Skriver UPC till album, ISRC/UPC till submission. Standard: skriv **endast i tomma fält**. `overwrite` krävs explicit per rad.
-3. **`getImportRun(runId)`** — hämtar run + rader.
-4. **`listImportRuns()`** — historik.
+- Titel: "Regenerera låt-omslag (AzuraCast-defaults)"
+- Förklarar: hämtar från iTunes → Deezer → AI för låtar där bilden kommer från AzuraCast-importen. Max 100 per körning, skriver över.
+- Confirm-dialog innan körning (samma mönster som artist-regen).
+- Visar resultat med `bySource.itunes/deezer/ai/failed`-räknare.
 
-### Matchningslogik (case-insensitive, trim)
+Invalidera `["catalog"]` och relaterade query keys efter körning så preview uppdateras.
 
-1. **Artist**: bladnamn → `artist_profiles.name` (exakt, sen normaliserat). Saknas → hela bladet markeras `unmatched`.
-2. **Album**: titel inom artistens album (`albums.artist_profile_id = X`). Saknas → block-status `unmatched` (alla låtar i blocket också). UPC skapar **aldrig** album.
-3. **Låt**: `submissions` där `album_id = matched_album_id` och `title` ≈ raw-titel. 
-4. **Dubletter**:
-   - Finns ISRC redan på **samma** submission → `skipped` (ingen ändring).
-   - Finns samma ISRC på **annan** submission → `conflict` (visas men appliceras inte utan overwrite).
-   - Samma låttitel på flera album: album-relationen vinner (steg 2 har redan begränsat scopet).
+## Tekniska detaljer
 
-## Admin-UI
+- Inga DB-migrationer behövs.
+- 150 ms sleep mellan rader för att vara snäll mot iTunes/Deezer.
+- AI använder `LOVABLE_API_KEY` (samma som artist-fallback) — om saknas hoppas AI-steget tyst över och raden räknas som `failed`.
+- Detektion av "default-bild" sker via path-pattern `%/azuracast/%`. Om vi vill bredda kriteriet (t.ex. alla låtar oavsett bild) kan vi lägga in ett toggle senare.
 
-Ny flik `Catalog Import` i `src/routes/admin.tsx` + komponent `src/components/AdminCatalogImport.tsx`:
+## Filer som ändras
 
-- **Upload**: drag/drop .xlsx → kör `parseCatalogImport`.
-- **Preview-tabell** grupperat per blad → album → rader:
-  - Kolumner: Artist | Album | Track | UPC (current → new) | ISRC (current → new) | Status-badge | Action (`Apply` / `Overwrite` / `Skip`)
-  - Statusfärger: matched=grön, partial=gul, unmatched=grå, conflict=röd, duplicate/skipped=blå.
-- **Sammanfattning** överst: X matched, Y conflicts, Z unmatched.
-- **Knapp**: `Apply selected` → `applyCatalogImport` med beslut per rad.
-- **Historik**: lista över tidigare `import_runs` med summary, klickbar för detaljer.
-
-## Säkerhet & spårbarhet
-
-- Allt går via admin-skyddade server-funktioner.
-- `applied_changes` på varje rad innehåller `{field, before, after}` → reversibelt manuellt om det skulle behövas.
-- Inget block får skapa nya artister, album eller låtar — den hårda regeln ligger i server-funktionen, inte bara i UI.
-- Loggning via `import_runs.summary` (totals) + per-rad i `import_rows`.
-
-## Filer som skapas/ändras
-
-- migration: ny fält + två tabeller
-- `src/lib/catalog-import.functions.ts` (ny)
-- `src/lib/catalog-import.server.ts` (parser-helpers)
-- `src/components/AdminCatalogImport.tsx` (ny)
-- `src/routes/admin.tsx` (ny flik)
-- `package.json`: lägger till `xlsx` (eller `exceljs`) för parsning serverside
-
-## Öppna frågor
-
-Inget blockerande — Excel-formatet är dekodat och databasen har redan `isrc` på submissions. Vill du att vi **alltid** propagerar album-UPC till alla submissions på samma album, eller endast om Excel-blocket explicit listar låten? (Default i planen: bara raderna som finns i Excel.)
+- `src/lib/itunes.server.ts` — två nya funktioner
+- `src/lib/ai-image.server.ts` — en ny funktion
+- `src/lib/artwork.functions.ts` — ny bulk + single server fn, utvidgat folder-union
+- `src/components/AdminAutoArtwork.tsx` — ny sektion + knapp + resultatvy

@@ -1,26 +1,60 @@
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQueryClient } from "@tanstack/react-query";
-import { ImagePlus, Loader2, Users, Disc3, Sparkles, AlertTriangle } from "lucide-react";
+import { ImagePlus, Loader2, Users, Disc3, Sparkles, AlertTriangle, Music } from "lucide-react";
 import {
   bulkFetchMissingAlbumArtwork,
   bulkFetchMissingArtistArtwork,
   bulkRegenerateArtistArtwork,
+  bulkRegenerateTrackArtwork,
   type BulkResult,
   type RegenerateResult,
 } from "@/lib/artwork.functions";
+
+type ResultState =
+  | { kind: "artists" | "albums"; res: BulkResult }
+  | { kind: "regen"; res: RegenerateResult }
+  | { kind: "tracks"; res: RegenerateResult };
+
+function renderSummary(result: ResultState) {
+  switch (result.kind) {
+    case "artists":
+    case "albums": {
+      const r = result.res;
+      return (
+        <ul className="space-y-1 text-muted-foreground">
+          <li>Genomsökta: {r.scanned}</li>
+          <li>Uppdaterade med omslag: {r.updated}</li>
+          <li>Ingen träff i iTunes: {r.missed}</li>
+          <li>Misslyckade: {r.failed}</li>
+        </ul>
+      );
+    }
+    case "regen":
+    case "tracks": {
+      const r = result.res;
+      return (
+        <ul className="space-y-1 text-muted-foreground">
+          <li>Genomsökta: {r.scanned}</li>
+          <li>Uppdaterade: {r.updated}</li>
+          <li>Källa iTunes: {r.bySource.itunes}</li>
+          <li>Källa Deezer: {r.bySource.deezer}</li>
+          <li>Källa AI: {r.bySource.ai}</li>
+          <li>Misslyckade: {r.failed}</li>
+        </ul>
+      );
+    }
+  }
+}
 
 export function AdminAutoArtwork() {
   const qc = useQueryClient();
   const fetchArtists = useServerFn(bulkFetchMissingArtistArtwork);
   const fetchAlbums = useServerFn(bulkFetchMissingAlbumArtwork);
   const regenerateAll = useServerFn(bulkRegenerateArtistArtwork);
-  const [busy, setBusy] = useState<"artists" | "albums" | "regen" | null>(null);
-  const [result, setResult] = useState<
-    | { kind: "artists" | "albums"; res: BulkResult }
-    | { kind: "regen"; res: RegenerateResult }
-    | null
-  >(null);
+  const regenerateTracks = useServerFn(bulkRegenerateTrackArtwork);
+  const [busy, setBusy] = useState<"artists" | "albums" | "regen" | "tracks" | null>(null);
+  const [result, setResult] = useState<ResultState | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function run(kind: "artists" | "albums") {
@@ -55,6 +89,26 @@ export function AdminAutoArtwork() {
       setResult({ kind: "regen", res });
       qc.invalidateQueries({ queryKey: ["admin-artists"] });
       qc.invalidateQueries({ queryKey: ["catalog"] });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function runRegenerateTracks() {
+    const ok = window.confirm(
+      "Detta ersätter låt-omslag som importerats med AzuraCast-default. Söker iTunes → Deezer (verifierat på artist + låttitel), annars genereras en abstrakt AI-bild (förbrukar AI-credits). Max 100 per körning. Fortsätt?",
+    );
+    if (!ok) return;
+    setBusy("tracks");
+    setError(null);
+    setResult(null);
+    try {
+      const res = await regenerateTracks({ data: {} });
+      setResult({ kind: "tracks", res });
+      qc.invalidateQueries({ queryKey: ["catalog"] });
+      qc.invalidateQueries({ queryKey: ["admin-artists"] });
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -130,6 +184,30 @@ export function AdminAutoArtwork() {
         </button>
       </div>
 
+      <div className="rounded-xl border border-border bg-card p-5">
+        <div className="mb-3 flex items-center gap-2">
+          <Music className="h-4 w-4 text-primary" />
+          <h2 className="text-base font-semibold">Regenerera låt-omslag (AzuraCast-defaults)</h2>
+        </div>
+        <p className="mb-4 text-sm text-muted-foreground">
+          Hittar låtar vars omslag importerades från AzuraCast och försöker hämta riktigt omslag.
+          Söker iTunes → Deezer (verifierat på artist + låttitel), annars genereras en abstrakt
+          AI-bild (förbrukar AI-credits). Max 100 per körning, skriver över befintlig bild.
+        </p>
+        <button
+          onClick={runRegenerateTracks}
+          disabled={busy !== null}
+          className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+        >
+          {busy === "tracks" ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <Music className="h-3.5 w-3.5" />
+          )}
+          Regenerera låt-omslag
+        </button>
+      </div>
+
       {error && (
         <div className="rounded-xl border border-destructive bg-destructive/10 p-4 text-sm text-destructive">
           {error}
@@ -144,25 +222,11 @@ export function AdminAutoArtwork() {
               ? "artister"
               : result.kind === "albums"
                 ? "album"
-                : "regenerering"}
+                : result.kind === "tracks"
+                  ? "låtar"
+                  : "regenerering"}
           </h3>
-          {result.kind === "regen" ? (
-            <ul className="space-y-1 text-muted-foreground">
-              <li>Genomsökta: {result.res.scanned}</li>
-              <li>Uppdaterade: {result.res.updated}</li>
-              <li>Källa iTunes: {result.res.bySource.itunes}</li>
-              <li>Källa Deezer: {result.res.bySource.deezer}</li>
-              <li>Källa AI: {result.res.bySource.ai}</li>
-              <li>Misslyckade: {result.res.failed}</li>
-            </ul>
-          ) : (
-            <ul className="space-y-1 text-muted-foreground">
-              <li>Genomsökta: {result.res.scanned}</li>
-              <li>Uppdaterade med omslag: {result.res.updated}</li>
-              <li>Ingen träff i iTunes: {result.res.missed}</li>
-              <li>Misslyckade: {result.res.failed}</li>
-            </ul>
-          )}
+          {renderSummary(result)}
           {result.res.details.length > 0 && (
             <details className="mt-3">
               <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground">

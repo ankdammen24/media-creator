@@ -189,3 +189,59 @@ export async function searchArtistImageDeezerVerified(
   }
   return null;
 }
+
+/**
+ * iTunes verified search for a single track. Returns artwork URL only if
+ * artist + track name match.
+ */
+export async function searchTrackImageVerified(
+  artistName: string,
+  trackTitle: string,
+): Promise<string | null> {
+  const a = artistName.trim();
+  const t = trackTitle.trim();
+  if (!a || !t) return null;
+  const data = await search({
+    term: `${a} ${t}`,
+    entity: "song",
+    limit: "5",
+  });
+  const hit = data?.results?.find(
+    (r) => fuzzyMatch(r.artistName, a) && fuzzyMatch(r.trackName, t),
+  );
+  return hit?.artworkUrl100 ? upscale(hit.artworkUrl100) : null;
+}
+
+/**
+ * Deezer verified search for a single track. Returns album cover URL only if
+ * artist + track title match.
+ */
+export async function searchTrackImageDeezerVerified(
+  artistName: string,
+  trackTitle: string,
+): Promise<string | null> {
+  const a = artistName.trim();
+  const t = trackTitle.trim();
+  if (!a || !t) return null;
+  const q = `artist:"${a}" track:"${t}"`;
+  try {
+    const res = await fetch(
+      `https://api.deezer.com/search?q=${encodeURIComponent(q)}&limit=5`,
+      { headers: { Accept: "application/json" } },
+    );
+    if (!res.ok) return null;
+    const json = (await res.json()) as {
+      data?: Array<{
+        title?: string;
+        artist?: { name?: string };
+        album?: { cover_xl?: string; cover_big?: string; cover_medium?: string };
+      }>;
+    };
+    const hit = json.data?.find(
+      (r) => fuzzyMatch(r.artist?.name, a) && fuzzyMatch(r.title, t),
+    );
+    return hit?.album?.cover_xl || hit?.album?.cover_big || hit?.album?.cover_medium || null;
+  } catch {
+    return null;
+  }
+}

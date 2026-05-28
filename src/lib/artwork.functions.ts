@@ -8,8 +8,10 @@ import {
   searchArtistImage,
   searchArtistImageVerified,
   searchArtistImageDeezerVerified,
+  searchTrackImageVerified,
+  searchTrackImageDeezerVerified,
 } from "@/lib/itunes.server";
-import { generateArtistFallbackImage } from "@/lib/ai-image.server";
+import { generateArtistFallbackImage, generateTrackFallbackImage } from "@/lib/ai-image.server";
 
 const BUCKET = "artwork";
 
@@ -20,7 +22,7 @@ export type AutoArtworkResult = {
 };
 
 async function uploadAuto(
-  folder: "artists" | "albums",
+  folder: "artists" | "albums" | "tracks",
   id: string,
   url: string,
 ): Promise<string | null> {
@@ -38,7 +40,7 @@ async function uploadAuto(
 }
 
 async function uploadBlob(
-  folder: "artists" | "albums",
+  folder: "artists" | "albums" | "tracks",
   id: string,
   blob: Blob,
   contentType: string,
@@ -205,6 +207,116 @@ export const bulkFetchMissingArtistArtwork = createServerFn({ method: "POST" })
         });
       }
       await sleep(120);
+    }
+    return result;
+  });
+
+// ── Regenerate track artwork for AzuraCast-imported defaults ──────────────
+
+export const bulkRegenerateTrackArtwork = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => RegenerateInput.parse(input ?? {}))
+  .handler(async ({ data, context }): Promise<RegenerateResult> => {
+    if (!(await isAdmin(context.userId))) throw new Error("Endast admin");
+    const limit = data.limit ?? 100;
+
+    const { data: rows, error } = await supabaseAdmin
+      .from("submissions")
+      .select("id, title, artwork_path, artist_profiles(name)")
+      .ilike("artwork_path", "%/azuracast/%")
+      .order("created_at", { ascending: true })
+      .limit(limit);
+    if (error) throw new Error(error.message);
+
+    const list = (rows ?? []) as unknown as Array<{
+      id: string;
+      title: string;
+      artwork_path: string | null;
+      artist_profiles: { name: string } | null;
+    }>;
+
+    const result: RegenerateResult = {
+      scanned: list.length,
+      updated: 0,
+      failed: 0,
+      bySource: { itunes: 0, deezer: 0, ai: 0, failed: 0 },
+      details: [],
+    };
+
+    for (const track of list) {
+      const artistName = track.artist_profiles?.name ?? "";
+      const label = artistName ? `${artistName} – ${track.title}` : track.title;
+      try {
+        let path: string | null = null;
+        let source: RegenerateSource = "failed";
+
+        if (artistName) {
+          const url = await searchTrackImageVerified(artistName, track.title);
+          if (url) {
+            path = await uploadAuto("tracks", track.id, url);
+            if (path) source = "itunes";
+          }
+        }
+
+        if (!path && artistName) {
+          const url = await searchTrackImageDeezerVerified(artistName, track.title);
+          if (url) {
+            path = await uploadAuto("tracks", track.id, url);
+            if (path) source = "deezer";
+          }
+        }
+
+        if (!path) {
+          const ai = await generateTrackFallbackImage(artistName || "Unknown Artist", track.title);
+          if (ai) {
+            path = await uploadBlob("tracks", track.id, ai.blob, ai.contentType);
+            if (path) source = "ai";
+          }
+        }
+
+        if (!path) {
+          result.failed++;
+          result.bySource.failed++;
+          result.details.push({
+            id: track.id,
+            name: label,
+            ok: false,
+            source: "failed",
+            reason: "no-image-produced",
+          });
+        } else {
+          const { error: upErr } = await supabaseAdmin
+            .from("submissions")
+            .update({ artwork_path: path })
+            .eq("id", track.id);
+          if (upErr) {
+            result.failed++;
+            result.bySource.failed++;
+            result.details.push({
+              id: track.id,
+              name: label,
+              ok: false,
+              source: "failed",
+              reason: upErr.message,
+            });
+          } else {
+            result.updated++;
+            result.bySource[source]++;
+            result.details.push({ id: track.id, name: label, ok: true, source });
+          }
+        }
+      } catch (e) {
+        result.failed++;
+        result.bySource.failed++;
+        result.details.push({
+          id: track.id,
+          name: label,
+          ok: false,
+          source: "failed",
+          reason: e instanceof Error ? e.message : "error",
+        });
+      }
+      await sleep(150);
     }
     return result;
   });
