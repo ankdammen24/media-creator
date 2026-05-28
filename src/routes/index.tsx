@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { ArrowRight, Music2, Mic, UploadCloud, User } from "lucide-react";
 import { EmptyState, ErrorState } from "@/components/StateViews";
+import { EditorTrackMeta, EditorArtistMeta } from "@/components/EditorCardMeta";
 import { supabase } from "@/integrations/supabase/client";
 import { PlayButton } from "@/components/player/PlayButton";
 import type { PlayerTrack } from "@/components/player/PlayerProvider";
