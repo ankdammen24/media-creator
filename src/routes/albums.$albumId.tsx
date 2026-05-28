@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ArrowLeft,
   Disc3,
@@ -12,6 +12,7 @@ import {
   Tag,
   Loader2,
   Plus,
+  GripVertical,
 } from "lucide-react";
 import { EmptyState, ErrorState } from "@/components/StateViews";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,6 +20,7 @@ import { useServerFn } from "@tanstack/react-start";
 import {
   attachSubmissionsToAlbum,
   deleteAlbum as deleteAlbumFn,
+  reorderAlbumTracks,
 } from "@/lib/catalog-edit.functions";
 import { useAuth } from "@/lib/auth";
 import { useEditorRole } from "@/lib/useEditorRole";
@@ -35,6 +37,24 @@ import {
   EditSubmissionDialog,
   type EditableSubmission,
 } from "@/components/SubmissionActions";
+import {
+  DndContext,
+  PointerSensor,
+  TouchSensor,
+  KeyboardSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 export const Route = createFileRoute("/albums/$albumId")({
   head: () => ({
@@ -281,58 +301,29 @@ function AlbumPage() {
                 description="Upload music to this album to populate the tracklist."
               />
             ) : (
-              <ol className="divide-y divide-border overflow-hidden rounded-lg border border-border bg-card">
-                {data!.tracks.map((t) => {
-                  const track: PlayerTrack = {
+              <TrackList
+                tracks={data!.tracks}
+                album={album}
+                artistName={data!.artist?.name ?? null}
+                artistId={data!.artist?.id ?? null}
+                canEdit={canEdit}
+                currentUserId={user?.id ?? null}
+                isAdmin={isAdmin}
+                onEdit={(t) =>
+                  setEditingTrack({
                     id: t.id,
                     title: t.title,
-                    artist: data!.artist?.name ?? null,
-                    artistId: data!.artist?.id ?? null,
-                    artworkPath: t.artwork_path,
-                    audioPath: t.audio_path,
-                    mediaType: "music",
-                  };
-                  const trackCanEdit = !!user && (user.id === t.user_id || isAdmin);
-                  return (
-                    <li
-                      key={t.id}
-                      className="flex items-center gap-4 p-3 transition hover:bg-accent/30"
-                    >
-                      <span className="w-6 text-center text-xs tabular-nums text-muted-foreground">
-                        {t.track_number ?? "—"}
-                      </span>
-                      <PlayButton track={track} size="sm" variant="overlay" />
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium">{t.title}</p>
-                        {t.status !== "approved" && (
-                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                            {t.status.replace("_", " ")}
-                          </p>
-                        )}
-                      </div>
-                      {trackCanEdit && (
-                        <EditButton
-                          onClick={() =>
-                            setEditingTrack({
-                              id: t.id,
-                              title: t.title,
-                              description: t.description,
-                              media_type: t.media_type,
-                              artwork_path: t.artwork_path,
-                              audio_path: t.audio_path,
-                              status: t.status,
-                              user_id: t.user_id,
-                              artist_profile_id: album.artist_profile_id,
-                              album_id: album.id,
-                            })
-                          }
-                        />
-                      )}
-                      <Music2 className="hidden h-4 w-4 text-muted-foreground sm:block" />
-                    </li>
-                  );
-                })}
-              </ol>
+                    description: t.description,
+                    media_type: t.media_type,
+                    artwork_path: t.artwork_path,
+                    audio_path: t.audio_path,
+                    status: t.status,
+                    user_id: t.user_id,
+                    artist_profile_id: album.artist_profile_id,
+                    album_id: album.id,
+                  })
+                }
+              />
             )}
           </section>
 
@@ -470,5 +461,175 @@ function AddTracksSection({
         )}
       </div>
     </section>
+  );
+}
+
+function TrackList({
+  tracks,
+  album,
+  artistName,
+  artistId,
+  canEdit,
+  currentUserId,
+  isAdmin,
+  onEdit,
+}: {
+  tracks: Track[];
+  album: Album;
+  artistName: string | null;
+  artistId: string | null;
+  canEdit: boolean;
+  currentUserId: string | null;
+  isAdmin: boolean;
+  onEdit: (t: Track) => void;
+}) {
+  const queryClient = useQueryClient();
+  const reorderFn = useServerFn(reorderAlbumTracks);
+  const [items, setItems] = useState<Track[]>(tracks);
+  const [savingError, setSavingError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setItems(tracks);
+  }, [tracks]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  async function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = items.findIndex((t) => t.id === active.id);
+    const newIndex = items.findIndex((t) => t.id === over.id);
+    if (oldIndex < 0 || newIndex < 0) return;
+
+    const prev = items;
+    const next = arrayMove(items, oldIndex, newIndex).map((t, i) => ({
+      ...t,
+      track_number: i + 1,
+    }));
+    setItems(next);
+    setSavingError(null);
+    try {
+      await reorderFn({
+        data: {
+          albumId: album.id,
+          orderedSubmissionIds: next.map((t) => t.id),
+        },
+      });
+      queryClient.invalidateQueries({ queryKey: ["album", album.id] });
+    } catch (e) {
+      setItems(prev);
+      setSavingError(e instanceof Error ? e.message : "Kunde inte spara ordningen.");
+    }
+  }
+
+  const rows = items.map((t) => (
+    <SortableTrackRow
+      key={t.id}
+      track={t}
+      artistName={artistName}
+      artistId={artistId}
+      canDrag={canEdit}
+      canEditTrack={!!currentUserId && (currentUserId === t.user_id || isAdmin)}
+      onEdit={() => onEdit(t)}
+    />
+  ));
+
+  return (
+    <>
+      {canEdit ? (
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={items.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+            <ol className="divide-y divide-border overflow-hidden rounded-lg border border-border bg-card">
+              {rows}
+            </ol>
+          </SortableContext>
+        </DndContext>
+      ) : (
+        <ol className="divide-y divide-border overflow-hidden rounded-lg border border-border bg-card">
+          {rows}
+        </ol>
+      )}
+      {savingError && (
+        <p className="mt-2 text-xs text-destructive">{savingError}</p>
+      )}
+      {canEdit && items.length > 1 && (
+        <p className="mt-2 text-[11px] text-muted-foreground">
+          Dra i handtaget för att ändra låtordningen.
+        </p>
+      )}
+    </>
+  );
+}
+
+function SortableTrackRow({
+  track,
+  artistName,
+  artistId,
+  canDrag,
+  canEditTrack,
+  onEdit,
+}: {
+  track: Track;
+  artistName: string | null;
+  artistId: string | null;
+  canDrag: boolean;
+  canEditTrack: boolean;
+  onEdit: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: track.id, disabled: !canDrag });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.6 : 1,
+  };
+
+  const playerTrack: PlayerTrack = {
+    id: track.id,
+    title: track.title,
+    artist: artistName,
+    artistId: artistId,
+    artworkPath: track.artwork_path,
+    audioPath: track.audio_path,
+    mediaType: "music",
+  };
+
+  return (
+    <li
+      ref={setNodeRef}
+      style={style}
+      className="flex items-center gap-3 p-3 transition hover:bg-accent/30"
+    >
+      {canDrag && (
+        <button
+          type="button"
+          {...attributes}
+          {...listeners}
+          aria-label="Dra för att ändra ordning"
+          className="cursor-grab touch-none rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground active:cursor-grabbing"
+        >
+          <GripVertical className="h-4 w-4" />
+        </button>
+      )}
+      <span className="w-6 text-center text-xs tabular-nums text-muted-foreground">
+        {track.track_number ?? "—"}
+      </span>
+      <PlayButton track={playerTrack} size="sm" variant="overlay" />
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-medium">{track.title}</p>
+        {track.status !== "approved" && (
+          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+            {track.status.replace("_", " ")}
+          </p>
+        )}
+      </div>
+      {canEditTrack && <EditButton onClick={onEdit} />}
+      <Music2 className="hidden h-4 w-4 text-muted-foreground sm:block" />
+    </li>
   );
 }
