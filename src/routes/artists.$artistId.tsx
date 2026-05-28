@@ -1,6 +1,7 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import {
   Music2,
   ArrowLeft,
@@ -10,6 +11,7 @@ import {
   Twitter,
   Pencil,
   Disc3,
+  Trash2,
 } from "lucide-react";
 import { EmptyState, ErrorState } from "@/components/StateViews";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,6 +19,7 @@ import { useAuth } from "@/lib/auth";
 import { ArtistProfileEditor, type EditableArtist } from "@/components/ArtistProfileEditor";
 import { ArtistImageManager, type ArtistImage } from "@/components/ArtistImageManager";
 import { useEditorRole } from "@/lib/useEditorRole";
+import { deleteArtistProfile } from "@/lib/catalog-edit.functions";
 import { usePlayer, type PlayerTrack } from "@/components/player/PlayerProvider";
 import { ALBUM_TYPE_LABELS, type AlbumType } from "@/lib/album-helpers";
 import {
