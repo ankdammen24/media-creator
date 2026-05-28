@@ -54,17 +54,20 @@ export function EditSubmissionDialog({
     setBusy(true);
     setErr(null);
     try {
-      const patch: Record<string, unknown> = {
+      const nextAlbum = albumId || null;
+      const prevAlbum = sub.album_id ?? null;
+      const albumChanged = nextAlbum !== prevAlbum;
+      const patch = {
         title: title.trim(),
         description: description.trim() || null,
         media_type: mediaType,
+        ...(albumChanged
+          ? {
+              album_id: nextAlbum,
+              track_number: nextAlbum ? await nextTrackNumber(nextAlbum) : null,
+            }
+          : {}),
       };
-      const nextAlbum = albumId || null;
-      const prevAlbum = sub.album_id ?? null;
-      if (nextAlbum !== prevAlbum) {
-        patch.album_id = nextAlbum;
-        patch.track_number = nextAlbum ? await nextTrackNumber(nextAlbum) : null;
-      }
       const { error } = await supabase.from("submissions").update(patch).eq("id", sub.id);
       if (error) throw error;
       onSaved();
