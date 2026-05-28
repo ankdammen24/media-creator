@@ -101,7 +101,11 @@ function ArtistPage() {
   const { user } = useAuth();
   const { isEditor } = useEditorRole();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [editing, setEditing] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const deleteArtistFn = useServerFn(deleteArtistProfile);
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["artist", artistId],
     queryFn: async (): Promise<ArtistData> => {
@@ -158,6 +162,23 @@ function ArtistPage() {
   const profile = data?.profile;
   const canEdit =
     !!user && !!profile && (profile.user_id === user.id || isEditor);
+
+  async function handleDeleteArtist() {
+    if (!profile) return;
+    const confirmed = window.confirm(
+      `Ta bort artisten "${profile.name}"? Alla album, låtar och bilder för artisten raderas permanent. Detta kan inte ångras.`,
+    );
+    if (!confirmed) return;
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      await deleteArtistFn({ data: { artistId: profile.id } });
+      navigate({ to: "/catalog" });
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : "Kunde inte ta bort artisten");
+      setDeleting(false);
+    }
+  }
   const images = data?.images ?? [];
   const primaryCover = images.find((i) => i.kind === "cover" && i.is_primary);
   const primaryAvatar = images.find((i) => i.kind === "avatar" && i.is_primary);
