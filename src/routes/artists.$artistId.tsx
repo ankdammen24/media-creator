@@ -19,6 +19,11 @@ import { ArtistImageManager, type ArtistImage } from "@/components/ArtistImageMa
 import { useEditorRole } from "@/lib/useEditorRole";
 import { usePlayer, type PlayerTrack } from "@/components/player/PlayerProvider";
 import { ALBUM_TYPE_LABELS, type AlbumType } from "@/lib/album-helpers";
+import {
+  EditButton,
+  EditSubmissionDialog,
+  type EditableSubmission,
+} from "@/components/SubmissionActions";
 
 export const Route = createFileRoute("/artists/$artistId")({
   head: () => ({
@@ -39,6 +44,8 @@ type ArtistItem = {
   description: string | null;
   created_at: string;
   album_id: string | null;
+  user_id: string;
+  status: string;
   albums: { artwork_path: string | null } | null;
 };
 
@@ -82,7 +89,7 @@ function ArtistPage() {
         supabase
           .from("submission_artists")
           .select(
-            "submission_id, submissions!inner(id, title, media_type, artwork_path, audio_path, description, created_at, status, album_id, albums(artwork_path))",
+            "submission_id, submissions!inner(id, title, media_type, artwork_path, audio_path, description, created_at, status, album_id, user_id, albums(artwork_path))",
           )
           .eq("artist_profile_id", artistId)
           .eq("submissions.status", "approved"),
@@ -265,6 +272,9 @@ function ArtistPage() {
             singles={data.items.filter((i) => !i.album_id)}
             artistName={profile.name}
             artistId={profile.id}
+            canEditAny={isEditor}
+            currentUserId={user?.id ?? null}
+            onRefetch={() => refetch()}
           />
         </>
       )}
@@ -308,13 +318,20 @@ function DiscographySection({
   singles,
   artistName,
   artistId,
+  canEditAny,
+  currentUserId,
+  onRefetch,
 }: {
   albums: AlbumRow[];
   singles: ArtistItem[];
   artistName: string;
   artistId: string;
+  canEditAny: boolean;
+  currentUserId: string | null;
+  onRefetch: () => void;
 }) {
   const player = usePlayer();
+  const [editing, setEditing] = useState<EditableSubmission | null>(null);
   const singleTracks: PlayerTrack[] = singles.map((s) => ({
     id: s.id,
     title: s.title,
@@ -377,9 +394,31 @@ function DiscographySection({
             item={s}
             isCurrent={player.current?.id === s.id}
             onPlay={() => player.playQueue(singleTracks, singles.findIndex((x) => x.id === s.id))}
+            canEdit={!!currentUserId && (canEditAny || s.user_id === currentUserId)}
+            onEdit={() =>
+              setEditing({
+                id: s.id,
+                title: s.title,
+                description: s.description,
+                media_type: s.media_type,
+                artwork_path: s.artwork_path,
+                audio_path: s.audio_path,
+                status: s.status,
+                user_id: s.user_id,
+                artist_profile_id: artistId,
+                album_id: s.album_id,
+              })
+            }
           />
         ))}
       </ul>
+      {editing && (
+        <EditSubmissionDialog
+          sub={editing}
+          onClose={() => setEditing(null)}
+          onSaved={() => onRefetch()}
+        />
+      )}
     </section>
   );
 }
@@ -388,37 +427,64 @@ function SingleCard({
   item,
   isCurrent,
   onPlay,
+  canEdit,
+  onEdit,
 }: {
   item: ArtistItem;
   isCurrent: boolean;
   onPlay: () => void;
+  canEdit: boolean;
+  onEdit: () => void;
 }) {
   return (
     <li>
-      <button
-        type="button"
-        onClick={onPlay}
-        className="group block w-full text-left"
-      >
+      <div className="group block w-full text-left">
         <div
-          className={`relative aspect-square overflow-hidden rounded-lg border bg-secondary ${
-            isCurrent ? "border-primary ring-2 ring-primary/40" : "border-border"
-          }`}
+          role="button"
+          tabIndex={0}
+          onClick={onPlay}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onPlay();
+            }
+          }}
+          className="block w-full cursor-pointer text-left"
         >
-          <img
-            src={publicArt(item.albums?.artwork_path ?? item.artwork_path)}
-            alt={item.title}
-            className="h-full w-full object-cover transition group-hover:scale-105"
-          />
-          <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-background/80 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-foreground backdrop-blur">
-            <Music2 className="h-3 w-3" /> Single
-          </span>
+          <div
+            className={`relative aspect-square overflow-hidden rounded-lg border bg-secondary ${
+              isCurrent ? "border-primary ring-2 ring-primary/40" : "border-border"
+            }`}
+          >
+            <img
+              src={publicArt(item.albums?.artwork_path ?? item.artwork_path)}
+              alt={item.title}
+              className="h-full w-full object-cover transition group-hover:scale-105"
+            />
+            <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-background/80 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-foreground backdrop-blur">
+              <Music2 className="h-3 w-3" /> Single
+            </span>
+            {canEdit && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onEdit();
+                }}
+                aria-label={`Redigera ${item.title}`}
+                className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-md border border-border bg-background/90 px-2 py-1 text-[10px] font-medium text-foreground backdrop-blur hover:bg-accent"
+              >
+                <Pencil className="h-3 w-3" /> Redigera
+              </button>
+            )}
+          </div>
+          <p className="mt-2 truncate text-sm font-medium">{item.title}</p>
+          <p className="text-[11px] text-muted-foreground">
+            {isCurrent ? "Spelas nu" : "Tryck för att spela"}
+          </p>
         </div>
-        <p className="mt-2 truncate text-sm font-medium">{item.title}</p>
-        <p className="text-[11px] text-muted-foreground">
-          {isCurrent ? "Spelas nu" : "Tryck för att spela"}
-        </p>
-      </button>
+      </div>
     </li>
   );
 }

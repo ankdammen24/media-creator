@@ -25,6 +25,11 @@ import {
   albumArtworkUrl,
   nextTrackNumber,
 } from "@/lib/album-helpers";
+import {
+  EditButton,
+  EditSubmissionDialog,
+  type EditableSubmission,
+} from "@/components/SubmissionActions";
 
 export const Route = createFileRoute("/albums/$albumId")({
   head: () => ({
@@ -45,6 +50,7 @@ type Track = {
   description: string | null;
   status: string;
   user_id: string;
+  media_type: "music" | "podcast";
 };
 
 type ArtistMini = { id: string; name: string; avatar_path: string | null } | null;
@@ -94,7 +100,7 @@ function AlbumPage() {
             let q = supabase
               .from("submissions")
               .select(
-                "id, title, track_number, artwork_path, audio_path, description, status, user_id",
+                "id, title, track_number, artwork_path, audio_path, description, status, user_id, media_type",
               )
               .eq("album_id", album.id)
               .order("track_number", { ascending: true });
@@ -113,6 +119,7 @@ function AlbumPage() {
 
   const album = data?.album ?? null;
   const canEdit = !!album && !!user && (user.id === album.user_id || isEditor);
+  const [editingTrack, setEditingTrack] = useState<EditableSubmission | null>(null);
 
   async function handleDelete() {
     if (!album) return;
@@ -277,6 +284,8 @@ function AlbumPage() {
                     audioPath: t.audio_path,
                     mediaType: "music",
                   };
+                  const trackCanEdit =
+                    !!user && (user.id === t.user_id || isEditor);
                   return (
                     <li
                       key={t.id}
@@ -294,6 +303,24 @@ function AlbumPage() {
                           </p>
                         )}
                       </div>
+                      {trackCanEdit && (
+                        <EditButton
+                          onClick={() =>
+                            setEditingTrack({
+                              id: t.id,
+                              title: t.title,
+                              description: t.description,
+                              media_type: t.media_type,
+                              artwork_path: t.artwork_path,
+                              audio_path: t.audio_path,
+                              status: t.status,
+                              user_id: t.user_id,
+                              artist_profile_id: album.artist_profile_id,
+                              album_id: album.id,
+                            })
+                          }
+                        />
+                      )}
                       <Music2 className="hidden h-4 w-4 text-muted-foreground sm:block" />
                     </li>
                   );
@@ -308,6 +335,16 @@ function AlbumPage() {
               onAdded={() =>
                 queryClient.invalidateQueries({ queryKey: ["album", albumId, user?.id] })
               }
+            />
+          )}
+          {editingTrack && (
+            <EditSubmissionDialog
+              sub={editingTrack}
+              onClose={() => setEditingTrack(null)}
+              onSaved={() => {
+                queryClient.invalidateQueries({ queryKey: ["album", albumId] });
+                refetch();
+              }}
             />
           )}
         </>
