@@ -18,7 +18,6 @@ import { nextEpisodeNumber, EPISODE_TYPE_LABELS, type PodcastEpisodeType } from 
 import { useServerFn } from "@tanstack/react-start";
 import { autoFetchArtistArtwork } from "@/lib/artwork.functions";
 import { AiArtworkDialog } from "@/components/AiArtworkDialog";
-import { enqueueAudioProcessing } from "@/lib/audio-processing.functions";
 
 type ArtistProfile = {
   id: string;
