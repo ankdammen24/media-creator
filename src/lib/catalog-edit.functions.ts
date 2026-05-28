@@ -7,21 +7,20 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
  * Editor-rättighet för katalogen: ägare av posten, eller admin/artist-roll.
  * Allt körs via supabaseAdmin efter att vi verifierat behörigheten här.
  */
-async function getRoles(userId: string) {
+async function isAdmin(userId: string): Promise<boolean> {
   const { data, error } = await supabaseAdmin
     .from("user_roles")
     .select("role")
     .eq("user_id", userId)
-    .in("role", ["admin", "artist"]);
+    .eq("role", "admin")
+    .maybeSingle();
   if (error) throw new Error(`role check: ${error.message}`);
-  const roles = (data ?? []).map((r) => r.role);
-  return { isAdmin: roles.includes("admin"), isArtist: roles.includes("artist") };
+  return !!data;
 }
 
 async function assertCatalogEditor(userId: string, ownerUserId: string | null) {
   if (ownerUserId && ownerUserId === userId) return;
-  const { isAdmin, isArtist } = await getRoles(userId);
-  if (isAdmin || isArtist) return;
+  if (await isAdmin(userId)) return;
   throw new Error("Du saknar behörighet att redigera den här posten.");
 }
 
