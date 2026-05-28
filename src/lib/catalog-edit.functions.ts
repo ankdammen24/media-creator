@@ -184,7 +184,7 @@ export const updateSubmission = createServerFn({ method: "POST" })
     if (!existing) throw new Error("Låt saknas.");
     await assertCatalogEditor(userId, existing.user_id);
 
-    const patch: Record<string, unknown> = { ...data.patch };
+    const patch = { ...data.patch };
 
     // Byter vi artist på låten? (endast editor/admin för målartisten)
     const changingArtist =
