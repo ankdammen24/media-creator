@@ -184,6 +184,9 @@ export function SiteHeader() {
                 <MobileNavLink to="/releases/new" onSelect={() => setMenuOpen(false)}>
                   <span className="inline-flex items-center gap-2 font-medium text-primary">
                     <Send className="h-4 w-4" /> Submit Music
+                    <span className="rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-300">
+                      Demo
+                    </span>
                   </span>
                 </MobileNavLink>
                 {user ? (
