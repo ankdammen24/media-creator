@@ -410,6 +410,17 @@ function BatchUploadPage() {
 
       {/* Shared settings */}
       <Section title="2. Shared settings (optional)" icon={<ImageIcon className="h-4 w-4" />}>
+        {profileId && (
+          <div className="mb-4 rounded-lg border border-border bg-background/40 p-3">
+            <label className="mb-2 block text-sm font-medium">
+              Album for music tracks <span className="text-destructive">*</span>
+            </label>
+            <AlbumPicker artistId={profileId} value={albumId} onChange={setAlbumId} />
+            <p className="mt-2 text-xs text-muted-foreground">
+              Required when uploading music. Track numbers are auto-assigned.
+            </p>
+          </div>
+        )}
         <div className="grid gap-4 md:grid-cols-2">
           <div>
             <span className="mb-2 block text-sm font-medium">Default media type for new files</span>
