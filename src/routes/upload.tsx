@@ -18,7 +18,6 @@ import { nextEpisodeNumber, EPISODE_TYPE_LABELS, type PodcastEpisodeType } from 
 import { useServerFn } from "@tanstack/react-start";
 import { autoFetchArtistArtwork } from "@/lib/artwork.functions";
 import { AiArtworkDialog } from "@/components/AiArtworkDialog";
-import { enqueueAudioProcessing } from "@/lib/audio-processing.functions";
 
 type ArtistProfile = {
   id: string;
@@ -85,7 +84,6 @@ function UploadPage() {
   const [newProfileBio, setNewProfileBio] = useState("");
   const [createBusy, setCreateBusy] = useState(false);
   const autoFetchArtistImage = useServerFn(autoFetchArtistArtwork);
-  const enqueueAudio = useServerFn(enqueueAudioProcessing);
 
   // Episode
   const [title, setTitle] = useState("");
@@ -310,11 +308,6 @@ function UploadPage() {
           // Non-fatal: submission already exists with primary artist; surface a warning
           console.warn("Could not link additional artists:", joinErr.message);
         }
-        // Fire-and-forget: kick off FLAC master + AAC web transcode.
-        // Failures are non-fatal — the worker URL may not be set yet.
-        void enqueueAudio({ data: { submissionId: inserted.id } }).catch(
-          (e) => console.warn("enqueueAudioProcessing failed:", e),
-        );
       }
 
       setStatus("success");

@@ -19,8 +19,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { ShowPicker } from "@/components/ShowPicker";
 import { nextEpisodeNumber } from "@/lib/podcast-helpers";
 import { AiArtworkDialog } from "@/components/AiArtworkDialog";
-import { useServerFn } from "@tanstack/react-start";
-import { enqueueAudioProcessing } from "@/lib/audio-processing.functions";
 
 type ArtistProfile = { id: string; name: string; bio: string | null };
 
@@ -89,7 +87,6 @@ export const Route = createFileRoute("/upload-batch")({
 
 function BatchUploadPage() {
   const { user } = useAuth();
-  const enqueueAudio = useServerFn(enqueueAudioProcessing);
 
   // Profiles
   const [profiles, setProfiles] = useState<ArtistProfile[]>([]);
@@ -339,9 +336,6 @@ function BatchUploadPage() {
             is_primary: true,
             position: 0,
           });
-          void enqueueAudio({ data: { submissionId: inserted.id } }).catch(
-            (e) => console.warn("enqueueAudioProcessing failed:", e),
-          );
         }
         ok += 1;
         updateDraft(d.id, { status: "submitted" });
