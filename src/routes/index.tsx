@@ -382,6 +382,7 @@ function PodcastRow({ item }: { item: Row }) {
         {item.description ? (
           <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{item.description}</p>
         ) : null}
+        <EditorTrackMeta meta={item} />
         <div className="mt-auto pt-2">
           <PlayButton track={track} size="sm" />
         </div>
@@ -458,6 +459,7 @@ function FeaturedArtists() {
                   )}
                 </div>
                 <p className="mt-2 line-clamp-1 text-xs font-medium text-foreground">{a.name}</p>
+                <EditorArtistMeta meta={a} />
               </Link>
             );
           })}
