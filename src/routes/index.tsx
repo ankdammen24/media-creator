@@ -240,22 +240,25 @@ function LatestMusic() {
         .eq("status", "approved")
         .eq("media_type", "music")
         .order("created_at", { ascending: false })
-        .limit(8);
+        .limit(30);
       if (error) throw error;
       return (data ?? []) as unknown as Row[];
     },
   });
+
+  const tick = useShuffleTick();
+  const shown = useMemo(() => shuffle(data ?? []).slice(0, 8), [data, tick]);
 
   return (
     <section className="mb-14">
       <SectionHeader title="Latest music" to="/catalog" />
       {isLoading ? (
         <p className="text-sm text-muted-foreground">Loading…</p>
-      ) : !data || data.length === 0 ? (
+      ) : shown.length === 0 ? (
         <EmptyState title="No music yet" description="Approved music will appear here." />
       ) : (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-          {data.map((i) => (
+          {shown.map((i) => (
             <TrackCard key={i.id} item={i} />
           ))}
         </div>
