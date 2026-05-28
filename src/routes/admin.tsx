@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ShieldCheck, CheckCircle2, XCircle, Music2, Mic, Loader2, Users, Radio, ImagePlus, FileSpreadsheet } from "lucide-react";
+import { ShieldCheck, CheckCircle2, XCircle, Music2, Mic, Loader2, Users, Radio, ImagePlus, FileSpreadsheet, Waves } from "lucide-react";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,6 +12,7 @@ import { AdminAutoArtwork } from "@/components/AdminAutoArtwork";
 import { AdminOwnershipLog } from "@/components/AdminOwnershipLog";
 import { AdminUsers } from "@/components/AdminUsers";
 import { AdminCatalogImport } from "@/components/AdminCatalogImport";
+import { AdminAudioProcessing } from "@/components/AdminAudioProcessing";
 import { reassignArtistOwner } from "@/lib/admin-ownership.functions";
 import {
   EditButton,
@@ -391,7 +392,7 @@ function AdminPage() {
   const qc = useQueryClient();
   const [filter, setFilter] = useState<"pending_review" | "approved" | "rejected">("pending_review");
   const [tab, setTab] = useState<
-    "submissions" | "users" | "artists" | "artwork" | "import" | "catalog-import"
+    "submissions" | "users" | "artists" | "artwork" | "import" | "catalog-import" | "audio"
   >("submissions");
   const notify = useServerFn(notifySubmissionDecision);
 
@@ -502,9 +503,19 @@ function AdminPage() {
         >
           <FileSpreadsheet className="h-3.5 w-3.5" /> Katalog-import
         </button>
+        <button
+          onClick={() => setTab("audio")}
+          className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition ${
+            tab === "audio" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Waves className="h-3.5 w-3.5" /> Ljud-bearbetning
+        </button>
       </div>
 
-      {tab === "catalog-import" ? (
+      {tab === "audio" ? (
+        <AdminAudioProcessing />
+      ) : tab === "catalog-import" ? (
         <AdminCatalogImport />
       ) : tab === "import" ? (
         <RadioUppsalaImport />
