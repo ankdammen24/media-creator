@@ -1,28 +1,45 @@
-## Problem
+## Mål
 
-Senaste körningen visar:
-- **186 misslyckanden med `download 405`** — AzuraCast returnerar 405 Method Not Allowed på `/file/{id}/download` när on-demand inte är aktiverat på stationen.
-- **1434 av 1620 hoppades över som "<40s"** — orimligt högt. Troligen för att AzuraCast returnerar `length: 0` för filer som inte hunnit analyseras, och vår kod tolkar 0 som "kortare än 40s".
+Lägg till en global sökfunktion som är tillgänglig från `SiteHeader` på samtliga sidor. Söker över allt vi visar i katalogen (submissions) samt artistprofiler.
 
-## Fix
+## UX
 
-I `src/lib/azuracast-import.server.ts`:
+- En sökruta i `SiteHeader` (centrerad mellan logga och nav, krymper på mobil till en ikon som öppnar en dialog).
+- Kortkommando `⌘K` / `Ctrl+K` öppnar en command palette (shadcn `Command` + `Dialog`).
+- Live-resultat när man skriver (debounce 200ms, min 2 tecken), grupperat:
+  - **Spår & podd** (submissions med status `approved` — titel, beskrivning, artistnamn)
+  - **Artister** (artist_profiles — namn, bio)
+- Klick på ett resultat navigerar:
+  - Submission → `/catalog?focus={id}` (öppnar katalogen och scrollar/markerar kortet)
+  - Artist → `/artists/$artistId`
+- Tom state, laddningstillstånd och "Inga träffar".
 
-1. **Byt nedladdningsstrategi till `links.play`** (exakt samma mönster som Radio Uppsala-projektets `azuracast-sync-core.server.ts` använder):
-   - Använd `file.links.play` om finns, annars `/api/station/{STATION_ID}/file/{id}/play`.
-   - Behåll `X-API-Key`-headern på fetchen.
-   - Byt namn på hjälpfunktionen `downloadUrl` → `sourceUrl` så koden matchar referensen.
+## Implementation
 
-2. **Skippa bara filer som vi vet är korta**:
-   - Nuvarande villkor: `if (file.length != null && file.length < 40) skip`.
-   - Nytt villkor: `if (file.length != null && file.length > 0 && file.length < 40) skip`.
-   - Effekt: filer med `length: 0` (ej analyserade) går vidare istället för att felaktigt klassas som jinglar.
+1. **Ny komponent** `src/components/GlobalSearch.tsx`
+   - Använder shadcn `CommandDialog`, `CommandInput`, `CommandList`, `CommandGroup`, `CommandItem`.
+   - `useQuery` med `queryKey: ["global-search", q]`, `enabled: q.length >= 2`.
+   - Två parallella Supabase-queries:
+     - `submissions` med `.eq("status","approved")` + `.or("title.ilike.%q%,description.ilike.%q%")` joinat med `artist_profiles(id,name)`, limit 10. Plus separat query där vi filtrerar på artistnamn via inner-join (`artist_profiles!inner(...)` + `.ilike("artist_profiles.name","%q%")`), limit 10, och dedupar.
+     - `artist_profiles` med `.or("name.ilike.%q%,bio.ilike.%q%")`, limit 10.
+   - Global keybind via `useEffect` på `keydown` (`(e.metaKey||e.ctrlKey) && e.key==="k"`).
+   - Trigger-knapp: inline input-attrapp på desktop (`sm:` synlig), bara `Search`-ikonknapp på mobil.
 
-Inga ändringar i schema, RLS, UI eller artist-/artwork-logiken.
+2. **`SiteHeader.tsx`**: rendera `<GlobalSearch />` mellan logga och `<nav>`. Justera flex/spacing så det funkar både inloggad och utloggad.
 
-## Verifiering
+3. **`catalog.tsx`**: läs sökparam `focus` via `validateSearch` (zod) och scrolla in i vy + lägg en kort ring runt matchande kort i ~2s. Befintlig lokal sökruta på katalogsidan behålls.
 
-Efter ändringen kör du "Förhandsvisa (dry run)" igen i adminpanelen. Förväntat:
-- "Hoppade över (<40s)" ska sjunka drastiskt (bara riktiga jinglar/FX).
-- Sen "Kör import" — `inserted` ska gå upp och `download 405`-felen försvinna.
-- Importen är idempotent via `azuracast_unique_id`, så det är säkert att köra igen ovanpå förra körningen.
+4. Inga schemaändringar. Inga RLS-ändringar (publika `approved`-submissions och `artist_profiles` är redan läsbara för anon).
+
+## Tekniska detaljer
+
+- `Command` från `src/components/ui/command.tsx` finns redan installerad.
+- Använd `supabase` direkt (klientsidan, RLS gäller). Ingen ny serverFn behövs.
+- Debounce med en liten `useEffect`+`setTimeout` (ingen ny dep).
+- Resultatraderna visar artwork-thumbnail (24px) via `supabase.storage.from("artwork").getPublicUrl(...)` för submissions.
+
+## Filer
+
+- skapa: `src/components/GlobalSearch.tsx`
+- ändra: `src/components/SiteHeader.tsx` (montera GlobalSearch)
+- ändra: `src/routes/catalog.tsx` (focus-search-param + scroll/highlight)

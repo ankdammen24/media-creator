@@ -1,12 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { Search, Music2, Mic } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { EmptyState, ErrorState } from "@/components/StateViews";
 import { supabase } from "@/integrations/supabase/client";
+import { zodValidator, fallback } from "@tanstack/zod-adapter";
+import { z } from "zod";
+
+const catalogSearchSchema = z.object({
+  focus: fallback(z.string().optional(), undefined),
+});
 
 export const Route = createFileRoute("/catalog")({
+  validateSearch: zodValidator(catalogSearchSchema),
   head: () => ({
     meta: [
       { title: "Catalog — Media Rosenqvist" },
@@ -68,6 +75,7 @@ function CatalogPage() {
   const [tab, setTab] = useState<Tab>("all");
   const [query, setQuery] = useState("");
   const [artistId, setArtistId] = useState<string>("all");
+  const { focus } = Route.useSearch();
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["catalog", "approved"],
     queryFn: fetchApproved,
@@ -95,6 +103,24 @@ function CatalogPage() {
     }
     return list;
   }, [data, tab, query, artistId]);
+
+  const focusRef = useRef<HTMLDivElement | null>(null);
+  const [highlight, setHighlight] = useState(false);
+  useEffect(() => {
+    if (!focus || !data) return;
+    const exists = data.some((i) => i.id === focus);
+    if (!exists) return;
+    // Reset filters so the focused item is visible
+    setTab("all");
+    setArtistId("all");
+    setQuery("");
+    const t = setTimeout(() => {
+      focusRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      setHighlight(true);
+      setTimeout(() => setHighlight(false), 2000);
+    }, 50);
+    return () => clearTimeout(t);
+  }, [focus, data]);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
@@ -164,7 +190,17 @@ function CatalogPage() {
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {items.map((i) => (
-            <CatalogCard key={i.id} item={i} />
+            <div
+              key={i.id}
+              ref={focus === i.id ? focusRef : undefined}
+              className={
+                focus === i.id && highlight
+                  ? "rounded-lg ring-2 ring-primary transition-shadow"
+                  : undefined
+              }
+            >
+              <CatalogCard item={i} />
+            </div>
           ))}
         </div>
       )}

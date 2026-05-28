@@ -3,6 +3,7 @@ import { LogOut, User, Bell, Settings as SettingsIcon } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { GlobalSearch } from "@/components/GlobalSearch";
 import logoMR from "@/assets/logo-mr.png";
 
 export function SiteHeader() {
@@ -28,6 +29,9 @@ export function SiteHeader() {
           <img src={logoMR} alt="Media Rosenqvist logo" width={28} height={28} className="h-7 w-7 object-contain" />
           <span>Media Rosenqvist</span>
         </Link>
+        <div className="flex flex-1 justify-center px-2">
+          <GlobalSearch />
+        </div>
         <nav className="flex items-center gap-1 text-sm">
           <Link
             to="/"
