@@ -58,7 +58,38 @@ export async function searchAlbumImage(
   const term = artistName ? `${artistName} ${t}` : t;
   const data = await search({ term, entity: "album", limit: "1" });
   const hit = data?.results?.[0]?.artworkUrl100;
-  return hit ? upscale(hit) : null;
+  if (hit) return upscale(hit);
+  // Fallback: Deezer
+  return await searchAlbumImageDeezer(t, artistName);
+}
+
+/**
+ * Deezer fallback for album cover search. Public API, no auth.
+ * Docs: https://developers.deezer.com/api/search
+ */
+export async function searchAlbumImageDeezer(
+  title: string,
+  artistName: string | null,
+): Promise<string | null> {
+  const t = title.trim();
+  if (!t) return null;
+  const q = artistName
+    ? `artist:"${artistName}" album:"${t}"`
+    : `album:"${t}"`;
+  try {
+    const res = await fetch(
+      `https://api.deezer.com/search/album?q=${encodeURIComponent(q)}&limit=1`,
+      { headers: { Accept: "application/json" } },
+    );
+    if (!res.ok) return null;
+    const json = (await res.json()) as {
+      data?: Array<{ cover_xl?: string; cover_big?: string; cover_medium?: string }>;
+    };
+    const hit = json.data?.[0];
+    return hit?.cover_xl || hit?.cover_big || hit?.cover_medium || null;
+  } catch {
+    return null;
+  }
 }
 
 /** Download a remote image into a Blob; returns null on failure. */
