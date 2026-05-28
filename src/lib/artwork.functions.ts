@@ -376,7 +376,7 @@ export const bulkRegenerateTrackArtwork = createServerFn({ method: "POST" })
 
     const { data: rows, error } = await supabaseAdmin
       .from("submissions")
-      .select("id, title, artwork_path, artist_profiles(name)")
+      .select("id, title, artwork_path, artist_profiles!submissions_artist_profile_id_fkey(name)")
       .ilike("artwork_path", "%/azuracast/%")
       .order("created_at", { ascending: true })
       .limit(limit);
