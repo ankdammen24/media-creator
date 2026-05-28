@@ -38,12 +38,27 @@ type Row = {
   audio_web_path: string | null;
   artist_profiles: { id: string; name: string } | null;
   albums: { artwork_path: string | null } | null;
+  isrc?: string | null;
+  upc?: string | null;
+  version?: string | null;
+  track_number?: number | null;
+  duration_seconds?: number | null;
+  loudness_lufs?: number | null;
+  explicit?: boolean | null;
+  instrumental?: boolean | null;
+  ai_generated?: boolean | null;
+  dolby_atmos_available?: boolean | null;
+  songwriters?: string[] | null;
+  producers?: string[] | null;
+  featured_artists?: string[] | null;
+  processing_status?: string | null;
 };
 
 type ArtistRow = {
   id: string;
   name: string;
   avatar_path: string | null;
+  approval_status?: string | null;
 };
 
 function artworkUrl(path: string) {
