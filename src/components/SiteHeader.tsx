@@ -172,6 +172,11 @@ export function SiteHeader() {
               </SheetHeader>
               <nav className="flex flex-col p-2 text-sm">
                 <MobileNavLink to="/" exact onSelect={() => setMenuOpen(false)}>Home</MobileNavLink>
+                <MobileNavLink to="/about" onSelect={() => setMenuOpen(false)}>
+                  <span className="inline-flex items-center gap-2">
+                    <Info className="h-4 w-4" /> About
+                  </span>
+                </MobileNavLink>
                 <MobileNavLink to="/catalog" onSelect={() => setMenuOpen(false)}>Catalog</MobileNavLink>
                 {user ? (
                   <>
