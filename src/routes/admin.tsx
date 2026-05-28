@@ -387,7 +387,7 @@ function AdminPage() {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [filter, setFilter] = useState<"pending_review" | "approved" | "rejected">("pending_review");
-  const [tab, setTab] = useState<"submissions" | "artists" | "artwork" | "import">("submissions");
+  const [tab, setTab] = useState<"submissions" | "users" | "artists" | "artwork" | "import">("submissions");
   const notify = useServerFn(notifySubmissionDecision);
 
   const { data, isLoading, refetch } = useQuery({
