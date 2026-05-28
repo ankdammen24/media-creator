@@ -9,7 +9,7 @@ import { zodValidator, fallback } from "@tanstack/zod-adapter";
 import { z } from "zod";
 
 const catalogSearchSchema = z.object({
-  focus: fallback(z.string().optional(), undefined),
+  focus: fallback(z.string(), "").optional(),
 });
 
 export const Route = createFileRoute("/catalog")({
