@@ -305,8 +305,8 @@ export function CatalogCard({ item }: { item: CatalogItem }) {
           className="h-full w-full object-cover"
           loading="lazy"
         />
-        <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition group-hover:bg-black/30">
-          <div className="opacity-0 transition group-hover:opacity-100">
+        <div className="absolute inset-0 flex items-center justify-center bg-black/20 transition group-hover:bg-black/30 sm:bg-black/0">
+          <div className="opacity-100 transition sm:opacity-0 sm:group-hover:opacity-100">
             <PlayButton track={track} size="lg" variant="overlay" />
           </div>
         </div>
