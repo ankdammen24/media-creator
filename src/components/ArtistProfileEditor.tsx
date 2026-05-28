@@ -1,5 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useServerFn } from "@tanstack/react-start";
+import { updateArtistProfile } from "@/lib/catalog-edit.functions";
 import { X, Upload as UploadIcon, Sparkles } from "lucide-react";
 import { AiArtworkDialog } from "@/components/AiArtworkDialog";
 
@@ -66,6 +68,7 @@ export function ArtistProfileEditor({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [aiOpen, setAiOpen] = useState(false);
+  const updateProfile = useServerFn(updateArtistProfile);
 
   const invalidUrls = URL_FIELDS.filter((f) => !validUrlOrEmpty(urls[f.key as string]));
 
@@ -105,13 +108,7 @@ export function ArtistProfileEditor({
         amazon_music_url: urls.amazon_music_url.trim() || null,
       };
 
-      const { data, error: updErr } = await supabase
-        .from("artist_profiles")
-        .update(patch)
-        .eq("id", artist.id)
-        .select("*")
-        .single();
-      if (updErr) throw updErr;
+      const data = await updateProfile({ data: { artistId: artist.id, patch } });
       onSaved(data as EditableArtist);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Kunde inte spara");

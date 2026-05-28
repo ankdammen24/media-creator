@@ -3,6 +3,8 @@ import { flushSync } from "react-dom";
 import { createParser } from "eventsource-parser";
 import { Sparkles, X, Loader2, Save } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useServerFn } from "@tanstack/react-start";
+import { createArtistImage } from "@/lib/catalog-edit.functions";
 import type { ArtistImage } from "@/components/ArtistImageManager";
 
 const STREAM_ENDPOINT = "/api/generate-artist-image";
@@ -51,6 +53,7 @@ export function AiImageGenerator({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const createImageFn = useServerFn(createArtistImage);
   const [kind, setKind] = useState<ArtistImage["kind"]>(defaultKind);
   const [prompt, setPrompt] = useState(() => defaultPrompt(defaultKind, artistName));
   const [preview, setPreview] = useState<string | null>(null);
@@ -174,17 +177,17 @@ export function AiImageGenerator({
         .from("artwork")
         .upload(path, blob, { contentType: "image/png", upsert: false });
       if (up.error) throw up.error;
-      const { error: insErr } = await supabase.from("artist_images").insert({
-        artist_profile_id: artistId,
-        user_id: userId,
-        storage_path: path,
-        kind,
-        visibility: "link_only",
-        credit: "AI-genererad (Gemini 3.1 Flash)",
-        caption: prompt.slice(0, 200),
-        sort_order: 0,
+      await createImageFn({
+        data: {
+          artistId,
+          storage_path: path,
+          kind,
+          visibility: "link_only",
+          credit: "AI-genererad (Gemini 3.1 Flash)",
+          caption: prompt.slice(0, 200),
+          sort_order: 0,
+        },
       });
-      if (insErr) throw insErr;
       onSaved();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));

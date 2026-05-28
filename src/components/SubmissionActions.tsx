@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
 import { Pencil, Trash2, ImageUp, Loader2, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useServerFn } from "@tanstack/react-start";
+import {
+  updateSubmission as updateSubmissionFn,
+  deleteSubmission as deleteSubmissionFn,
+} from "@/lib/catalog-edit.functions";
 import { nextTrackNumber } from "@/lib/album-helpers";
 import { AiArtworkDialog } from "@/components/AiArtworkDialog";
 
@@ -35,6 +40,7 @@ export function EditSubmissionDialog({
   const [albums, setAlbums] = useState<AlbumOption[]>([]);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const updateFn = useServerFn(updateSubmissionFn);
 
   useEffect(() => {
     let on = true;
@@ -69,8 +75,7 @@ export function EditSubmissionDialog({
             }
           : {}),
       };
-      const { error } = await supabase.from("submissions").update(patch).eq("id", sub.id);
-      if (error) throw error;
+      await updateFn({ data: { submissionId: sub.id, patch } });
       onSaved();
       onClose();
     } catch (e) {
@@ -166,6 +171,7 @@ export function ReplaceArtworkButton({
 }) {
   const [busy, setBusy] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
+  const updateFn = useServerFn(updateSubmissionFn);
 
   async function uploadFile(file: File) {
     setBusy(true);
@@ -177,11 +183,7 @@ export function ReplaceArtworkButton({
         upsert: false,
       });
       if (up.error) throw up.error;
-      const upd = await supabase
-        .from("submissions")
-        .update({ artwork_path: path })
-        .eq("id", sub.id);
-      if (upd.error) throw upd.error;
+      await updateFn({ data: { submissionId: sub.id, patch: { artwork_path: path } } });
       // best-effort delete old artwork
       await supabase.storage.from("artwork").remove([sub.artwork_path]);
       onDone();
@@ -248,17 +250,13 @@ export function DeleteSubmissionButton({
   onDeleted: () => void;
 }) {
   const [busy, setBusy] = useState(false);
+  const deleteFn = useServerFn(deleteSubmissionFn);
 
   async function remove() {
     if (!window.confirm(`Delete "${sub.title}"? This cannot be undone.`)) return;
     setBusy(true);
     try {
-      const { error } = await supabase.from("submissions").delete().eq("id", sub.id);
-      if (error) throw error;
-      await Promise.all([
-        supabase.storage.from("audio").remove([sub.audio_path]),
-        supabase.storage.from("artwork").remove([sub.artwork_path]),
-      ]);
+      await deleteFn({ data: { submissionId: sub.id } });
       onDeleted();
     } catch (err) {
       window.alert(err instanceof Error ? err.message : "Delete failed");

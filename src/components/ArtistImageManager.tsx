@@ -1,5 +1,12 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useServerFn } from "@tanstack/react-start";
+import {
+  createArtistImage,
+  updateArtistImage,
+  setArtistImagePrimary,
+  deleteArtistImage,
+} from "@/lib/catalog-edit.functions";
 import { Upload as UploadIcon, Trash2, Star, Eye, EyeOff, ImagePlus, Sparkles, Wand2 } from "lucide-react";
 import { AiImageGenerator } from "@/components/AiImageGenerator";
 
@@ -54,6 +61,10 @@ export function ArtistImageManager({
     | { mode: "variant"; kind: ArtistImage["kind"]; path: string }
     | null
   >(null);
+  const createFn = useServerFn(createArtistImage);
+  const updateFn = useServerFn(updateArtistImage);
+  const setPrimaryFn = useServerFn(setArtistImagePrimary);
+  const deleteFn = useServerFn(deleteArtistImage);
 
   async function reload() {
     setLoading(true);
@@ -92,15 +103,15 @@ export function ArtistImageManager({
           .upload(path, file, { upsert: false, contentType: file.type || undefined });
         if (up.error) throw up.error;
 
-        const { error: insErr } = await supabase.from("artist_images").insert({
-          artist_profile_id: artistId,
-          user_id: userId,
-          storage_path: path,
-          kind: uploadKind,
-          visibility: "public",
-          sort_order: images.length,
+        await createFn({
+          data: {
+            artistId,
+            storage_path: path,
+            kind: uploadKind,
+            visibility: "public",
+            sort_order: images.length,
+          },
         });
-        if (insErr) throw insErr;
       }
       await reload();
     } catch (e) {
@@ -115,18 +126,7 @@ export function ArtistImageManager({
     setBusy(true);
     setError(null);
     try {
-      // Unset current primary of same kind
-      await supabase
-        .from("artist_images")
-        .update({ is_primary: false })
-        .eq("artist_profile_id", artistId)
-        .eq("kind", img.kind)
-        .eq("is_primary", true);
-      const { error: updErr } = await supabase
-        .from("artist_images")
-        .update({ is_primary: true })
-        .eq("id", img.id);
-      if (updErr) throw updErr;
+      await setPrimaryFn({ data: { imageId: img.id } });
       await reload();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Kunde inte sätta primär");
@@ -140,11 +140,7 @@ export function ArtistImageManager({
     setError(null);
     try {
       const next = img.visibility === "public" ? "link_only" : "public";
-      const { error: updErr } = await supabase
-        .from("artist_images")
-        .update({ visibility: next })
-        .eq("id", img.id);
-      if (updErr) throw updErr;
+      await updateFn({ data: { imageId: img.id, patch: { visibility: next } } });
       await reload();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Kunde inte ändra synlighet");
@@ -154,9 +150,12 @@ export function ArtistImageManager({
   }
 
   async function updateMeta(id: string, patch: Partial<Pick<ArtistImage, "caption" | "credit" | "kind">>) {
-    const { error: updErr } = await supabase.from("artist_images").update(patch).eq("id", id);
-    if (updErr) setError(updErr.message);
-    else await reload();
+    try {
+      await updateFn({ data: { imageId: id, patch } });
+      await reload();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Kunde inte uppdatera");
+    }
   }
 
   async function remove(img: ArtistImage) {
@@ -164,9 +163,7 @@ export function ArtistImageManager({
     setBusy(true);
     setError(null);
     try {
-      const { error: delErr } = await supabase.from("artist_images").delete().eq("id", img.id);
-      if (delErr) throw delErr;
-      await supabase.storage.from("artwork").remove([img.storage_path]);
+      await deleteFn({ data: { imageId: img.id } });
       await reload();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Kunde inte ta bort");

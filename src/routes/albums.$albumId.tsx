@@ -15,6 +15,11 @@ import {
 } from "lucide-react";
 import { EmptyState, ErrorState } from "@/components/StateViews";
 import { supabase } from "@/integrations/supabase/client";
+import { useServerFn } from "@tanstack/react-start";
+import {
+  attachSubmissionsToAlbum,
+  deleteAlbum as deleteAlbumFn,
+} from "@/lib/catalog-edit.functions";
 import { useAuth } from "@/lib/auth";
 import { useEditorRole } from "@/lib/useEditorRole";
 import { PlayButton } from "@/components/player/PlayButton";
@@ -75,6 +80,7 @@ function AlbumPage() {
   const player = usePlayer();
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const deleteAlbumServer = useServerFn(deleteAlbumFn);
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["album", albumId, user?.id, isAdmin],
@@ -126,17 +132,19 @@ function AlbumPage() {
     if (!confirm(`Delete album "${album.title}"?`)) return;
     setDeleting(true);
     setDeleteError(null);
-    const { error } = await supabase.from("albums").delete().eq("id", album.id);
-    setDeleting(false);
-    if (error) {
+    try {
+      await deleteAlbumServer({ data: { albumId: album.id } });
+      navigate({ to: "/my-submissions" });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Delete failed";
       setDeleteError(
-        error.message.includes("violates foreign key")
+        msg.includes("violates foreign key")
           ? "This album still has tracks. Remove them first."
-          : error.message,
+          : msg,
       );
-      return;
+    } finally {
+      setDeleting(false);
     }
-    navigate({ to: "/my-submissions" });
   }
 
   function playAlbum() {
@@ -369,6 +377,7 @@ function AddTracksSection({
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const attachFn = useServerFn(attachSubmissionsToAlbum);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["album-available-tracks", album.id, album.artist_profile_id],
@@ -394,15 +403,7 @@ function AddTracksSection({
     setBusy(true);
     setErr(null);
     try {
-      let n = await nextTrackNumber(album.id);
-      for (const id of selectedIds) {
-        const { error } = await supabase
-          .from("submissions")
-          .update({ album_id: album.id, track_number: n })
-          .eq("id", id);
-        if (error) throw error;
-        n += 1;
-      }
+      await attachFn({ data: { albumId: album.id, submissionIds: selectedIds } });
       setSelected({});
       await refetch();
       onAdded();

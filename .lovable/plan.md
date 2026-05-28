@@ -1,58 +1,37 @@
-# Track-artwork: iTunes → Deezer → AI
+Plan:
 
-Spegla artist-regenereringsflödet, men för låtar (submissions). Identifiera låtar där `artwork_path` är ett AzuraCast-importerat default (path innehåller `/azuracast/`) och försök hämta riktigt omslag via iTunes, sedan Deezer, sedan AI som sista utväg.
+1. Samla rättighetsmodellen
+- Sluta låta frontend avgöra bred redigeringsrätt med `artist`-rollen när databasen bara tillåter ägare/admin.
+- Inför en gemensam server-side kontroll för redigering: ägare eller admin, och om vi vill behålla “editor/artist kan redigera katalog” görs det explicit på servern, inte genom osäkra klientuppdateringar.
 
-## Server (`src/lib/itunes.server.ts`)
+2. Flytta katalogens Spara-flöden till serverfunktioner
+- Skapa/utöka en tunn `catalog-edit.functions.ts` med skyddade serverfunktioner för:
+  - uppdatera artistprofil
+  - uppdatera album
+  - uppdatera låt/submission
+  - koppla/lossa låt till album och sätt track number
+  - uppdatera artwork-path efter bildbyte
+- Serverfunktionerna använder inloggad användare, verifierar behörighet och skriver sedan kontrollerat så RLS inte stoppar legitima admin/editor-flöden.
 
-Lägg till två nya verifierade sökningar — returnerar URL endast om både artist och låttitel matchar fuzzy:
+3. Rätta befintliga formulär
+- `AlbumForm`: vid edit ska inte `user_id` skrivas om till den som klickar Spara; ägarskapet ska behållas.
+- `ArtistProfileEditor`: byt direkt `supabase.update` mot serverfunktionen.
+- `EditSubmissionDialog`: byt direkt `supabase.update` mot serverfunktionen.
+- `ReplaceArtworkButton` och AI-bildsparning för låtar: behåll uppladdning i storage men låt servern spara databaskolumnen.
+- `AddTracksSection`: byt direkt uppdatering av `album_id`/`track_number` mot serverfunktion.
+- Gå igenom `ArtistImageManager` eftersom den också har flera Spara/Edit-liknande operationer mot `artist_images`.
 
-- `searchTrackImageVerified(artistName, trackTitle)` — iTunes `entity=song`, plockar `artworkUrl100` från första matchande träff.
-- `searchTrackImageDeezerVerified(artistName, trackTitle)` — Deezer `/search`, plockar `album.cover_xl/big/medium`.
+4. Gå igenom alla Edit-knappar och gör flödet konsekvent
+- Albumdetalj: Edit album ska gå till samma säkra albumform.
+- Artistsida: Redigera profil, singel-edit och diskografi-edit ska använda samma dialog/serverfunktioner.
+- Albumsida: track-edit ska använda samma `EditSubmissionDialog` och samma serverfunktion.
+- Adminsida: submission-edit ska återanvända samma säkra komponent/flöde där det går.
+- Dölj Edit-knappar när användaren saknar verklig serverbehörighet, så användaren inte kommer till ett Spara som ändå nekas.
 
-(Återanvänder befintlig `fuzzyMatch` och `upscale`.)
+5. Databas/RLS
+- I första hand undviker vi bredare RLS genom serverfunktioner med strikt behörighetskontroll.
+- Om nuvarande produktregel verkligen är att `artist`-rollen ska kunna redigera all katalogdata, lägger vi en liten migration som gör RLS-reglerna konsekventa med det. Annars begränsar vi UI till ägare/admin.
 
-## Server (`src/lib/ai-image.server.ts`)
-
-Lägg till `generateTrackFallbackImage(artistName, trackTitle)` — samma mönster som `generateArtistFallbackImage` men prompten beskriver låten:
-> "Abstract album-style square cover art inspired by the song '{title}' by '{artist}'. Minimalist, evocative, no faces, no text, no logos. 1:1 square."
-
-## Server fn (`src/lib/artwork.functions.ts`)
-
-Lägg till nytt bucket-uppladdningshelper `uploadAuto("tracks", id, url)` (lägg till `"tracks"` i folder-union för båda upload-helpers).
-
-Ny server fn `bulkRegenerateTrackArtwork` (admin-only, mönstrad efter `bulkRegenerateArtistArtwork`):
-
-1. Plocka `submissions` där `artwork_path ILIKE '%/azuracast/%'` (default-importerade), join `artist_profiles(name)`, limit 100 per körning.
-2. Per rad:
-   - iTunes verified på artist + låttitel → om träff, ladda upp, källa `itunes`.
-   - Annars Deezer verified → källa `deezer`.
-   - Annars AI fallback → källa `ai`.
-3. Uppdatera `submissions.artwork_path` med nytt path.
-4. Returnera `RegenerateResult`-liknande struktur (samma typ kan återanvändas).
-
-Lägg också till `autoFetchTrackArtwork({ submissionId })` (single, ej admin-only — för per-låt-knapp i framtiden, valfritt nu men billigt att inkludera).
-
-## UI (`src/components/AdminAutoArtwork.tsx`)
-
-Lägg till en tredje sektion under existerande "Regenerera ALLA artistbilder":
-
-- Titel: "Regenerera låt-omslag (AzuraCast-defaults)"
-- Förklarar: hämtar från iTunes → Deezer → AI för låtar där bilden kommer från AzuraCast-importen. Max 100 per körning, skriver över.
-- Confirm-dialog innan körning (samma mönster som artist-regen).
-- Visar resultat med `bySource.itunes/deezer/ai/failed`-räknare.
-
-Invalidera `["catalog"]` och relaterade query keys efter körning så preview uppdateras.
-
-## Tekniska detaljer
-
-- Inga DB-migrationer behövs.
-- 150 ms sleep mellan rader för att vara snäll mot iTunes/Deezer.
-- AI använder `LOVABLE_API_KEY` (samma som artist-fallback) — om saknas hoppas AI-steget tyst över och raden räknas som `failed`.
-- Detektion av "default-bild" sker via path-pattern `%/azuracast/%`. Om vi vill bredda kriteriet (t.ex. alla låtar oavsett bild) kan vi lägga in ett toggle senare.
-
-## Filer som ändras
-
-- `src/lib/itunes.server.ts` — två nya funktioner
-- `src/lib/ai-image.server.ts` — en ny funktion
-- `src/lib/artwork.functions.ts` — ny bulk + single server fn, utvidgat folder-union
-- `src/components/AdminAutoArtwork.tsx` — ny sektion + knapp + resultatvy
+6. Validering
+- Testa samtliga Spara/Edit-flöden som finns i koden: artistprofil, album, låt, track-to-album, artwork och admin-edit.
+- Kontrollera att felet “new row violates row-level security policy” försvinner och att ägarskap inte ändras av misstag.
