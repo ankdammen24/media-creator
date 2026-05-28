@@ -284,8 +284,7 @@ function AlbumPage() {
                     audioPath: t.audio_path,
                     mediaType: "music",
                   };
-                  const trackCanEdit =
-                    !!user && (user.id === t.user_id || isEditor);
+                  const trackCanEdit = !!user && (user.id === t.user_id || isAdmin);
                   return (
                     <li
                       key={t.id}
