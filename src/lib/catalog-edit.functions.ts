@@ -290,6 +290,18 @@ export const reorderAlbumTracks = createServerFn({ method: "POST" })
       }
     }
 
+    // Tvåstegsuppdatering för att undvika krock med unique-indexet
+    // (album_id, track_number): först till temporära negativa värden,
+    // sedan till slutgiltig ordning.
+    let tmp = -1;
+    for (const id of data.orderedSubmissionIds) {
+      const { error } = await supabaseAdmin
+        .from("submissions")
+        .update({ track_number: tmp })
+        .eq("id", id);
+      if (error) throw new Error(error.message);
+      tmp -= 1;
+    }
     let n = 1;
     for (const id of data.orderedSubmissionIds) {
       const { error } = await supabaseAdmin
