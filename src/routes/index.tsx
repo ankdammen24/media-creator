@@ -128,7 +128,7 @@ function Hero() {
     );
   }
 
-  const art = artworkUrl(data.artwork_path);
+  const art = artworkUrl(effectiveArtworkPath(data) ?? data.artwork_path);
   const track = toTrack(data);
 
   return (
