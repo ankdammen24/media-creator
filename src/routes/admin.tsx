@@ -416,3 +416,97 @@ function SubmissionRow({
     </li>
   );
 }
+
+function RadioUppsalaImport() {
+  const runImport = useServerFn(runAzuracastImport);
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<Awaited<ReturnType<typeof runAzuracastImport>> | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function run(dryRun: boolean) {
+    setBusy(true);
+    setError(null);
+    setResult(null);
+    try {
+      const res = await runImport({ data: { dryRun } });
+      setResult(res);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-xl border border-border bg-card p-5">
+        <h2 className="mb-1 text-base font-semibold">En-gångs import från Radio Uppsala</h2>
+        <p className="mb-4 text-sm text-muted-foreground">
+          Hämtar alla musikspår från <code className="rounded bg-secondary px-1">stream.radiouppsala.se</code>.
+          Filer laddas ner och sparas i denna katalogs egen storage. Spår &lt; 40s och program/intervjuer/arkiv
+          hoppas över. Importen är idempotent — redan importerade spår hoppas över.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => run(true)}
+            disabled={busy}
+            className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium hover:bg-secondary disabled:opacity-50"
+          >
+            {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+            Förhandsvisa (dry run)
+          </button>
+          <button
+            onClick={() => run(false)}
+            disabled={busy}
+            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+          >
+            {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Radio className="h-3.5 w-3.5" />}
+            Kör import
+          </button>
+        </div>
+        {busy && (
+          <p className="mt-3 text-xs text-muted-foreground">
+            Kör… det kan ta flera minuter. Stäng inte fliken.
+          </p>
+        )}
+      </div>
+
+      {error && (
+        <div className="rounded-xl border border-destructive bg-destructive/10 p-4 text-sm text-destructive">
+          {error}
+        </div>
+      )}
+
+      {result && (
+        <div className="rounded-xl border border-border bg-card p-5 text-sm">
+          <h3 className="mb-2 font-semibold">
+            {result.dryRun ? "Förhandsvisning" : "Resultat"}
+          </h3>
+          <ul className="space-y-1 text-muted-foreground">
+            <li>Totalt i AzuraCast: {result.total}</li>
+            <li>Skulle/blev importerade: {result.dryRun ? result.considered : result.inserted}</li>
+            <li>Redan importerade (hoppade över): {result.skippedExisting}</li>
+            <li>Hoppade över (program/intervju/arkiv): {result.skippedNonMusic}</li>
+            <li>Hoppade över (&lt;40s): {result.skippedShort}</li>
+            <li>Misslyckade: {result.failed}</li>
+          </ul>
+          {result.failures.length > 0 && (
+            <details className="mt-3">
+              <summary className="cursor-pointer text-xs font-medium text-foreground">
+                Visa misslyckanden ({result.failures.length})
+              </summary>
+              <ul className="mt-2 space-y-1 text-xs">
+                {result.failures.slice(0, 50).map((f, i) => (
+                  <li key={i} className="text-muted-foreground">
+                    <span className="font-mono">{f.azId}</span>
+                    {f.title ? ` — ${f.title}` : ""} → {f.reason}
+                  </li>
+                ))}
+              </ul>
+            </details>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
