@@ -10,6 +10,7 @@ import {
   Instagram,
   Twitter,
   Pencil,
+  Disc3,
 } from "lucide-react";
 import { EmptyState, ErrorState } from "@/components/StateViews";
 import { supabase } from "@/integrations/supabase/client";
@@ -41,6 +42,7 @@ type ArtistData = {
   profile: EditableArtist | null;
   items: ArtistItem[];
   images: ArtistImage[];
+  isAdmin: boolean;
 };
 
 function publicArt(path: string) {
@@ -55,7 +57,7 @@ function ArtistPage() {
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["artist", artistId],
     queryFn: async (): Promise<ArtistData> => {
-      const [profileRes, linksRes, imagesRes] = await Promise.all([
+      const [profileRes, linksRes, imagesRes, isAdminRes] = await Promise.all([
         supabase
           .from("artist_profiles")
           .select(
@@ -76,6 +78,14 @@ function ArtistPage() {
           .eq("artist_profile_id", artistId)
           .order("sort_order", { ascending: true })
           .order("created_at", { ascending: true }),
+        user
+          ? supabase
+              .from("user_roles")
+              .select("role")
+              .eq("user_id", user.id)
+              .eq("role", "admin")
+              .maybeSingle()
+          : Promise.resolve({ data: null, error: null } as const),
       ]);
       if (profileRes.error) throw profileRes.error;
       if (linksRes.error) throw linksRes.error;
@@ -89,12 +99,14 @@ function ArtistPage() {
         profile: profileRes.data as EditableArtist | null,
         items,
         images: (imagesRes.data ?? []) as ArtistImage[],
+        isAdmin: !!(isAdminRes && "data" in isAdminRes && isAdminRes.data),
       };
     },
   });
 
   const profile = data?.profile;
-  const canEdit = !!user && !!profile && profile.user_id === user.id;
+  const canEdit =
+    !!user && !!profile && (profile.user_id === user.id || !!data?.isAdmin);
   const images = data?.images ?? [];
   const primaryCover = images.find((i) => i.kind === "cover" && i.is_primary);
   const primaryAvatar = images.find((i) => i.kind === "avatar" && i.is_primary);
@@ -173,13 +185,23 @@ function ArtistPage() {
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <h1 className="text-3xl font-bold tracking-tight">{profile.name}</h1>
                   {canEdit && (
-                    <button
-                      onClick={() => setEditing(true)}
-                      className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs hover:bg-accent"
-                    >
-                      <Pencil className="h-3.5 w-3.5" />
-                      Redigera profil
-                    </button>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Link
+                        to="/albums/new"
+                        search={{ artistId: profile.id }}
+                        className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs hover:bg-accent"
+                      >
+                        <Disc3 className="h-3.5 w-3.5" />
+                        Nytt album
+                      </Link>
+                      <button
+                        onClick={() => setEditing(true)}
+                        className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs hover:bg-accent"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                        Redigera profil
+                      </button>
+                    </div>
                   )}
                 </div>
                 {profile.bio && (
