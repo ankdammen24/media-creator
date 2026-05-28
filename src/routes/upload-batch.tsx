@@ -425,36 +425,15 @@ function BatchUploadPage() {
         {profileId && (
           <div className="mb-4 rounded-lg border border-border bg-background/40 p-3">
             <label className="mb-2 block text-sm font-medium">
-              Album for music tracks <span className="text-destructive">*</span>
+              Show for episodes <span className="text-destructive">*</span>
             </label>
-            <AlbumPicker artistId={profileId} value={albumId} onChange={setAlbumId} />
+            <ShowPicker artistId={profileId} value={showId} onChange={setShowId} />
             <p className="mt-2 text-xs text-muted-foreground">
-              Required when uploading music. Track numbers are auto-assigned.
+              Required. Episode numbers are auto-assigned.
             </p>
           </div>
         )}
         <div className="grid gap-4 md:grid-cols-2">
-          <div>
-            <span className="mb-2 block text-sm font-medium">Default media type for new files</span>
-            <div className="grid grid-cols-2 gap-2">
-              <TypeChoice
-                active={defaultMediaType === "music"}
-                onClick={() => setDefaultMediaType("music")}
-                icon={<Music className="h-4 w-4" />}
-                label="Music"
-              />
-              <TypeChoice
-                active={defaultMediaType === "podcast"}
-                onClick={() => setDefaultMediaType("podcast")}
-                icon={<Mic className="h-4 w-4" />}
-                label="Podcast"
-              />
-            </div>
-            <p className="mt-2 text-xs text-muted-foreground">
-              Applied to newly added files. You can still change each item below.
-            </p>
-          </div>
-
           <div>
             <span className="mb-2 block text-sm font-medium">Shared artwork</span>
             {!sharedArtwork ? (
@@ -639,33 +618,6 @@ function Section({
   );
 }
 
-function TypeChoice({
-  active,
-  onClick,
-  icon,
-  label,
-}: {
-  active: boolean;
-  onClick: () => void;
-  icon: React.ReactNode;
-  label: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`flex items-center gap-2 rounded-lg border p-2.5 text-left transition ${
-        active ? "border-primary bg-primary/10" : "border-border bg-background hover:bg-accent/40"
-      }`}
-    >
-      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-secondary">
-        {icon}
-      </span>
-      <span className="text-sm font-medium">{label}</span>
-    </button>
-  );
-}
-
 function SharedArtworkPreview({ file, onRemove }: { file: File; onRemove: () => void }) {
   const [url, setUrl] = useState<string | null>(null);
   useEffect(() => {
@@ -806,24 +758,6 @@ function DraftRow({
             disabled={disabled}
             className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/40 disabled:opacity-60"
           />
-
-          <div className="mt-3">
-            <span className="mb-1 block text-xs font-medium">Media type</span>
-            <div className="grid grid-cols-2 gap-2">
-              <TypeChoice
-                active={d.mediaType === "music"}
-                onClick={() => !disabled && onChange({ mediaType: "music" })}
-                icon={<Music className="h-4 w-4" />}
-                label="Music"
-              />
-              <TypeChoice
-                active={d.mediaType === "podcast"}
-                onClick={() => !disabled && onChange({ mediaType: "podcast" })}
-                icon={<Mic className="h-4 w-4" />}
-                label="Podcast"
-              />
-            </div>
-          </div>
         </div>
 
         <div>
