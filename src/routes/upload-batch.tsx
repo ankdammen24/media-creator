@@ -855,6 +855,24 @@ function DraftRow({
             {d.artworkError && (
               <p className="mt-1 text-xs text-destructive">{d.artworkError}</p>
             )}
+            <button
+              type="button"
+              onClick={() => setAiOpen(true)}
+              disabled={disabled}
+              className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-2 py-1 text-xs hover:bg-accent disabled:opacity-50"
+            >
+              <Sparkles className="h-3.5 w-3.5 text-primary" />
+              Skapa med AI
+            </button>
+            <AiArtworkDialog
+              open={aiOpen}
+              aspect="1:1"
+              title="Skapa omslag med AI"
+              filenameHint={`track-${d.title || "untitled"}`}
+              defaultPrompt={`Abstrakt omslag för låten "${d.title || "låten"}"${artistName ? ` av ${artistName}` : ""}, konstnärlig komposition, ingen text, inga ansikten`}
+              onClose={() => setAiOpen(false)}
+              onGenerated={(file) => onArtwork(file)}
+            />
           </div>
         </div>
       </div>
