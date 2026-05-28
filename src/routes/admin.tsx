@@ -380,6 +380,8 @@ type PendingSubmission = {
   artwork_path: string;
   created_at: string;
   user_id: string;
+  artist_profile_id: string;
+  album_id: string | null;
   artist_profiles: { name: string } | null;
 };
 
@@ -396,7 +398,7 @@ function AdminPage() {
       const { data, error } = await supabase
         .from("submissions")
         .select(
-          "id, title, description, media_type, status, audio_path, artwork_path, user_id, created_at, artist_profiles!submissions_artist_profile_id_fkey(name)",
+          "id, title, description, media_type, status, audio_path, artwork_path, user_id, created_at, artist_profile_id, album_id, artist_profiles!submissions_artist_profile_id_fkey(name)",
         )
         .eq("status", filter)
         .order("created_at", { ascending: false });
