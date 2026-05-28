@@ -1,85 +1,63 @@
-## Goal
 
-Replace the `/upload` placeholder with a working, protected audio upload form that POSTs `multipart/form-data` to `https://api.mediarosenqvist.com/upload/audio` using the existing Supabase-aware API client.
+## Mål
 
-## Files
+En-gångs synk av alla musik-spår från `stream.radiouppsala.se` (AzuraCast station 1) in i Media Rosenqvist-katalogen. Efter synk är denna katalog master — varje rad är en helt vanlig `submissions`-rad med status `approved`, kopplad till en `artist_profiles`-rad, och MP3:n ligger i `audio`-bucketen här. Inget beroende av AzuraCast kvar.
 
-- **Edit** `src/routes/upload.tsx` — replace placeholder body with the full upload form. Keep the existing `ProtectedRoute` wrapper and route config.
-- **Edit** `src/lib/api.ts` — add a small `apiAuthedUpload<T>()` helper that uses `XMLHttpRequest` so we can report real upload progress (the `fetch` API still has no upload progress event). It mirrors `apiAuthed`: pulls the Supabase session, attaches `Authorization: Bearer <access_token>`, POSTs FormData, parses JSON, throws on non-2xx with the backend's error message when available.
+## Källa & filter
 
-No new dependencies, no new routes, no Supabase Storage calls.
+- API: `GET https://stream.radiouppsala.se/api/station/1/files` med `X-API-Key`.
+- Hämtar MP3 via `links.download` (eller `/file/{id}/download` om download saknas).
+- Hoppar över:
+  - allt som inte är musik (samma `categoryFor()` som RU — path/genre innehåller `program`/`intervju`/`arkiv`).
+  - filer < 40 s (jinglar/FX).
+  - filer som redan importerats (idempotency på `azuracast_unique_id`, se schema nedan).
 
-## Upload form (`/upload`)
+## Dataflöde per fil
 
-State:
-- `title`, `artist` (text inputs, both required, trimmed, max 200 chars)
-- `file` (File | null)
-- `status`: `"idle" | "uploading" | "success" | "error"`
-- `progress`: 0–100
-- `result`: `{ trackId: string } | null`
-- `error`: string | null
+1. Slå upp/auto-skapa `artist_profiles` baserat på `file.artist` (case-insensitivt; tom artist → "Okänd artist"). Ägare = den admin som triggade synken.
+2. Ladda ner MP3 från AzuraCast.
+3. Ladda upp till Supabase Storage:
+   - `audio/{admin_user_id}/azuracast/{azId}.mp3` (privat bucket, signed URL — samma mönster som vanlig upload).
+   - Omslag (`file.art`) laddas ner och läggs i `artwork/{admin_user_id}/azuracast/{azId}.jpg` (publik). Saknas → ingen artwork (admin kan lägga till efter).
+4. Insert i `submissions`:
+   - `media_type = 'music'`, `status = 'approved'`, `approved_at = now()`, `approved_by = admin_user_id`
+   - `title = file.title || filnamn`, `description = null`
+   - `user_id = admin_user_id`, `artist_profile_id = matchad/skapad profil`
+   - `audio_path`, `artwork_path` enligt ovan
+   - `azuracast_unique_id = file.unique_id` (för idempotency)
 
-UI sections (inside the existing card shell, same visual language as login/admin):
-1. Header: upload icon + "Upload audio" + "Signed in as …"
-2. Form fields:
-   - Title (input)
-   - Artist (input)
-   - Audio file (drop zone + `<input type="file">`, `accept=".wav,.flac,.aiff,.aif,.mp3,audio/wav,audio/flac,audio/aiff,audio/mpeg"`)
-   - Selected file row: name + human-readable size + Remove button
-3. Client-side validation before submit:
-   - All fields present
-   - Extension is one of wav/flac/aiff/aif/mp3 (case-insensitive)
-   - Size ≤ 500 MB (sane upper bound; backend remains source of truth)
-4. Submit button: disabled while `uploading` or invalid; label flips to "Uploading…"
-5. Progress bar: visible while `uploading`, driven by XHR `upload.onprogress` (`loaded / total * 100`)
-6. Success panel: green-tinted card with "Uploaded" + `Track ID: <id>` (monospace, copy-to-clipboard button) + `<Link to="/catalog">View in catalog</Link>` + "Upload another" button that resets state
-7. Error panel: destructive-tinted card with the message returned from the backend (or a generic network message)
+Då fungerar uppspelning direkt via befintlig `/catalog`-kod (`createSignedUrl(audio_path)`), och både artist och admin kan editera/ta bort precis som med vanliga submissions (RLS är redan på plats).
 
-## Request shape
+## Schema-tillägg
 
-```ts
-const fd = new FormData();
-fd.append("title", title.trim());
-fd.append("artist", artist.trim());
-fd.append("file", file, file.name);
-const { trackId } = await apiAuthedUpload<{ trackId: string }>(
-  "/upload/audio",
-  fd,
-  (pct) => setProgress(pct),
-);
-```
+Liten migration:
+- `ALTER TABLE submissions ADD COLUMN azuracast_unique_id text` + `CREATE UNIQUE INDEX ... WHERE azuracast_unique_id IS NOT NULL`.
 
-Response handling: accept `{ trackId }`, `{ id }`, or `{ track: { id } }` and normalize to a single `trackId` string so a minor backend shape change doesn't break the UI.
+(Inget mer — `submissions`/`artist_profiles` täcker resten.)
 
-## `apiAuthedUpload` (XHR-based, for progress)
+## Kod
 
-```ts
-export async function apiAuthedUpload<T>(
-  path: string,
-  formData: FormData,
-  onProgress?: (pct: number) => void,
-): Promise<T>
-```
+- `src/lib/azuracast-import.server.ts` — själva arbetet. Iterativ loop: lista files, för varje musikspår: kontrollera idempotency, hämta fil via `fetch()`, `storage.upload()`, skapa profil om saknas, insert submission. Loggar `inserted/skipped/failed` och returnerar sammanställning. Använder `supabaseAdmin` (service_role) så RLS inte stör massimporten.
+- `src/lib/azuracast-import.functions.ts` — `runAzuracastImport` server-fn skyddad med `requireSupabaseAuth` + admin-check. Tar valfri `dryRun: boolean`. Kör synkront (svarar när klart — inget bakgrundsjobb-system behövs för ett en-gångs-jobb), med kort timeout-marginal genom att processa i batcher.
+- Admin-panelens befintliga tabbar (`/admin`) får en ny tab "Importera Radio Uppsala" med:
+  - knapp "Förhandsvisa" (`dryRun: true` → visar antal som skulle importeras/hoppas över)
+  - knapp "Kör import" (visar progress via löpande sammanställning från svaret)
+  - efter klar: länk till `/catalog`.
 
-Behavior:
-- `await supabase.auth.getSession()` → throw "Not authenticated" if no token
-- `new XMLHttpRequest()`, `POST ${API_BASE}${path}`
-- Set `Authorization: Bearer <token>` and `Accept: application/json`. Do NOT set `Content-Type` — the browser sets the multipart boundary.
-- `xhr.upload.onprogress` → `onProgress(Math.round(loaded / total * 100))` when `lengthComputable`
-- On `load`: if `status` is 2xx parse JSON and resolve; else try to parse `{ error | message }` and reject with that string, fallback to `"Upload failed (<status>)"`
-- On `error` / `timeout`: reject with `"Network error during upload"`
-- No timeout set (large audio files); rely on backend/proxy timeouts
+## Secret
 
-## Out of scope
+- `AZURACAST_API_KEY` — du lägger in den efter godkänd plan via `add_secret`.
 
-- Drag-and-drop multi-file
-- Resumable / chunked uploads
-- Editing existing tracks
-- Album / artwork fields
-- Toast system (we render inline panels)
+## Risk & säkerhet
 
-## Risks / assumptions
+- Hela bygget bakom admin-roll + service_role, ingen publik endpoint.
+- Idempotent: kan köras igen utan dubbletter (unique index).
+- Om ett spår failar (404, storage-fel) hoppar vi över det och fortsätter; sammanställning visar listan.
+- Worker-runtime: nedladdning + upload till storage går via `fetch` + `supabase.storage.upload(Blob)` — inga Node-only beroenden.
 
-- Endpoint path is `POST /upload/audio` and field names are `title`, `artist`, `file`. If the backend uses different names we'll adjust in a small follow-up.
-- Response includes a track identifier — accepting three common shapes covers us.
-- No CORS issues expected since the API already accepts auth'd requests from the app origin (existing `apiAuthed` calls work).
+## Verifiering efter körning
+
+- `/catalog` visar de importerade spåren med artwork.
+- Klick → ljudet spelar (signed URL från `audio`-bucket).
+- `/admin` → tab Artists visar alla auto-skapade profiler (kan döpas om/flyttas).
+- Båda artist (om du flyttar äganderätten) och admin kan redigera/radera varje submission.
