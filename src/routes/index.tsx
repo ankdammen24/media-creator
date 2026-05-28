@@ -34,6 +34,7 @@ type Row = {
   media_type: "music" | "podcast";
   artwork_path: string;
   audio_path: string;
+  audio_web_path: string | null;
   artist_profiles: { id: string; name: string } | null;
   albums: { artwork_path: string | null } | null;
 };
@@ -56,6 +57,7 @@ function toTrack(r: Row): PlayerTrack {
     artistId: r.artist_profiles?.id ?? null,
     artworkPath: effectiveArtworkPath(r) ?? r.artwork_path,
     audioPath: r.audio_path,
+    webAudioPath: r.audio_web_path,
     mediaType: r.media_type,
   };
 }
