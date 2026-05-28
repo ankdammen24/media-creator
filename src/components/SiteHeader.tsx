@@ -178,13 +178,13 @@ export function SiteHeader() {
                   </span>
                 </MobileNavLink>
                 <MobileNavLink to="/catalog" onSelect={() => setMenuOpen(false)}>Catalog</MobileNavLink>
+                <MobileNavLink to="/releases/new" onSelect={() => setMenuOpen(false)}>
+                  <span className="inline-flex items-center gap-2 font-medium text-primary">
+                    <Send className="h-4 w-4" /> Submit release
+                  </span>
+                </MobileNavLink>
                 {user ? (
                   <>
-                    <MobileNavLink to="/releases/new" onSelect={() => setMenuOpen(false)}>
-                      <span className="inline-flex items-center gap-2 font-medium text-primary">
-                        <Send className="h-4 w-4" /> Submit release
-                      </span>
-                    </MobileNavLink>
                     <MobileNavLink to="/upload" onSelect={() => setMenuOpen(false)}>Upload</MobileNavLink>
                     <MobileNavLink to="/my-submissions" onSelect={() => setMenuOpen(false)}>Mine</MobileNavLink>
                     <MobileNavLink to="/notifications" onSelect={() => setMenuOpen(false)}>
