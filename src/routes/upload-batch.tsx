@@ -530,6 +530,7 @@ function BatchUploadPage() {
                 key={d.id}
                 d={d}
                 hasSharedArtwork={!!sharedArtwork}
+                artistName={primaryArtistName}
                 onChange={(p) => updateDraft(d.id, p)}
                 onArtwork={(f) => setDraftArtwork(d.id, f)}
                 onRemove={() => removeDraft(d.id)}
