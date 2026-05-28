@@ -29,7 +29,7 @@ export async function logAudio(
       message: message.slice(0, 2000),
       level: opts?.level ?? "info",
       submission_id: opts?.submissionId ?? null,
-      payload: opts?.payload ?? {},
+      payload: (opts?.payload ?? {}) as never,
       created_by: opts?.createdBy ?? null,
     });
   } catch (e) {
