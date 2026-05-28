@@ -425,36 +425,15 @@ function BatchUploadPage() {
         {profileId && (
           <div className="mb-4 rounded-lg border border-border bg-background/40 p-3">
             <label className="mb-2 block text-sm font-medium">
-              Album for music tracks <span className="text-destructive">*</span>
+              Show for episodes <span className="text-destructive">*</span>
             </label>
-            <AlbumPicker artistId={profileId} value={albumId} onChange={setAlbumId} />
+            <ShowPicker artistId={profileId} value={showId} onChange={setShowId} />
             <p className="mt-2 text-xs text-muted-foreground">
-              Required when uploading music. Track numbers are auto-assigned.
+              Required. Episode numbers are auto-assigned.
             </p>
           </div>
         )}
         <div className="grid gap-4 md:grid-cols-2">
-          <div>
-            <span className="mb-2 block text-sm font-medium">Default media type for new files</span>
-            <div className="grid grid-cols-2 gap-2">
-              <TypeChoice
-                active={defaultMediaType === "music"}
-                onClick={() => setDefaultMediaType("music")}
-                icon={<Music className="h-4 w-4" />}
-                label="Music"
-              />
-              <TypeChoice
-                active={defaultMediaType === "podcast"}
-                onClick={() => setDefaultMediaType("podcast")}
-                icon={<Mic className="h-4 w-4" />}
-                label="Podcast"
-              />
-            </div>
-            <p className="mt-2 text-xs text-muted-foreground">
-              Applied to newly added files. You can still change each item below.
-            </p>
-          </div>
-
           <div>
             <span className="mb-2 block text-sm font-medium">Shared artwork</span>
             {!sharedArtwork ? (
