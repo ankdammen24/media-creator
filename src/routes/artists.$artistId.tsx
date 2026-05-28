@@ -410,6 +410,7 @@ function DiscographySection({
                   <> · {new Date(al.release_date).getFullYear()}</>
                 )}
               </p>
+              <EditorAlbumMeta meta={al} />
             </Link>
           </li>
         ))}
