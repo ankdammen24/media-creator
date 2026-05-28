@@ -259,6 +259,7 @@ function CatalogPage() {
                     <h2 className="line-clamp-1 text-sm font-semibold group-hover:text-primary">
                       {a.name}
                     </h2>
+                    <EditorArtistMeta meta={a} />
                   </div>
                 </Link>
               );
