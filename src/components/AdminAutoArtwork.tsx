@@ -54,12 +54,7 @@ export function AdminAutoArtwork() {
   const regenerateAll = useServerFn(bulkRegenerateArtistArtwork);
   const regenerateTracks = useServerFn(bulkRegenerateTrackArtwork);
   const [busy, setBusy] = useState<"artists" | "albums" | "regen" | "tracks" | null>(null);
-  const [result, setResult] = useState<
-    | { kind: "artists" | "albums"; res: BulkResult }
-    | { kind: "regen"; res: RegenerateResult }
-    | { kind: "tracks"; res: RegenerateResult }
-    | null
-  >(null);
+  const [result, setResult] = useState<ResultState | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function run(kind: "artists" | "albums") {
