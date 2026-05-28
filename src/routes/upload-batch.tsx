@@ -470,6 +470,14 @@ function BatchUploadPage() {
             {sharedArtworkError && (
               <p className="mt-1 text-xs text-destructive">{sharedArtworkError}</p>
             )}
+            <button
+              type="button"
+              onClick={() => setSharedAiOpen(true)}
+              className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs hover:bg-accent"
+            >
+              <Sparkles className="h-3.5 w-3.5 text-primary" />
+              Skapa delat omslag med AI
+            </button>
           </div>
         </div>
       </Section>
