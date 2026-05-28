@@ -22,11 +22,13 @@ export type Database = {
           created_at: string
           description: string | null
           distribution_platforms: string[]
+          external_catalog_source: string | null
           genre: string | null
           id: string
           internal_notes: string | null
           label: string | null
           language: string | null
+          metadata_imported_at: string | null
           previously_released: boolean
           published_at: string | null
           release_date: string | null
@@ -35,6 +37,7 @@ export type Database = {
           status: Database["public"]["Enums"]["release_status"]
           submitted_at: string | null
           title: string
+          upc: string | null
           updated_at: string
           user_id: string
         }
@@ -45,11 +48,13 @@ export type Database = {
           created_at?: string
           description?: string | null
           distribution_platforms?: string[]
+          external_catalog_source?: string | null
           genre?: string | null
           id?: string
           internal_notes?: string | null
           label?: string | null
           language?: string | null
+          metadata_imported_at?: string | null
           previously_released?: boolean
           published_at?: string | null
           release_date?: string | null
@@ -58,6 +63,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["release_status"]
           submitted_at?: string | null
           title: string
+          upc?: string | null
           updated_at?: string
           user_id: string
         }
@@ -68,11 +74,13 @@ export type Database = {
           created_at?: string
           description?: string | null
           distribution_platforms?: string[]
+          external_catalog_source?: string | null
           genre?: string | null
           id?: string
           internal_notes?: string | null
           label?: string | null
           language?: string | null
+          metadata_imported_at?: string | null
           previously_released?: boolean
           published_at?: string | null
           release_date?: string | null
@@ -81,6 +89,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["release_status"]
           submitted_at?: string | null
           title?: string
+          upc?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -245,6 +254,107 @@ export type Database = {
         }
         Relationships: []
       }
+      import_rows: {
+        Row: {
+          album_title_raw: string | null
+          applied_changes: Json | null
+          artist_name_raw: string | null
+          created_at: string
+          id: string
+          isrc_raw: string | null
+          match_status: string
+          matched_album_id: string | null
+          matched_artist_id: string | null
+          matched_submission_id: string | null
+          notes: string | null
+          proposed_changes: Json
+          row_index: number | null
+          run_id: string
+          sheet_name: string | null
+          track_title_raw: string | null
+          upc_raw: string | null
+        }
+        Insert: {
+          album_title_raw?: string | null
+          applied_changes?: Json | null
+          artist_name_raw?: string | null
+          created_at?: string
+          id?: string
+          isrc_raw?: string | null
+          match_status?: string
+          matched_album_id?: string | null
+          matched_artist_id?: string | null
+          matched_submission_id?: string | null
+          notes?: string | null
+          proposed_changes?: Json
+          row_index?: number | null
+          run_id: string
+          sheet_name?: string | null
+          track_title_raw?: string | null
+          upc_raw?: string | null
+        }
+        Update: {
+          album_title_raw?: string | null
+          applied_changes?: Json | null
+          artist_name_raw?: string | null
+          created_at?: string
+          id?: string
+          isrc_raw?: string | null
+          match_status?: string
+          matched_album_id?: string | null
+          matched_artist_id?: string | null
+          matched_submission_id?: string | null
+          notes?: string | null
+          proposed_changes?: Json
+          row_index?: number | null
+          run_id?: string
+          sheet_name?: string | null
+          track_title_raw?: string | null
+          upc_raw?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "import_rows_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "import_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      import_runs: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          created_by: string
+          filename: string | null
+          id: string
+          source: string
+          status: string
+          summary: Json
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          created_by: string
+          filename?: string | null
+          id?: string
+          source?: string
+          status?: string
+          summary?: Json
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string
+          filename?: string | null
+          id?: string
+          source?: string
+          status?: string
+          summary?: Json
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           body: string
@@ -375,12 +485,14 @@ export type Database = {
           dolby_atmos_available: boolean
           duration_seconds: number | null
           explicit: boolean
+          external_catalog_source: string | null
           featured_artists: string[]
           id: string
           instrumental: boolean
           isrc: string | null
           loudness_lufs: number | null
           media_type: Database["public"]["Enums"]["media_type"]
+          metadata_imported_at: string | null
           preview_start_seconds: number | null
           producers: string[]
           rejection_reason: string | null
@@ -390,6 +502,7 @@ export type Database = {
           status: Database["public"]["Enums"]["submission_status"]
           title: string
           track_number: number | null
+          upc: string | null
           updated_at: string
           user_id: string
           version: string | null
@@ -409,12 +522,14 @@ export type Database = {
           dolby_atmos_available?: boolean
           duration_seconds?: number | null
           explicit?: boolean
+          external_catalog_source?: string | null
           featured_artists?: string[]
           id?: string
           instrumental?: boolean
           isrc?: string | null
           loudness_lufs?: number | null
           media_type: Database["public"]["Enums"]["media_type"]
+          metadata_imported_at?: string | null
           preview_start_seconds?: number | null
           producers?: string[]
           rejection_reason?: string | null
@@ -424,6 +539,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["submission_status"]
           title: string
           track_number?: number | null
+          upc?: string | null
           updated_at?: string
           user_id: string
           version?: string | null
@@ -443,12 +559,14 @@ export type Database = {
           dolby_atmos_available?: boolean
           duration_seconds?: number | null
           explicit?: boolean
+          external_catalog_source?: string | null
           featured_artists?: string[]
           id?: string
           instrumental?: boolean
           isrc?: string | null
           loudness_lufs?: number | null
           media_type?: Database["public"]["Enums"]["media_type"]
+          metadata_imported_at?: string | null
           preview_start_seconds?: number | null
           producers?: string[]
           rejection_reason?: string | null
@@ -458,6 +576,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["submission_status"]
           title?: string
           track_number?: number | null
+          upc?: string | null
           updated_at?: string
           user_id?: string
           version?: string | null
