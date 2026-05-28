@@ -16,6 +16,8 @@ import {
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
+import { AlbumPicker } from "@/components/AlbumPicker";
+import { nextTrackNumber } from "@/lib/album-helpers";
 
 type ArtistProfile = { id: string; name: string; bio: string | null };
 type MediaType = "music" | "podcast";
@@ -92,6 +94,7 @@ function BatchUploadPage() {
   const [profilesLoading, setProfilesLoading] = useState(true);
   const [profilesError, setProfilesError] = useState<string | null>(null);
   const [profileId, setProfileId] = useState<string>("");
+  const [albumId, setAlbumId] = useState<string>("");
 
   // Shared metadata defaults
   const [defaultMediaType, setDefaultMediaType] = useState<MediaType>("music");
@@ -261,6 +264,11 @@ function BatchUploadPage() {
       setGlobalError("Choose an artist profile first.");
       return;
     }
+    const needsAlbum = drafts.some((d) => d.selected && d.mediaType === "music");
+    if (needsAlbum && !albumId) {
+      setGlobalError("Pick an album for the music tracks.");
+      return;
+    }
     setGlobalError(null);
     setSubmitSummary(null);
 
@@ -309,6 +317,9 @@ function BatchUploadPage() {
             audio_path: d.audioPath!,
             artwork_path: artworkPath,
             status: "pending_review",
+            album_id: d.mediaType === "music" ? albumId : null,
+            track_number:
+              d.mediaType === "music" ? await nextTrackNumber(albumId) : null,
           })
           .select("id")
           .single();
