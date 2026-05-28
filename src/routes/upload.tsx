@@ -14,6 +14,8 @@ import {
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
+import { AlbumPicker } from "@/components/AlbumPicker";
+import { nextTrackNumber } from "@/lib/album-helpers";
 
 type ArtistProfile = {
   id: string;
@@ -81,6 +83,8 @@ function UploadPage() {
   const [description, setDescription] = useState("");
   const [audio, setAudio] = useState<File | null>(null);
   const [artwork, setArtwork] = useState<File | null>(null);
+  const [albumId, setAlbumId] = useState<string>("");
+  const [trackNumberInput, setTrackNumberInput] = useState<string>("");
 
   const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
   const [phase, setPhase] = useState<"" | "presign" | "audio" | "artwork" | "complete">("");
@@ -141,7 +145,8 @@ function UploadPage() {
     !!audio &&
     !audioError &&
     !!artwork &&
-    !artworkError;
+    !artworkError &&
+    (mediaType !== "music" || !!albumId);
 
   function resetForm() {
     setMediaType("");
@@ -149,6 +154,8 @@ function UploadPage() {
     setDescription("");
     setAudio(null);
     setArtwork(null);
+    setAlbumId("");
+    setTrackNumberInput("");
     setStatus("idle");
     setPhase("");
     setAudioPct(0);
@@ -224,6 +231,14 @@ function UploadPage() {
 
       setPhase("complete");
       const primaryId = profileIds[0];
+      const isMusic = mediaType === "music";
+      let resolvedTrackNumber: number | null = null;
+      if (isMusic && albumId) {
+        const parsed = parseInt(trackNumberInput, 10);
+        resolvedTrackNumber = Number.isFinite(parsed) && parsed > 0
+          ? parsed
+          : await nextTrackNumber(albumId);
+      }
       const { data: inserted, error: insertErr } = await supabase
         .from("submissions")
         .insert({
@@ -235,6 +250,8 @@ function UploadPage() {
           audio_path: audioPath,
           artwork_path: artworkPath,
           status: "pending_review",
+          album_id: isMusic ? albumId : null,
+          track_number: isMusic ? resolvedTrackNumber : null,
         })
         .select("id")
         .single();
