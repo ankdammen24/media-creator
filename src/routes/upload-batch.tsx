@@ -96,14 +96,13 @@ function BatchUploadPage() {
   const [profilesLoading, setProfilesLoading] = useState(true);
   const [profilesError, setProfilesError] = useState<string | null>(null);
   const [profileId, setProfileId] = useState<string>("");
-  const [albumId, setAlbumId] = useState<string>("");
+  const [showId, setShowId] = useState<string>("");
 
   useEffect(() => {
-    setAlbumId("");
+    setShowId("");
   }, [profileId]);
 
   // Shared metadata defaults
-  const [defaultMediaType, setDefaultMediaType] = useState<MediaType>("music");
   const [sharedArtwork, setSharedArtwork] = useState<File | null>(null);
   const [sharedArtworkError, setSharedArtworkError] = useState<string | null>(null);
   const [sharedAiOpen, setSharedAiOpen] = useState(false);
