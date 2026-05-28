@@ -235,6 +235,31 @@ export function AdminAutoArtwork() {
         </button>
       </div>
 
+      <div className="rounded-xl border border-border bg-card p-5">
+        <div className="mb-3 flex items-center gap-2">
+          <Disc className="h-4 w-4 text-primary" />
+          <h2 className="text-base font-semibold">Regenerera singel-omslag</h2>
+        </div>
+        <p className="mb-4 text-sm text-muted-foreground">
+          Hämtar nya omslag för alla singlar och skriver över befintliga. Söker iTunes → Deezer →
+          MusicBrainz/Cover Art Archive (verifierat på artist + titel), annars genereras ett unikt
+          AI-omslag (förbrukar AI-credits). Både singelns omslag och dess låt-omslag uppdateras. Max
+          100 per körning.
+        </p>
+        <button
+          onClick={runRegenerateSingles}
+          disabled={busy !== null}
+          className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+        >
+          {busy === "singles" ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <Disc className="h-3.5 w-3.5" />
+          )}
+          Regenerera singel-omslag
+        </button>
+      </div>
+
       {error && (
         <div className="rounded-xl border border-destructive bg-destructive/10 p-4 text-sm text-destructive">
           {error}
