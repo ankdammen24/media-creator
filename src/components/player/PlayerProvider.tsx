@@ -17,6 +17,8 @@ export type PlayerTrack = {
   artistId: string | null;
   artworkPath: string;
   audioPath: string;
+  /** Optional smaller AAC/M4A web variant; preferred for playback when present. */
+  webAudioPath?: string | null;
   mediaType: "music" | "podcast";
 };
 
@@ -130,7 +132,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     const { data, error } = await supabase
       .from("submissions")
       .select(
-        "id, title, artwork_path, audio_path, media_type, artist_profiles!submissions_artist_profile_id_fkey(id, name), albums(artwork_path)",
+        "id, title, artwork_path, audio_path, audio_web_path, media_type, artist_profiles!submissions_artist_profile_id_fkey(id, name), albums(artwork_path)",
       )
       .eq("status", "approved")
       .eq("media_type", "music")
@@ -142,6 +144,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       title: string;
       artwork_path: string;
       audio_path: string;
+      audio_web_path: string | null;
       media_type: "music" | "podcast";
       artist_profiles: { id: string; name: string } | null;
       albums: { artwork_path: string | null } | null;
@@ -155,6 +158,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
         artistId: r.artist_profiles?.id ?? null,
         artworkPath: r.albums?.artwork_path ?? r.artwork_path,
         audioPath: r.audio_path,
+        webAudioPath: r.audio_web_path,
         mediaType: r.media_type,
       }));
     // Fisher–Yates shuffle
@@ -190,9 +194,12 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       void buildRandomQueue(track.id);
       setHistory([]);
     }
+    // Prefer the smaller AAC/M4A web variant when available — falls back
+    // to the original upload for tracks that haven't been processed yet.
+    const playbackPath = track.webAudioPath || track.audioPath;
     const { data, error } = await supabase.storage
       .from("audio")
-      .createSignedUrl(track.audioPath, 3600);
+      .createSignedUrl(playbackPath, 3600);
     if (error || !data) {
       setIsLoading(false);
       return;

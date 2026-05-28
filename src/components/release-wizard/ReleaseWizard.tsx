@@ -10,6 +10,8 @@ import {
   type ReactNode,
 } from "react";
 import { useNavigate } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
+import { enqueueAudioProcessing } from "@/lib/audio-processing.functions";
 import {
   Check,
   ChevronLeft,
@@ -267,6 +269,7 @@ type StepId = (typeof STEPS)[number]["id"];
 export function ReleaseWizard() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const enqueueAudio = useServerFn(enqueueAudioProcessing);
   const [state, dispatch] = useReducer(reducer, undefined, initialState);
   const [step, setStep] = useState<StepId>(1);
   const [profiles, setProfiles] = useState<ArtistProfile[]>([]);
@@ -479,6 +482,9 @@ export function ReleaseWizard() {
             is_primary: true,
             position: 0,
           });
+          void enqueueAudio({ data: { submissionId: inserted.id } }).catch(
+            (e) => console.warn("enqueueAudioProcessing failed:", e),
+          );
         }
       }
 

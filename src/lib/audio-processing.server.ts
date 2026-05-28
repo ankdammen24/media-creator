@@ -12,8 +12,8 @@ export type EmbedMetadata = {
   artist?: string | null;
   album?: string | null;
   album_artist?: string | null;
-  track?: string | null;
-  date?: string | null;
+  track_number?: string | null;
+  release_date?: string | null;
   genre?: string | null;
   isrc?: string | null;
   upc?: string | null;
@@ -22,11 +22,13 @@ export type EmbedMetadata = {
 
 export type WorkerJob = {
   submissionId: string;
-  sourceUrl: string;
+  ownerId: string;
+  storageProvider: "supabase";
+  downloadUrl: string;
   masterPath: string;
   webPath: string;
   callbackUrl: string;
-  embed: EmbedMetadata;
+  metadata: EmbedMetadata;
   loudnorm: { i: number; tp: number; lra: number };
   force?: boolean;
 };
@@ -68,8 +70,8 @@ export async function buildEmbedMetadata(submissionId: string): Promise<{
       artist: artistRel?.name ?? null,
       album_artist: artistRel?.name ?? null,
       album: albumRel?.title ?? null,
-      track: sub.track_number != null ? String(sub.track_number) : null,
-      date: albumRel?.release_date ?? null,
+      track_number: sub.track_number != null ? String(sub.track_number) : null,
+      release_date: albumRel?.release_date ?? null,
       genre: albumRel?.genre ?? null,
       isrc: sub.isrc ?? null,
       upc: albumRel?.upc ?? null,
@@ -118,11 +120,13 @@ export async function dispatchToWorker(submissionId: string, opts?: { force?: bo
 
   const job: WorkerJob = {
     submissionId,
-    sourceUrl: signed.signedUrl,
+    ownerId,
+    storageProvider: "supabase",
+    downloadUrl: signed.signedUrl,
     masterPath,
     webPath,
     callbackUrl,
-    embed,
+    metadata: embed,
     loudnorm: { i: -23, tp: -1, lra: 11 },
     force: opts?.force,
   };
