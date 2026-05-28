@@ -586,7 +586,17 @@ function UploadPage() {
             </div>
           )}
           <p className="mb-3 text-xs text-muted-foreground">
-            Submitting as <strong className="text-foreground">{selectedProfile?.name ?? "—"}</strong>. Your upload will be reviewed before going live.
+            Submitting as{" "}
+            <strong className="text-foreground">{primaryProfile?.name ?? "—"}</strong>
+            {selectedProfiles.length > 1 && (
+              <>
+                {" "}feat.{" "}
+                <strong className="text-foreground">
+                  {selectedProfiles.slice(1).map((p) => p.name).join(", ")}
+                </strong>
+              </>
+            )}
+            . Your upload will be reviewed before going live.
           </p>
           <button
             type="submit"
