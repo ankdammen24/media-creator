@@ -1,4 +1,4 @@
-import { Pause, Play, X, Music2, Mic } from "lucide-react";
+import { Pause, Play, X, Music2, Mic, SkipBack, SkipForward, Square } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { usePlayer } from "./PlayerProvider";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,7 +11,19 @@ function fmt(seconds: number) {
 }
 
 export function MiniPlayer() {
-  const { current, isPlaying, progress, duration, toggle, seek, close } = usePlayer();
+  const {
+    current,
+    isPlaying,
+    progress,
+    duration,
+    toggle,
+    seek,
+    close,
+    skipNext,
+    skipPrev,
+    hasNext,
+    hasPrev,
+  } = usePlayer();
   if (!current) return null;
 
   const artUrl = supabase.storage.from("artwork").getPublicUrl(current.artworkPath).data.publicUrl;
@@ -19,11 +31,11 @@ export function MiniPlayer() {
 
   return (
     <div className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-card/85 backdrop-blur-lg">
-      <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-2.5 sm:px-6">
+      <div className="mx-auto flex max-w-7xl items-center gap-2 px-3 py-2.5 sm:gap-3 sm:px-6">
         <img
           src={artUrl}
           alt=""
-          className="h-12 w-12 flex-shrink-0 rounded-md object-cover"
+          className="h-11 w-11 flex-shrink-0 rounded-md object-cover sm:h-12 sm:w-12"
         />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-muted-foreground">
@@ -50,23 +62,51 @@ export function MiniPlayer() {
           ) : null}
         </div>
 
-        <button
-          type="button"
-          onClick={toggle}
-          aria-label={isPlaying ? "Pause" : "Play"}
-          className="inline-flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition hover:opacity-90"
-        >
-          {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5 translate-x-[1px]" />}
-        </button>
-
-        <button
-          type="button"
-          onClick={close}
-          aria-label="Close player"
-          className="hidden h-9 w-9 flex-shrink-0 items-center justify-center rounded-md text-muted-foreground transition hover:bg-secondary hover:text-foreground sm:inline-flex"
-        >
-          <X className="h-4 w-4" />
-        </button>
+        <div className="flex flex-shrink-0 items-center gap-0.5 sm:gap-1">
+          <button
+            type="button"
+            onClick={skipPrev}
+            disabled={!hasPrev}
+            aria-label="Föregående"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-md text-foreground transition hover:bg-secondary disabled:opacity-30"
+          >
+            <SkipBack className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={toggle}
+            aria-label={isPlaying ? "Pause" : "Play"}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground transition hover:opacity-90"
+          >
+            {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5 translate-x-[1px]" />}
+          </button>
+          <button
+            type="button"
+            onClick={skipNext}
+            disabled={!hasNext}
+            aria-label="Nästa"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-md text-foreground transition hover:bg-secondary disabled:opacity-30"
+          >
+            <SkipForward className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={close}
+            aria-label="Stoppa"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition hover:bg-secondary hover:text-foreground"
+            title="Stoppa"
+          >
+            <Square className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={close}
+            aria-label="Stäng spelare"
+            className="hidden h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition hover:bg-secondary hover:text-foreground sm:inline-flex"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
       {/* Progress bar */}

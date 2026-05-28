@@ -27,11 +27,14 @@ type PlayerContextValue = {
   progress: number;
   duration: number;
   play: (track: PlayerTrack) => void;
+  playQueue: (tracks: PlayerTrack[], startIndex?: number) => void;
   toggle: () => void;
   seek: (seconds: number) => void;
   close: () => void;
   skipNext: () => void;
+  skipPrev: () => void;
   hasNext: boolean;
+  hasPrev: boolean;
 };
 
 const PlayerContext = createContext<PlayerContextValue | null>(null);
@@ -51,12 +54,21 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const [queue, setQueue] = useState<PlayerTrack[]>([]);
+  const [history, setHistory] = useState<PlayerTrack[]>([]);
   // Refs let event handlers read current values without re-binding listeners
   const queueRef = useRef<PlayerTrack[]>([]);
+  const historyRef = useRef<PlayerTrack[]>([]);
+  const currentRef = useRef<PlayerTrack | null>(null);
   const userRef = useRef(user);
   useEffect(() => {
     queueRef.current = queue;
   }, [queue]);
+  useEffect(() => {
+    historyRef.current = history;
+  }, [history]);
+  useEffect(() => {
+    currentRef.current = current;
+  }, [current]);
   useEffect(() => {
     userRef.current = user;
   }, [user]);
@@ -79,6 +91,8 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       // Auto-advance from the anon random queue
       const next = queueRef.current[0];
       if (next) {
+        const prev = currentRef.current;
+        if (prev) setHistory((h) => [...h, prev]);
         setQueue((q) => q.slice(1));
         // Defer to next tick so React state settles before play()
         void playTrackRef.current?.(next, { keepQueue: true });
@@ -178,6 +192,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       } else {
         setQueue([]);
       }
+      setHistory([]);
     }
     const { data, error } = await supabase.storage
       .from("audio")
@@ -198,11 +213,37 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     playTrackRef.current = play;
   }, [play]);
 
+  const playQueue = useCallback(
+    (tracks: PlayerTrack[], startIndex = 0) => {
+      if (tracks.length === 0) return;
+      const idx = Math.max(0, Math.min(startIndex, tracks.length - 1));
+      const first = tracks[idx];
+      const rest = tracks.slice(idx + 1);
+      const before = tracks.slice(0, idx);
+      setHistory(before);
+      setQueue(rest);
+      void play(first, { keepQueue: true });
+    },
+    [play],
+  );
+
   const skipNext = useCallback(() => {
     const next = queueRef.current[0];
     if (!next) return;
+    const prev = currentRef.current;
+    if (prev) setHistory((h) => [...h, prev]);
     setQueue((q) => q.slice(1));
     void play(next, { keepQueue: true });
+  }, [play]);
+
+  const skipPrev = useCallback(() => {
+    const hist = historyRef.current;
+    if (hist.length === 0) return;
+    const prev = hist[hist.length - 1];
+    const cur = currentRef.current;
+    setHistory((h) => h.slice(0, -1));
+    if (cur) setQueue((q) => [cur, ...q]);
+    void play(prev, { keepQueue: true });
   }, [play]);
 
   const toggle = useCallback(() => {
@@ -230,6 +271,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     setProgress(0);
     setDuration(0);
     setQueue([]);
+    setHistory([]);
   }, []);
 
   const value = useMemo<PlayerContextValue>(
@@ -240,13 +282,16 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       progress,
       duration,
       play,
+      playQueue,
       toggle,
       seek,
       close,
       skipNext,
+      skipPrev,
       hasNext: queue.length > 0,
+      hasPrev: history.length > 0,
     }),
-    [current, isPlaying, isLoading, progress, duration, play, toggle, seek, close, skipNext, queue.length],
+    [current, isPlaying, isLoading, progress, duration, play, playQueue, toggle, seek, close, skipNext, skipPrev, queue.length, history.length],
   );
 
   return <PlayerContext.Provider value={value}>{children}</PlayerContext.Provider>;
