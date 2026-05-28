@@ -24,7 +24,6 @@ import {
   EditSubmissionDialog,
   type EditableSubmission,
 } from "@/components/SubmissionActions";
-import { useAuth as _useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/artists/$artistId")({
   head: () => ({
