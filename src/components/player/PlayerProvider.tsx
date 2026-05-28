@@ -41,6 +41,10 @@ type PlayerContextValue = {
 
 const PlayerContext = createContext<PlayerContextValue | null>(null);
 
+/** Crossfade length between music tracks. */
+const CROSSFADE_SEC = 2.5;
+const CROSSFADE_MS = CROSSFADE_SEC * 1000;
+
 export function usePlayer() {
   const ctx = useContext(PlayerContext);
   if (!ctx) throw new Error("usePlayer must be used within PlayerProvider");
