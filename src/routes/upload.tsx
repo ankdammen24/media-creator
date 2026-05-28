@@ -16,6 +16,8 @@ import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { AlbumPicker } from "@/components/AlbumPicker";
 import { nextTrackNumber } from "@/lib/album-helpers";
+import { useServerFn } from "@tanstack/react-start";
+import { autoFetchArtistArtwork } from "@/lib/artwork.functions";
 
 type ArtistProfile = {
   id: string;
