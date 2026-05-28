@@ -59,7 +59,7 @@ async function fetchApproved(): Promise<CatalogItem[]> {
   const { data, error } = await supabase
     .from("submissions")
     .select(
-      "id, title, description, media_type, artwork_path, audio_path, created_at, artist_profile_id, artist_profiles(id, name)",
+      "id, title, description, media_type, artwork_path, audio_path, created_at, artist_profile_id, artist_profiles!submissions_artist_profile_id_fkey(id, name)",
     )
     .eq("status", "approved")
     .order("created_at", { ascending: false });
