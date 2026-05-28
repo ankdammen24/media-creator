@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Search, Music2, Mic, User as UserIcon } from "lucide-react";
+import { Search, Music2, Mic, User as UserIcon, Disc3 } from "lucide-react";
 import {
   CommandDialog,
   CommandEmpty,
@@ -24,47 +24,52 @@ type SubmissionHit = {
 type ArtistHit = {
   id: string;
   name: string;
-  bio: string | null;
+};
+
+type AlbumHit = {
+  id: string;
+  title: string;
+  artwork_path: string | null;
+  artist_profiles: { id: string; name: string } | null;
 };
 
 function artworkUrl(path: string) {
   return supabase.storage.from("artwork").getPublicUrl(path).data.publicUrl;
 }
 
-async function runSearch(q: string): Promise<{ submissions: SubmissionHit[]; artists: ArtistHit[] }> {
+async function runSearch(q: string): Promise<{
+  submissions: SubmissionHit[];
+  albums: AlbumHit[];
+  artists: ArtistHit[];
+}> {
   const like = `%${q.replace(/[%_]/g, (m) => `\\${m}`)}%`;
 
-  const [byFields, byArtist, artists] = await Promise.all([
+  const [submissions, albums, artists] = await Promise.all([
     supabase
       .from("submissions")
       .select("id, title, description, media_type, artwork_path, artist_profiles!submissions_artist_profile_id_fkey(id, name)")
       .eq("status", "approved")
-      .or(`title.ilike.${like},description.ilike.${like}`)
+      .ilike("title", like)
       .limit(10),
     supabase
-      .from("submissions")
-      .select("id, title, description, media_type, artwork_path, artist_profiles!submissions_artist_profile_id_fkey!inner(id, name)")
-      .eq("status", "approved")
-      .ilike("artist_profiles!submissions_artist_profile_id_fkey.name", like)
+      .from("albums")
+      .select("id, title, artwork_path, artist_profiles(id, name)")
+      .ilike("title", like)
       .limit(10),
     supabase
       .from("artist_profiles")
-      .select("id, name, bio")
-      .or(`name.ilike.${like},bio.ilike.${like}`)
+      .select("id, name")
+      .ilike("name", like)
       .limit(10),
   ]);
 
-  if (byFields.error) throw byFields.error;
-  if (byArtist.error) throw byArtist.error;
+  if (submissions.error) throw submissions.error;
+  if (albums.error) throw albums.error;
   if (artists.error) throw artists.error;
 
-  const map = new Map<string, SubmissionHit>();
-  for (const row of [...(byFields.data ?? []), ...(byArtist.data ?? [])] as unknown as SubmissionHit[]) {
-    if (!map.has(row.id)) map.set(row.id, row);
-  }
-
   return {
-    submissions: Array.from(map.values()).slice(0, 10),
+    submissions: (submissions.data ?? []) as unknown as SubmissionHit[],
+    albums: (albums.data ?? []) as unknown as AlbumHit[],
     artists: (artists.data ?? []) as ArtistHit[],
   };
 }
@@ -135,17 +140,75 @@ export function GlobalSearch() {
         <CommandInput
           value={input}
           onValueChange={setInput}
-          placeholder="Sök titlar, artister, beskrivningar…"
+          placeholder="Sök artist, album eller låt…"
         />
         <CommandList>
           {!enabled ? (
             <CommandEmpty>Skriv minst 2 tecken för att söka.</CommandEmpty>
           ) : isFetching && !data ? (
             <CommandEmpty>Söker…</CommandEmpty>
-          ) : (data?.submissions.length ?? 0) + (data?.artists.length ?? 0) === 0 ? (
+          ) : (data?.submissions.length ?? 0) + (data?.albums.length ?? 0) + (data?.artists.length ?? 0) === 0 ? (
             <CommandEmpty>Inga träffar.</CommandEmpty>
           ) : (
             <>
+              {data && data.artists.length > 0 && (
+                <CommandGroup heading="Artister">
+                  {data.artists.map((a) => (
+                    <CommandItem
+                      key={a.id}
+                      value={`artist-${a.id}-${a.name}`}
+                      onSelect={() =>
+                        go(() =>
+                          navigate({
+                            to: "/artists/$artistId",
+                            params: { artistId: a.id },
+                          }),
+                        )
+                      }
+                    >
+                      <UserIcon className="h-4 w-4 text-muted-foreground" />
+                      <div className="flex min-w-0 flex-col">
+                        <span className="truncate text-sm">{a.name}</span>
+                      </div>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              )}
+              {data && data.albums.length > 0 && (
+                <CommandGroup heading="Album">
+                  {data.albums.map((al) => (
+                    <CommandItem
+                      key={al.id}
+                      value={`album-${al.id}-${al.title}-${al.artist_profiles?.name ?? ""}`}
+                      onSelect={() =>
+                        go(() =>
+                          navigate({
+                            to: "/albums/$albumId",
+                            params: { albumId: al.id },
+                          }),
+                        )
+                      }
+                    >
+                      {al.artwork_path ? (
+                        <img
+                          src={artworkUrl(al.artwork_path)}
+                          alt=""
+                          className="h-8 w-8 rounded object-cover"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <Disc3 className="h-4 w-4 text-muted-foreground" />
+                      )}
+                      <div className="flex min-w-0 flex-col">
+                        <span className="truncate text-sm">{al.title}</span>
+                        <span className="truncate text-xs text-muted-foreground">
+                          {al.artist_profiles?.name ?? "Okänd artist"}
+                        </span>
+                      </div>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              )}
               {data && data.submissions.length > 0 && (
                 <CommandGroup heading="Spår & podd">
                   {data.submissions.map((s) => (
@@ -176,32 +239,6 @@ export function GlobalSearch() {
                         <span className="truncate text-xs text-muted-foreground">
                           {s.artist_profiles?.name ?? "Okänd artist"}
                         </span>
-                      </div>
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              )}
-              {data && data.artists.length > 0 && (
-                <CommandGroup heading="Artister">
-                  {data.artists.map((a) => (
-                    <CommandItem
-                      key={a.id}
-                      value={`artist-${a.id}-${a.name}`}
-                      onSelect={() =>
-                        go(() =>
-                          navigate({
-                            to: "/artists/$artistId",
-                            params: { artistId: a.id },
-                          }),
-                        )
-                      }
-                    >
-                      <UserIcon className="h-4 w-4 text-muted-foreground" />
-                      <div className="flex min-w-0 flex-col">
-                        <span className="truncate text-sm">{a.name}</span>
-                        {a.bio && (
-                          <span className="truncate text-xs text-muted-foreground">{a.bio}</span>
-                        )}
                       </div>
                     </CommandItem>
                   ))}
