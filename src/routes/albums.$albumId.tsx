@@ -16,6 +16,7 @@ import {
 import { EmptyState, ErrorState } from "@/components/StateViews";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { useEditorRole } from "@/lib/useEditorRole";
 import { PlayButton } from "@/components/player/PlayButton";
 import { usePlayer, type PlayerTrack } from "@/components/player/PlayerProvider";
 import {
@@ -52,7 +53,6 @@ type AlbumData = {
   album: Album | null;
   artist: ArtistMini;
   tracks: Track[];
-  isAdmin: boolean;
 };
 
 function publicArt(path: string | null | undefined) {
@@ -63,6 +63,7 @@ function publicArt(path: string | null | undefined) {
 function AlbumPage() {
   const { albumId } = Route.useParams();
   const { user } = useAuth();
+  const { isEditor } = useEditorRole();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const player = usePlayer();
@@ -70,22 +71,15 @@ function AlbumPage() {
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ["album", albumId, user?.id],
+    queryKey: ["album", albumId, user?.id, isEditor],
     queryFn: async (): Promise<AlbumData> => {
-      const [albumRes, isAdminRes] = await Promise.all([
-        supabase.from("albums").select("*").eq("id", albumId).maybeSingle(),
-        user
-          ? supabase
-              .from("user_roles")
-              .select("role")
-              .eq("user_id", user.id)
-              .eq("role", "admin")
-              .maybeSingle()
-          : Promise.resolve({ data: null, error: null } as const),
-      ]);
+      const albumRes = await supabase
+        .from("albums")
+        .select("*")
+        .eq("id", albumId)
+        .maybeSingle();
       if (albumRes.error) throw albumRes.error;
       const album = (albumRes.data as Album | null) ?? null;
-      const isAdmin = !!(isAdminRes && "data" in isAdminRes && isAdminRes.data);
       let artist: ArtistMini = null;
       let tracks: Track[] = [];
       if (album) {
@@ -104,7 +98,7 @@ function AlbumPage() {
               )
               .eq("album_id", album.id)
               .order("track_number", { ascending: true });
-            if (!isOwner && !isAdmin) q = q.eq("status", "approved");
+            if (!isOwner && !isEditor) q = q.eq("status", "approved");
             return q;
           })(),
         ]);
@@ -113,12 +107,12 @@ function AlbumPage() {
         artist = (artistRes.data as ArtistMini) ?? null;
         tracks = (tracksRes.data ?? []) as Track[];
       }
-      return { album, artist, tracks, isAdmin };
+      return { album, artist, tracks };
     },
   });
 
   const album = data?.album ?? null;
-  const canEdit = !!album && (!!user && (user.id === album.user_id || !!data?.isAdmin));
+  const canEdit = !!album && !!user && (user.id === album.user_id || isEditor);
 
   async function handleDelete() {
     if (!album) return;
