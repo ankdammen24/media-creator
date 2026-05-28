@@ -656,6 +656,7 @@ function SortableTrackRow({
             {track.status.replace("_", " ")}
           </p>
         )}
+        <EditorTrackMeta meta={track} />
       </div>
       {canEditTrack && <EditButton onClick={onEdit} />}
       <Music2 className="hidden h-4 w-4 text-muted-foreground sm:block" />
