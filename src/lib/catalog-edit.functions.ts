@@ -93,6 +93,20 @@ export const updateAlbum = createServerFn({ method: "POST" })
     if (!existing) throw new Error("Album saknas.");
     await assertCatalogEditor(userId, existing.user_id);
 
+    // Om albumet pekas om till en annan artistprofil måste anroparen
+    // också äga den nya artistprofilen (eller vara admin). Annars kan en
+    // användare flytta sitt album in i en annan artists katalog.
+    if (data.patch.artist_profile_id) {
+      const { data: targetArtist, error: taErr } = await supabaseAdmin
+        .from("artist_profiles")
+        .select("id, user_id")
+        .eq("id", data.patch.artist_profile_id)
+        .maybeSingle();
+      if (taErr) throw new Error(taErr.message);
+      if (!targetArtist) throw new Error("Målartist saknas.");
+      await assertCatalogEditor(userId, targetArtist.user_id);
+    }
+
     const { data: updated, error } = await supabaseAdmin
       .from("albums")
       .update(data.patch)
