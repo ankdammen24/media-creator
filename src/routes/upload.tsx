@@ -86,6 +86,12 @@ function UploadPage() {
   const [albumId, setAlbumId] = useState<string>("");
   const [trackNumberInput, setTrackNumberInput] = useState<string>("");
 
+  // Reset album when artist or media type changes
+  useEffect(() => {
+    setAlbumId("");
+    setTrackNumberInput("");
+  }, [profileIds[0], mediaType]);
+
   const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
   const [phase, setPhase] = useState<"" | "presign" | "audio" | "artwork" | "complete">("");
   const [audioPct, setAudioPct] = useState(0);
