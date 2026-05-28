@@ -373,6 +373,14 @@ function BatchUploadPage() {
         <p className="mt-1 text-sm text-muted-foreground">
           Upload multiple audio files at once, fill in metadata for each, then submit the ones you&rsquo;re ready with.
         </p>
+        <div className="mt-4 flex items-start gap-3 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+          <p>
+            <span className="font-semibold">Demo-läge.</span> Det du laddar upp
+            sparas i Media Rosenqvist Catalog och skickas till Radio Uppsala.
+            Distribution till Spotify, Apple Music m.fl. är inte aktiv.
+          </p>
+        </div>
       </div>
 
       {/* Profile */}
