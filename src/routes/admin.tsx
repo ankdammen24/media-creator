@@ -78,13 +78,31 @@ function AdminGate() {
 }
 
 function ArtistsAdmin() {
+  return <ArtistsAdminInner />;
+}
+
+function AccountStatusBadge({ status }: { status: "pending" | "approved" | "rejected" }) {
+  const map = {
+    approved: { label: "Godkänd", cls: "bg-primary/10 text-primary" },
+    pending: { label: "Väntande", cls: "bg-amber-500/10 text-amber-600 dark:text-amber-400" },
+    rejected: { label: "Avvisad", cls: "bg-destructive/10 text-destructive" },
+  } as const;
+  const m = map[status] ?? map.pending;
+  return (
+    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${m.cls}`}>
+      {m.label}
+    </span>
+  );
+}
+
+function ArtistsAdminInner() {
   const qc = useQueryClient();
   const { data: artists, isLoading, refetch } = useQuery({
     queryKey: ["admin-artists"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("artist_profiles")
-        .select("id, name, bio, user_id")
+        .select("id, name, bio, user_id, approval_status, rejection_reason")
         .order("name");
       if (error) throw error;
       return data ?? [];
@@ -186,6 +204,29 @@ function ArtistsAdmin() {
     qc.invalidateQueries({ queryKey: ["catalog"] });
   }
 
+  async function moderateAccount(
+    artistId: string,
+    next: "approved" | "rejected",
+  ) {
+    let reason: string | null = null;
+    if (next === "rejected") {
+      reason = window.prompt("Orsak till avslag (visas för artisten):", "") || null;
+    }
+    const { error } = await supabase
+      .from("artist_profiles")
+      .update({
+        approval_status: next,
+        rejection_reason: next === "rejected" ? reason : null,
+      })
+      .eq("id", artistId);
+    if (error) {
+      window.alert(error.message);
+      return;
+    }
+    await refetch();
+    qc.invalidateQueries({ queryKey: ["catalog"] });
+  }
+
   if (isLoading) {
     return (
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -194,8 +235,51 @@ function ArtistsAdmin() {
     );
   }
 
+  const pendingArtists = (artists ?? []).filter(
+    (a) => a.approval_status === "pending",
+  );
+
   return (
     <div className="space-y-6">
+    {pendingArtists.length > 0 && (
+      <div className="rounded-xl border border-primary/40 bg-primary/5 p-4">
+        <h3 className="mb-3 text-sm font-semibold">
+          Väntande artistansökningar ({pendingArtists.length})
+        </h3>
+        <ul className="space-y-3">
+          {pendingArtists.map((a) => (
+            <li
+              key={a.id}
+              className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4 sm:flex-row sm:items-center sm:justify-between"
+            >
+              <div className="min-w-0">
+                <h4 className="truncate text-base font-semibold">{a.name}</h4>
+                {a.bio && (
+                  <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{a.bio}</p>
+                )}
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  Sökande: {users?.find((u) => u.user_id === a.user_id)?.display_name ?? a.user_id}
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  onClick={() => moderateAccount(a.id, "approved")}
+                  className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+                >
+                  <CheckCircle2 className="h-3.5 w-3.5" /> Godkänn
+                </button>
+                <button
+                  onClick={() => moderateAccount(a.id, "rejected")}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs font-medium hover:bg-secondary"
+                >
+                  <XCircle className="h-3.5 w-3.5" /> Avslå
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
+    )}
     <ul className="space-y-3">
       {(artists ?? []).map((a) => (
         <li
@@ -203,12 +287,31 @@ function ArtistsAdmin() {
           className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 sm:flex-row sm:items-center sm:justify-between"
         >
           <div className="min-w-0">
-            <h3 className="truncate text-base font-semibold">{a.name}</h3>
+            <div className="flex items-center gap-2">
+              <h3 className="truncate text-base font-semibold">{a.name}</h3>
+              <AccountStatusBadge status={a.approval_status} />
+            </div>
             <p className="text-xs text-muted-foreground">
               Owner: {users?.find((u) => u.user_id === a.user_id)?.display_name ?? a.user_id}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            {a.approval_status !== "approved" && (
+              <button
+                onClick={() => moderateAccount(a.id, "approved")}
+                className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+              >
+                <CheckCircle2 className="h-3.5 w-3.5" /> Godkänn
+              </button>
+            )}
+            {a.approval_status === "approved" && (
+              <button
+                onClick={() => moderateAccount(a.id, "rejected")}
+                className="rounded-md border border-border px-3 py-1.5 text-xs font-medium hover:bg-secondary"
+              >
+                Återkalla
+              </button>
+            )}
             <button
               onClick={() => rename(a.id, a.name)}
               className="rounded-md border border-border px-3 py-1.5 text-xs font-medium hover:bg-secondary"

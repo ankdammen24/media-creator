@@ -1,38 +1,57 @@
 ## Mål
 
-En 2,5 sekunders crossfade mellan musiklåtar i spelaren — både när en låt tar slut av sig själv och när man trycker nästa/föregående. Poddavsnitt byter direkt (ingen fade).
+Submit-knappen (musik) ska synas för **alla** i menyn. Klickflödet:
 
-## Bakgrund
+1. **Inte inloggad** → skickas till inloggning först.
+2. **Inloggad utan godkänt artistkonto** → får fylla i sina uppgifter och **ansöka** om ett artistkonto.
+3. **Ansökan måste godkännas av admin** innan man kan skicka in musik.
 
-Spelaren (`src/components/player/PlayerProvider.tsx`) använder idag **ett** `Audio`-element. En äkta crossfade kräver två ljudkällor som överlappar, så provider:n byggs om till en "två-deck"-modell.
+Submit förblir enbart för musik (flödet sätter redan `media_type = "music"`).
 
-## Ändringar (endast `PlayerProvider.tsx`)
+## Databas (migration)
 
-**Två ljudelement istället för ett**
-- Skapa två `Audio`-element (deck A och deck B). En ref pekar på vilket som är "aktivt" (driver progress/duration/UI).
-- Volym-ramp görs på `el.volume` via `requestAnimationFrame` (ingen Web Audio API — undviker CORS-problem med signerade URL:er).
+Lägg till godkännandestatus på `artist_profiles`:
 
-**Crossfade-logik**
-- En `crossfadeTo(nextTrack)`-funktion: hämtar signerad URL för nästa låt, startar det inaktiva decket på volym 0, och ramper under 2,5 s — aktiv deck `1 → 0`, ny deck `0 → 1`. När fadeen är klar pausas/nollställs gamla decket och rollerna byts.
-- Pågående fade kan avbrytas (avbryt rAF, sätt slutvolymer direkt) så snabba klick inte staplar fades.
+- Ny enum `artist_approval_status` med värdena `pending`, `approved`, `rejected`.
+- Ny kolumn `approval_status` (default `pending`, ej null) samt `reviewed_by`, `reviewed_at` och `rejection_reason`.
+- **Backfill:** alla befintliga artistprofiler sätts till `approved` så katalogen är oförändrad.
+- **Trigger** som skyddar mot självgodkännande:
+  - Vid skapande tvingas status till `pending` för icke-admins.
+  - Vid uppdatering kan endast admin ändra `approval_status` (icke-admins får statusfältet återställt till tidigare värde).
+- Admin kan redan läsa/uppdatera alla artistprofiler via befintliga RLS-regler.
 
-**När crossfade triggas**
-- *Automatiskt:* via `timeupdate` på aktiva decket — när `currentTime >= duration − 2.5` startas crossfaden till nästa i kön (en guard så den bara körs en gång per låt). Ersätter dagens `ended`-baserade auto-advance.
-- *Manuell skip:* `skipNext`/`skipPrev` använder samma `crossfadeTo`.
+## Frontend
 
-**Endast musik**
-- Om nuvarande eller nästa spår är `mediaType === "podcast"` görs ett hårt byte (som idag) utan fade.
-- Låtar kortare än ca 2,5 s, eller sista låten i kön, hanteras med hårt byte/normalt slut.
+**Menyn (`SiteHeader.tsx`)**
+- Flytta Submit-länken ut ur det inloggade blocket så den alltid visas (både desktop och mobil). Själva inloggningskravet hanteras av målsidan.
 
-**Övrigt som måste fortsätta funka**
-- `toggle`, `seek` agerar på det aktiva decket.
-- `close` stoppar och nollställer båda decken och avbryter ev. fade.
-- `progress`/`duration`-state följer alltid aktiva decket; lyssnare flyttas vid deck-byte.
-- Mobil autoplay: nästa deck startas i samma uppspelningskedja som redan är igång, så inga nya gesture-krav tillkommer.
+**Submit-sidan (`releases.new.tsx` + ny gate)**
+- Sidan ligger kvar bakom `ProtectedRoute` (ej inloggad → `/login`).
+- Ny komponent `ArtistAccountGate` runt wizarden som hämtar användarens artistprofiler med status:
+  - **Har godkänd profil** → visa release-wizarden som vanligt.
+  - **Har bara väntande ansökan** → visa meddelande "Din ansökan granskas av admin".
+  - **Har ingen profil** → visa ansökningsformuläret (namn, bio, webbplats/länkar) med tydlig text om att kontot godkänns av admin. Skapar en profil med status `pending`.
+
+**Release-wizarden (`ReleaseWizard.tsx`)**
+- Artistlistan filtreras till endast `approval_status = 'approved'`.
+
+**Ansökningssida (`artists.new.tsx`)**
+- Uppdateras till "Ansök om artistkonto": skapar en väntande profil och visar bekräftelse om att admin måste godkänna (istället för att direkt navigera till artistsidan).
+
+**Admin (`ArtistsAdmin` i `admin.tsx`)**
+- Hämta även `approval_status`.
+- Lägg en sektion överst för **väntande ansökningar** med Godkänn/Avslå-knappar (sätter status, `reviewed_by`, `reviewed_at`, ev. avslagsorsak).
+- Visa statusetikett på varje artist i listan.
+
+## Teknisk detalj
+
+- Självgodkännande förhindras i databasen via trigger, inte bara i UI:t — en inloggad användare kan annars sätta `approved` själv via API:et.
+- Publika katalog-/artistsidor påverkas inte: väntande artister har inga godkända släpp och syns därför inte publikt.
 
 ## Verifiering
 
-- Lyssna på den slumpade kön på startsidan: kontrollera mjuk 2,5 s-övergång vid låtslut.
-- Tryck nästa/föregående mitt i en låt → mjuk övergång.
-- Spela en podd → direkt byte utan fade.
-- Paus, sök i tidslinjen och stäng spelaren fungerar under och efter en fade.
+- Utloggad: Submit syns → klick leder till inloggning.
+- Inloggad utan profil: ser ansökningsformulär → ansökan skapas som `pending`.
+- Pending-konto: ser "under granskning", kan inte nå wizarden.
+- Admin: ser väntande ansökan, godkänner → användaren kan nu skicka in musik.
+- Befintliga artister i katalogen fungerar oförändrat (approved).
