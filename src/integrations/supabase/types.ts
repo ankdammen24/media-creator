@@ -478,7 +478,9 @@ export type Database = {
           artist_profile_id: string
           artwork_path: string
           atmos_audio_path: string | null
+          audio_master_path: string | null
           audio_path: string
+          audio_web_path: string | null
           azuracast_unique_id: string | null
           created_at: string
           description: string | null
@@ -490,10 +492,16 @@ export type Database = {
           id: string
           instrumental: boolean
           isrc: string | null
+          loudness_i: number | null
+          loudness_lra: number | null
           loudness_lufs: number | null
+          loudness_tp: number | null
           media_type: Database["public"]["Enums"]["media_type"]
           metadata_imported_at: string | null
           preview_start_seconds: number | null
+          processed_at: string | null
+          processing_error: string | null
+          processing_status: Database["public"]["Enums"]["audio_processing_status"]
           producers: string[]
           rejection_reason: string | null
           reviewed_at: string | null
@@ -515,7 +523,9 @@ export type Database = {
           artist_profile_id: string
           artwork_path: string
           atmos_audio_path?: string | null
+          audio_master_path?: string | null
           audio_path: string
+          audio_web_path?: string | null
           azuracast_unique_id?: string | null
           created_at?: string
           description?: string | null
@@ -527,10 +537,16 @@ export type Database = {
           id?: string
           instrumental?: boolean
           isrc?: string | null
+          loudness_i?: number | null
+          loudness_lra?: number | null
           loudness_lufs?: number | null
+          loudness_tp?: number | null
           media_type: Database["public"]["Enums"]["media_type"]
           metadata_imported_at?: string | null
           preview_start_seconds?: number | null
+          processed_at?: string | null
+          processing_error?: string | null
+          processing_status?: Database["public"]["Enums"]["audio_processing_status"]
           producers?: string[]
           rejection_reason?: string | null
           reviewed_at?: string | null
@@ -552,7 +568,9 @@ export type Database = {
           artist_profile_id?: string
           artwork_path?: string
           atmos_audio_path?: string | null
+          audio_master_path?: string | null
           audio_path?: string
+          audio_web_path?: string | null
           azuracast_unique_id?: string | null
           created_at?: string
           description?: string | null
@@ -564,10 +582,16 @@ export type Database = {
           id?: string
           instrumental?: boolean
           isrc?: string | null
+          loudness_i?: number | null
+          loudness_lra?: number | null
           loudness_lufs?: number | null
+          loudness_tp?: number | null
           media_type?: Database["public"]["Enums"]["media_type"]
           metadata_imported_at?: string | null
           preview_start_seconds?: number | null
+          processed_at?: string | null
+          processing_error?: string | null
+          processing_status?: Database["public"]["Enums"]["audio_processing_status"]
           producers?: string[]
           rejection_reason?: string | null
           reviewed_at?: string | null
@@ -638,6 +662,12 @@ export type Database = {
       app_role: "admin" | "moderator" | "user" | "artist"
       artist_image_kind: "avatar" | "cover" | "press"
       artist_image_visibility: "public" | "link_only"
+      audio_processing_status:
+        | "pending"
+        | "processing"
+        | "done"
+        | "failed"
+        | "skipped"
       media_type: "music" | "podcast"
       release_status:
         | "draft"
@@ -779,6 +809,13 @@ export const Constants = {
       app_role: ["admin", "moderator", "user", "artist"],
       artist_image_kind: ["avatar", "cover", "press"],
       artist_image_visibility: ["public", "link_only"],
+      audio_processing_status: [
+        "pending",
+        "processing",
+        "done",
+        "failed",
+        "skipped",
+      ],
       media_type: ["music", "podcast"],
       release_status: [
         "draft",
