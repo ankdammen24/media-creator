@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { parseWorkbook, matchRows } from "@/lib/catalog-import.server";
+import type { Json } from "@/integrations/supabase/types";
 
 async function assertAdmin(userId: string) {
   const { data, error } = await supabaseAdmin
@@ -177,7 +178,7 @@ export const applyCatalogImport = createServerFn({ method: "POST" })
           .from("import_rows")
           .update({
             match_status: Object.keys(appliedChanges).length > 0 ? "matched" : "skipped",
-            applied_changes: appliedChanges as unknown as Record<string, string>,
+            applied_changes: appliedChanges as unknown as Json,
           })
           .eq("id", row.id);
 
