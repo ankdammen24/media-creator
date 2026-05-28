@@ -269,7 +269,6 @@ type StepId = (typeof STEPS)[number]["id"];
 export function ReleaseWizard() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const enqueueAudio = useServerFn(enqueueAudioProcessing);
   const [state, dispatch] = useReducer(reducer, undefined, initialState);
   const [step, setStep] = useState<StepId>(1);
   const [profiles, setProfiles] = useState<ArtistProfile[]>([]);
