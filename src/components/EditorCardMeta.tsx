@@ -80,8 +80,6 @@ function buildTrackBadges(t: EditorTrackMeta): Badge[] {
   if (producers.length) b.push({ label: `Prod. ${producers.length}`, title: `Producers: ${producers.join(", ")}` });
   const feat = arr(t.featured_artists);
   if (feat.length) b.push({ label: `Feat. ${feat.length}`, title: `Featured: ${feat.join(", ")}` });
-  if (t.processing_status && t.processing_status !== "completed")
-    b.push({ label: t.processing_status.replace(/_/g, " "), tone: "accent" });
   return b;
 }
 
