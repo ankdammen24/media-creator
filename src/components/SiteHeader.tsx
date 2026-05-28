@@ -180,7 +180,7 @@ export function SiteHeader() {
                 <MobileNavLink to="/catalog" onSelect={() => setMenuOpen(false)}>Catalog</MobileNavLink>
                 <MobileNavLink to="/releases/new" onSelect={() => setMenuOpen(false)}>
                   <span className="inline-flex items-center gap-2 font-medium text-primary">
-                    <Send className="h-4 w-4" /> Submit release
+                    <Send className="h-4 w-4" /> Submit Music
                   </span>
                 </MobileNavLink>
                 {user ? (
