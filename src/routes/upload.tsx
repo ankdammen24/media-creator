@@ -84,7 +84,6 @@ function UploadPage() {
   const [newProfileBio, setNewProfileBio] = useState("");
   const [createBusy, setCreateBusy] = useState(false);
   const autoFetchArtistImage = useServerFn(autoFetchArtistArtwork);
-  const enqueueAudio = useServerFn(enqueueAudioProcessing);
 
   // Episode
   const [title, setTitle] = useState("");
