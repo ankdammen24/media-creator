@@ -1,6 +1,7 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import {
   Music2,
   ArrowLeft,
@@ -10,6 +11,7 @@ import {
   Twitter,
   Pencil,
   Disc3,
+  Trash2,
 } from "lucide-react";
 import { EmptyState, ErrorState } from "@/components/StateViews";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,6 +19,7 @@ import { useAuth } from "@/lib/auth";
 import { ArtistProfileEditor, type EditableArtist } from "@/components/ArtistProfileEditor";
 import { ArtistImageManager, type ArtistImage } from "@/components/ArtistImageManager";
 import { useEditorRole } from "@/lib/useEditorRole";
+import { deleteArtistProfile } from "@/lib/catalog-edit.functions";
 import { usePlayer, type PlayerTrack } from "@/components/player/PlayerProvider";
 import { ALBUM_TYPE_LABELS, type AlbumType } from "@/lib/album-helpers";
 import {
@@ -98,7 +101,11 @@ function ArtistPage() {
   const { user } = useAuth();
   const { isEditor } = useEditorRole();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [editing, setEditing] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const deleteArtistFn = useServerFn(deleteArtistProfile);
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["artist", artistId],
     queryFn: async (): Promise<ArtistData> => {
@@ -155,6 +162,23 @@ function ArtistPage() {
   const profile = data?.profile;
   const canEdit =
     !!user && !!profile && (profile.user_id === user.id || isEditor);
+
+  async function handleDeleteArtist() {
+    if (!profile) return;
+    const confirmed = window.confirm(
+      `Ta bort artisten "${profile.name}"? Alla album, låtar och bilder för artisten raderas permanent. Detta kan inte ångras.`,
+    );
+    if (!confirmed) return;
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      await deleteArtistFn({ data: { artistId: profile.id } });
+      navigate({ to: "/catalog" });
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : "Kunde inte ta bort artisten");
+      setDeleting(false);
+    }
+  }
   const images = data?.images ?? [];
   const primaryCover = images.find((i) => i.kind === "cover" && i.is_primary);
   const primaryAvatar = images.find((i) => i.kind === "avatar" && i.is_primary);
@@ -198,6 +222,24 @@ function ArtistPage() {
                 userId={profile.user_id}
                 artistName={profile.name}
               />
+              <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-5">
+                <h3 className="text-sm font-semibold text-destructive">Ta bort artist</h3>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Detta raderar artisten samt alla dess album, låtar och bilder permanent.
+                </p>
+                {deleteError && (
+                  <p className="mt-2 text-xs text-destructive">{deleteError}</p>
+                )}
+                <button
+                  type="button"
+                  onClick={handleDeleteArtist}
+                  disabled={deleting}
+                  className="mt-3 inline-flex items-center gap-1.5 rounded-md bg-destructive px-3 py-2 text-xs font-medium text-destructive-foreground hover:bg-destructive/90 disabled:opacity-60"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  {deleting ? "Tar bort…" : "Ta bort artist permanent"}
+                </button>
+              </div>
             </div>
           ) : (
           <>

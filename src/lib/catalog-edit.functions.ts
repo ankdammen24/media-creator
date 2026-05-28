@@ -561,3 +561,97 @@ export const deleteSubmission = createServerFn({ method: "POST" })
     if (sub.artwork_path) await supabaseAdmin.storage.from("artwork").remove([sub.artwork_path]);
     return { ok: true };
   });
+
+export const deleteArtistProfile = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ artistId: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const { userId } = context;
+    const { data: artist, error: exErr } = await supabaseAdmin
+      .from("artist_profiles")
+      .select("id, user_id, avatar_path")
+      .eq("id", data.artistId)
+      .maybeSingle();
+    if (exErr) throw new Error(exErr.message);
+    if (!artist) throw new Error("Artist saknas.");
+    await assertCatalogEditor(userId, artist.user_id);
+
+    // Samla in lagringsvägar att städa bort efter att raderna är borta.
+    const audioPaths: string[] = [];
+    const artworkPaths: string[] = [];
+
+    const { data: subs, error: sErr } = await supabaseAdmin
+      .from("submissions")
+      .select("id, audio_path, audio_web_path, audio_master_path, atmos_audio_path, artwork_path")
+      .eq("artist_profile_id", data.artistId);
+    if (sErr) throw new Error(sErr.message);
+    const submissionIds = (subs ?? []).map((s) => s.id);
+    for (const s of subs ?? []) {
+      for (const p of [s.audio_path, s.audio_web_path, s.audio_master_path, s.atmos_audio_path]) {
+        if (p) audioPaths.push(p);
+      }
+      if (s.artwork_path) artworkPaths.push(s.artwork_path);
+    }
+
+    const { data: albums, error: alErr } = await supabaseAdmin
+      .from("albums")
+      .select("id, artwork_path")
+      .eq("artist_profile_id", data.artistId);
+    if (alErr) throw new Error(alErr.message);
+    for (const a of albums ?? []) {
+      if (a.artwork_path) artworkPaths.push(a.artwork_path);
+    }
+
+    const { data: imgs, error: imErr } = await supabaseAdmin
+      .from("artist_images")
+      .select("id, storage_path")
+      .eq("artist_profile_id", data.artistId);
+    if (imErr) throw new Error(imErr.message);
+    for (const i of imgs ?? []) {
+      if (i.storage_path) artworkPaths.push(i.storage_path);
+    }
+    if (artist.avatar_path) artworkPaths.push(artist.avatar_path);
+
+    // Radera kopplingar och beroende rader innan själva artistprofilen.
+    if (submissionIds.length > 0) {
+      const { error } = await supabaseAdmin
+        .from("submission_artists")
+        .delete()
+        .in("submission_id", submissionIds);
+      if (error) throw new Error(error.message);
+    }
+    {
+      const { error } = await supabaseAdmin
+        .from("submissions")
+        .delete()
+        .eq("artist_profile_id", data.artistId);
+      if (error) throw new Error(error.message);
+    }
+    {
+      const { error } = await supabaseAdmin
+        .from("albums")
+        .delete()
+        .eq("artist_profile_id", data.artistId);
+      if (error) throw new Error(error.message);
+    }
+    {
+      const { error } = await supabaseAdmin
+        .from("artist_images")
+        .delete()
+        .eq("artist_profile_id", data.artistId);
+      if (error) throw new Error(error.message);
+    }
+    {
+      const { error } = await supabaseAdmin
+        .from("artist_profiles")
+        .delete()
+        .eq("id", data.artistId);
+      if (error) throw new Error(error.message);
+    }
+
+    // Städa lagring sist (best effort).
+    if (audioPaths.length > 0) await supabaseAdmin.storage.from("audio").remove(audioPaths);
+    if (artworkPaths.length > 0) await supabaseAdmin.storage.from("artwork").remove(artworkPaths);
+
+    return { ok: true, deletedSubmissions: submissionIds.length, deletedAlbums: (albums ?? []).length };
+  });
