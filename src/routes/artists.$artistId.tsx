@@ -303,7 +303,7 @@ function ArtistRow({ item }: { item: ArtistItem }) {
   return (
     <li className="flex flex-col gap-4 rounded-xl border border-border bg-card p-4 sm:flex-row">
       <img
-        src={publicArt(item.artwork_path)}
+        src={publicArt(item.albums?.artwork_path ?? item.artwork_path)}
         alt={item.title}
         className="h-32 w-32 shrink-0 rounded-md object-cover"
       />
