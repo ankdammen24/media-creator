@@ -20,7 +20,8 @@ export function AdminAutoArtwork() {
   const [busy, setBusy] = useState<"artists" | "albums" | "regen" | "tracks" | null>(null);
   const [result, setResult] = useState<
     | { kind: "artists" | "albums"; res: BulkResult }
-    | { kind: "regen" | "tracks"; res: RegenerateResult }
+    | { kind: "regen"; res: RegenerateResult }
+    | { kind: "tracks"; res: RegenerateResult }
     | null
   >(null);
   const [error, setError] = useState<string | null>(null);
