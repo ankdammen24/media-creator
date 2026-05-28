@@ -314,6 +314,16 @@ function DiscographySection({
   artistName: string;
   artistId: string;
 }) {
+  const player = usePlayer();
+  const singleTracks: PlayerTrack[] = singles.map((s) => ({
+    id: s.id,
+    title: s.title,
+    artist: artistName,
+    artistId,
+    artworkPath: s.albums?.artwork_path ?? s.artwork_path,
+    audioPath: s.audio_path,
+    mediaType: s.media_type,
+  }));
   if (albums.length === 0 && singles.length === 0) {
     return (
       <EmptyState
@@ -362,7 +372,12 @@ function DiscographySection({
           </li>
         ))}
         {singles.map((s) => (
-          <SingleCard key={s.id} item={s} artistName={artistName} artistId={artistId} />
+          <SingleCard
+            key={s.id}
+            item={s}
+            isCurrent={player.current?.id === s.id}
+            onPlay={() => player.playQueue(singleTracks, singles.findIndex((x) => x.id === s.id))}
+          />
         ))}
       </ul>
     </section>
@@ -371,26 +386,25 @@ function DiscographySection({
 
 function SingleCard({
   item,
-  artistName,
-  artistId,
+  isCurrent,
+  onPlay,
 }: {
   item: ArtistItem;
-  artistName: string;
-  artistId: string;
+  isCurrent: boolean;
+  onPlay: () => void;
 }) {
-  const track: PlayerTrack = {
-    id: item.id,
-    title: item.title,
-    artist: artistName,
-    artistId,
-    artworkPath: item.albums?.artwork_path ?? item.artwork_path,
-    audioPath: item.audio_path,
-    mediaType: item.media_type,
-  };
   return (
     <li>
-      <div className="group block">
-        <div className="relative aspect-square overflow-hidden rounded-lg border border-border bg-secondary">
+      <button
+        type="button"
+        onClick={onPlay}
+        className="group block w-full text-left"
+      >
+        <div
+          className={`relative aspect-square overflow-hidden rounded-lg border bg-secondary ${
+            isCurrent ? "border-primary ring-2 ring-primary/40" : "border-border"
+          }`}
+        >
           <img
             src={publicArt(item.albums?.artwork_path ?? item.artwork_path)}
             alt={item.title}
@@ -399,15 +413,12 @@ function SingleCard({
           <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-background/80 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-foreground backdrop-blur">
             <Music2 className="h-3 w-3" /> Single
           </span>
-          <div className="absolute bottom-2 right-2 opacity-0 transition group-hover:opacity-100">
-            <PlayButton track={track} size="sm" variant="overlay" />
-          </div>
         </div>
         <p className="mt-2 truncate text-sm font-medium">{item.title}</p>
-        <p className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
-          <Play className="h-3 w-3" /> Spela
+        <p className="text-[11px] text-muted-foreground">
+          {isCurrent ? "Spelas nu" : "Tryck för att spela"}
         </p>
-      </div>
+      </button>
     </li>
   );
 }
