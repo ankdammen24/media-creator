@@ -85,7 +85,7 @@ function Featured() {
     queryFn: async (): Promise<Item[]> => {
       const { data, error } = await supabase
         .from("submissions")
-        .select("id, title, media_type, artwork_path, artist_profiles(name)")
+        .select("id, title, media_type, artwork_path, artist_profiles!submissions_artist_profile_id_fkey(name)")
         .eq("status", "approved")
         .order("created_at", { ascending: false })
         .limit(8);

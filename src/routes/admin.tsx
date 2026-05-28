@@ -201,7 +201,7 @@ function AdminPage() {
       const { data, error } = await supabase
         .from("submissions")
         .select(
-          "id, title, description, media_type, status, audio_path, artwork_path, user_id, created_at, artist_profiles(name)",
+          "id, title, description, media_type, status, audio_path, artwork_path, user_id, created_at, artist_profiles!submissions_artist_profile_id_fkey(name)",
         )
         .eq("status", filter)
         .order("created_at", { ascending: false });

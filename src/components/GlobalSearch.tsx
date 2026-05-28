@@ -37,7 +37,7 @@ async function runSearch(q: string): Promise<{ submissions: SubmissionHit[]; art
   const [byFields, byArtist, artists] = await Promise.all([
     supabase
       .from("submissions")
-      .select("id, title, description, media_type, artwork_path, artist_profiles(id, name)")
+      .select("id, title, description, media_type, artwork_path, artist_profiles!submissions_artist_profile_id_fkey(id, name)")
       .eq("status", "approved")
       .or(`title.ilike.${like},description.ilike.${like}`)
       .limit(10),
