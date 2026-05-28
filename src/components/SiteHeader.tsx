@@ -59,16 +59,16 @@ export function SiteHeader() {
           >
             Catalog
           </Link>
+          <Link
+            to="/releases/new"
+            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground shadow-sm hover:bg-primary/90"
+            activeProps={{ className: "inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground shadow-sm ring-2 ring-primary/40" }}
+          >
+            <Send className="h-3.5 w-3.5" />
+            Submit
+          </Link>
           {user ? (
             <>
-              <Link
-                to="/releases/new"
-                className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground shadow-sm hover:bg-primary/90"
-                activeProps={{ className: "inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground shadow-sm ring-2 ring-primary/40" }}
-              >
-                <Send className="h-3.5 w-3.5" />
-                Submit
-              </Link>
               <Link
                 to="/upload"
                 className="rounded-md px-3 py-1.5 text-muted-foreground hover:text-foreground"
