@@ -12,6 +12,7 @@ type ItunesResult = {
   artworkUrl60?: string;
   collectionName?: string;
   artistName?: string;
+  trackName?: string;
   wrapperType?: string;
   kind?: string;
 };
@@ -105,4 +106,86 @@ export async function downloadImage(
   } catch {
     return null;
   }
+}
+
+/** Normalize a string for fuzzy matching (case + diacritics + non-alphanum stripped). */
+function norm(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]/g, "");
+}
+
+function fuzzyMatch(a: string | undefined | null, b: string | undefined | null): boolean {
+  if (!a || !b) return false;
+  const na = norm(a);
+  const nb = norm(b);
+  if (!na || !nb) return false;
+  return na === nb || na.includes(nb) || nb.includes(na);
+}
+
+/**
+ * Search iTunes by song title and only return an image URL if the result's
+ * artistName + trackName both match the expected artist and one of the song titles.
+ */
+export async function searchArtistImageVerified(
+  artistName: string,
+  songTitles: string[],
+): Promise<string | null> {
+  const a = artistName.trim();
+  if (!a || songTitles.length === 0) return null;
+  for (const title of songTitles) {
+    const t = title.trim();
+    if (!t) continue;
+    const data = await search({
+      term: `${a} ${t}`,
+      entity: "song",
+      limit: "5",
+    });
+    const hit = data?.results?.find(
+      (r) => fuzzyMatch(r.artistName, a) && fuzzyMatch(r.trackName, t),
+    );
+    if (hit?.artworkUrl100) return upscale(hit.artworkUrl100);
+  }
+  return null;
+}
+
+/**
+ * Deezer fallback. Returns an image URL only if the result's artist.name + title
+ * match the expected artist and one of the song titles.
+ */
+export async function searchArtistImageDeezerVerified(
+  artistName: string,
+  songTitles: string[],
+): Promise<string | null> {
+  const a = artistName.trim();
+  if (!a || songTitles.length === 0) return null;
+  for (const title of songTitles) {
+    const t = title.trim();
+    if (!t) continue;
+    const q = `artist:"${a}" track:"${t}"`;
+    try {
+      const res = await fetch(
+        `https://api.deezer.com/search?q=${encodeURIComponent(q)}&limit=5`,
+        { headers: { Accept: "application/json" } },
+      );
+      if (!res.ok) continue;
+      const json = (await res.json()) as {
+        data?: Array<{
+          title?: string;
+          artist?: { name?: string };
+          album?: { cover_xl?: string; cover_big?: string; cover_medium?: string };
+        }>;
+      };
+      const hit = json.data?.find(
+        (r) => fuzzyMatch(r.artist?.name, a) && fuzzyMatch(r.title, t),
+      );
+      const url = hit?.album?.cover_xl || hit?.album?.cover_big || hit?.album?.cover_medium;
+      if (url) return url;
+    } catch {
+      // try next
+    }
+  }
+  return null;
 }
