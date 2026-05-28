@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { LogOut, User, Bell, Settings as SettingsIcon, Menu } from "lucide-react";
+import { LogOut, User, Bell, Settings as SettingsIcon, Menu, Send } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -54,6 +54,14 @@ export function SiteHeader() {
           </Link>
           {user ? (
             <>
+              <Link
+                to="/releases/new"
+                className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground shadow-sm hover:bg-primary/90"
+                activeProps={{ className: "inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground shadow-sm ring-2 ring-primary/40" }}
+              >
+                <Send className="h-3.5 w-3.5" />
+                Submit
+              </Link>
               <Link
                 to="/upload"
                 className="rounded-md px-3 py-1.5 text-muted-foreground hover:text-foreground"
@@ -160,6 +168,11 @@ export function SiteHeader() {
                 <MobileNavLink to="/catalog" onSelect={() => setMenuOpen(false)}>Catalog</MobileNavLink>
                 {user ? (
                   <>
+                    <MobileNavLink to="/releases/new" onSelect={() => setMenuOpen(false)}>
+                      <span className="inline-flex items-center gap-2 font-medium text-primary">
+                        <Send className="h-4 w-4" /> Submit release
+                      </span>
+                    </MobileNavLink>
                     <MobileNavLink to="/upload" onSelect={() => setMenuOpen(false)}>Upload</MobileNavLink>
                     <MobileNavLink to="/my-submissions" onSelect={() => setMenuOpen(false)}>Mine</MobileNavLink>
                     <MobileNavLink to="/notifications" onSelect={() => setMenuOpen(false)}>

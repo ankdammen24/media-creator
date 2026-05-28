@@ -18,6 +18,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as CatalogRouteImport } from './routes/catalog'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ReleasesNewRouteImport } from './routes/releases.new'
 import { Route as ArtistsNewRouteImport } from './routes/artists.new'
 import { Route as ArtistsArtistIdRouteImport } from './routes/artists.$artistId'
 import { Route as ApiGenerateArtworkRouteImport } from './routes/api/generate-artwork'
@@ -69,6 +70,11 @@ const AdminRoute = AdminRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReleasesNewRoute = ReleasesNewRouteImport.update({
+  id: '/releases/new',
+  path: '/releases/new',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ArtistsNewRoute = ArtistsNewRouteImport.update({
@@ -123,6 +129,7 @@ export interface FileRoutesByFullPath {
   '/api/generate-artwork': typeof ApiGenerateArtworkRoute
   '/artists/$artistId': typeof ArtistsArtistIdRoute
   '/artists/new': typeof ArtistsNewRoute
+  '/releases/new': typeof ReleasesNewRoute
   '/albums/$albumId/edit': typeof AlbumsAlbumIdEditRoute
 }
 export interface FileRoutesByTo {
@@ -141,6 +148,7 @@ export interface FileRoutesByTo {
   '/api/generate-artwork': typeof ApiGenerateArtworkRoute
   '/artists/$artistId': typeof ArtistsArtistIdRoute
   '/artists/new': typeof ArtistsNewRoute
+  '/releases/new': typeof ReleasesNewRoute
   '/albums/$albumId/edit': typeof AlbumsAlbumIdEditRoute
 }
 export interface FileRoutesById {
@@ -160,6 +168,7 @@ export interface FileRoutesById {
   '/api/generate-artwork': typeof ApiGenerateArtworkRoute
   '/artists/$artistId': typeof ArtistsArtistIdRoute
   '/artists/new': typeof ArtistsNewRoute
+  '/releases/new': typeof ReleasesNewRoute
   '/albums/$albumId/edit': typeof AlbumsAlbumIdEditRoute
 }
 export interface FileRouteTypes {
@@ -180,6 +189,7 @@ export interface FileRouteTypes {
     | '/api/generate-artwork'
     | '/artists/$artistId'
     | '/artists/new'
+    | '/releases/new'
     | '/albums/$albumId/edit'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -198,6 +208,7 @@ export interface FileRouteTypes {
     | '/api/generate-artwork'
     | '/artists/$artistId'
     | '/artists/new'
+    | '/releases/new'
     | '/albums/$albumId/edit'
   id:
     | '__root__'
@@ -216,6 +227,7 @@ export interface FileRouteTypes {
     | '/api/generate-artwork'
     | '/artists/$artistId'
     | '/artists/new'
+    | '/releases/new'
     | '/albums/$albumId/edit'
   fileRoutesById: FileRoutesById
 }
@@ -235,6 +247,7 @@ export interface RootRouteChildren {
   ApiGenerateArtworkRoute: typeof ApiGenerateArtworkRoute
   ArtistsArtistIdRoute: typeof ArtistsArtistIdRoute
   ArtistsNewRoute: typeof ArtistsNewRoute
+  ReleasesNewRoute: typeof ReleasesNewRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -300,6 +313,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/releases/new': {
+      id: '/releases/new'
+      path: '/releases/new'
+      fullPath: '/releases/new'
+      preLoaderRoute: typeof ReleasesNewRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/artists/new': {
@@ -382,6 +402,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiGenerateArtworkRoute: ApiGenerateArtworkRoute,
   ArtistsArtistIdRoute: ArtistsArtistIdRoute,
   ArtistsNewRoute: ArtistsNewRoute,
+  ReleasesNewRoute: ReleasesNewRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
