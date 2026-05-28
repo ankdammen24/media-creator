@@ -10,7 +10,6 @@ import {
   Twitter,
   Pencil,
   Disc3,
-  Play,
 } from "lucide-react";
 import { EmptyState, ErrorState } from "@/components/StateViews";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,8 +17,7 @@ import { useAuth } from "@/lib/auth";
 import { ArtistProfileEditor, type EditableArtist } from "@/components/ArtistProfileEditor";
 import { ArtistImageManager, type ArtistImage } from "@/components/ArtistImageManager";
 import { useEditorRole } from "@/lib/useEditorRole";
-import { PlayButton } from "@/components/player/PlayButton";
-import type { PlayerTrack } from "@/components/player/PlayerProvider";
+import { usePlayer, type PlayerTrack } from "@/components/player/PlayerProvider";
 import { ALBUM_TYPE_LABELS, type AlbumType } from "@/lib/album-helpers";
 
 export const Route = createFileRoute("/artists/$artistId")({
@@ -137,7 +135,7 @@ function ArtistPage() {
       : null;
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
+    <div className="mx-auto max-w-5xl px-4 py-6 pb-28 sm:py-10 sm:px-6">
       <Link
         to="/catalog"
         className="mb-6 inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
@@ -187,7 +185,7 @@ function ArtistPage() {
               </div>
             )}
             <div className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-start">
-              <div className="h-28 w-28 shrink-0 overflow-hidden rounded-full bg-secondary">
+              <div className="h-24 w-24 shrink-0 overflow-hidden rounded-full bg-secondary sm:h-28 sm:w-28">
                 {avatarSrc ? (
                   <img
                     src={avatarSrc}
@@ -202,7 +200,7 @@ function ArtistPage() {
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-start justify-between gap-3">
-                  <h1 className="text-3xl font-bold tracking-tight">{profile.name}</h1>
+                  <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{profile.name}</h1>
                   {canEdit && (
                     <div className="flex flex-wrap items-center gap-2">
                       <Link
