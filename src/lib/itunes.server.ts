@@ -61,16 +61,16 @@ export async function searchAlbumImage(
   return hit ? upscale(hit) : null;
 }
 
-/** Download a remote image into a Uint8Array; returns null on failure. */
+/** Download a remote image into a Blob; returns null on failure. */
 export async function downloadImage(
   url: string,
-): Promise<{ bytes: Uint8Array; contentType: string } | null> {
+): Promise<{ blob: Blob; contentType: string } | null> {
   try {
     const res = await fetch(url);
     if (!res.ok) return null;
     const contentType = res.headers.get("content-type") || "image/jpeg";
-    const buf = await res.arrayBuffer();
-    return { bytes: new Uint8Array(buf), contentType };
+    const blob = await res.blob();
+    return { blob, contentType };
   } catch {
     return null;
   }
