@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Pencil, Trash2, ImageUp, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { nextTrackNumber } from "@/lib/album-helpers";
 
 export type EditableSubmission = {
   id: string;
@@ -11,7 +12,11 @@ export type EditableSubmission = {
   audio_path: string;
   status: string;
   user_id: string;
+  artist_profile_id: string;
+  album_id: string | null;
 };
+
+type AlbumOption = { id: string; title: string };
 
 export function EditSubmissionDialog({
   sub,
@@ -25,27 +30,50 @@ export function EditSubmissionDialog({
   const [title, setTitle] = useState(sub.title);
   const [description, setDescription] = useState(sub.description ?? "");
   const [mediaType, setMediaType] = useState<"music" | "podcast">(sub.media_type);
+  const [albumId, setAlbumId] = useState<string>(sub.album_id ?? "");
+  const [albums, setAlbums] = useState<AlbumOption[]>([]);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    let on = true;
+    (async () => {
+      const { data } = await supabase
+        .from("albums")
+        .select("id, title")
+        .eq("artist_profile_id", sub.artist_profile_id)
+        .order("title", { ascending: true });
+      if (on) setAlbums((data ?? []) as AlbumOption[]);
+    })();
+    return () => {
+      on = false;
+    };
+  }, [sub.artist_profile_id]);
 
   async function save() {
     setBusy(true);
     setErr(null);
-    const { error } = await supabase
-      .from("submissions")
-      .update({
+    try {
+      const patch: Record<string, unknown> = {
         title: title.trim(),
         description: description.trim() || null,
         media_type: mediaType,
-      })
-      .eq("id", sub.id);
-    setBusy(false);
-    if (error) {
-      setErr(error.message);
-      return;
+      };
+      const nextAlbum = albumId || null;
+      const prevAlbum = sub.album_id ?? null;
+      if (nextAlbum !== prevAlbum) {
+        patch.album_id = nextAlbum;
+        patch.track_number = nextAlbum ? await nextTrackNumber(nextAlbum) : null;
+      }
+      const { error } = await supabase.from("submissions").update(patch).eq("id", sub.id);
+      if (error) throw error;
+      onSaved();
+      onClose();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Save failed");
+    } finally {
+      setBusy(false);
     }
-    onSaved();
-    onClose();
   }
 
   return (
@@ -85,6 +113,21 @@ export function EditSubmissionDialog({
             >
               <option value="music">Music</option>
               <option value="podcast">Podcast</option>
+            </select>
+          </label>
+          <label className="block text-xs">
+            <span className="mb-1 block text-muted-foreground">Album</span>
+            <select
+              value={albumId}
+              onChange={(e) => setAlbumId(e.target.value)}
+              className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm"
+            >
+              <option value="">— Inget album —</option>
+              {albums.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.title}
+                </option>
+              ))}
             </select>
           </label>
           {err && <p className="text-xs text-destructive">{err}</p>}
