@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.enforce_artist_approval() FROM PUBLIC, anon, authenticated;
