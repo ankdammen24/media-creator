@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState, useMemo, useEffect, useRef } from "react";
-import { Search, Music2, Mic } from "lucide-react";
+import { Search, Music2, Mic, User } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { EmptyState, ErrorState } from "@/components/StateViews";
 import { supabase } from "@/integrations/supabase/client";
@@ -42,7 +42,7 @@ export const Route = createFileRoute("/catalog")({
   ),
 });
 
-type Tab = "all" | "music" | "podcast";
+type Tab = "all" | "music" | "podcast" | "artists";
 
 type CatalogItem = {
   id: string;
@@ -69,6 +69,17 @@ async function fetchApproved(): Promise<CatalogItem[]> {
   return (data ?? []) as unknown as CatalogItem[];
 }
 
+type ArtistRow = { id: string; name: string; avatar_path: string | null };
+
+async function fetchArtists(): Promise<ArtistRow[]> {
+  const { data, error } = await supabase
+    .from("artist_profiles")
+    .select("id, name, avatar_path")
+    .order("name", { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as ArtistRow[];
+}
+
 function artworkUrl(path: string) {
   return supabase.storage.from("artwork").getPublicUrl(path).data.publicUrl;
 }
@@ -81,6 +92,16 @@ function CatalogPage() {
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["catalog", "approved"],
     queryFn: fetchApproved,
+  });
+  const {
+    data: artistsAll,
+    isLoading: artistsLoading,
+    error: artistsError,
+    refetch: refetchArtists,
+  } = useQuery({
+    queryKey: ["catalog", "artists"],
+    queryFn: fetchArtists,
+    staleTime: 60_000,
   });
 
   const artists = useMemo(() => {
@@ -124,6 +145,13 @@ function CatalogPage() {
     return () => clearTimeout(t);
   }, [focus, data]);
 
+  const filteredArtists = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const list = artistsAll ?? [];
+    if (!q) return list;
+    return list.filter((a) => a.name.toLowerCase().includes(q));
+  }, [artistsAll, query]);
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -138,7 +166,7 @@ function CatalogPage() {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search title or artist…"
+            placeholder={tab === "artists" ? "Search artist…" : "Search title or artist…"}
             className="w-full rounded-md border border-border bg-card py-2 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
           />
         </div>
@@ -146,7 +174,7 @@ function CatalogPage() {
 
       <div className="mb-6 flex flex-wrap items-center gap-3">
         <div className="inline-flex rounded-lg border border-border bg-card p-1">
-          {(["all", "music", "podcast"] as Tab[]).map((t) => (
+          {(["all", "music", "podcast", "artists"] as Tab[]).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -160,7 +188,7 @@ function CatalogPage() {
             </button>
           ))}
         </div>
-        {artists.length > 0 && (
+        {tab !== "artists" && artists.length > 0 && (
           <select
             value={artistId}
             onChange={(e) => setArtistId(e.target.value)}
@@ -176,7 +204,50 @@ function CatalogPage() {
         )}
       </div>
 
-      {isLoading ? (
+      {tab === "artists" ? (
+        artistsLoading ? (
+          <p className="text-sm text-muted-foreground">Loading…</p>
+        ) : artistsError ? (
+          <ErrorState error={artistsError as Error} onRetry={() => refetchArtists()} />
+        ) : filteredArtists.length === 0 ? (
+          <EmptyState
+            title={query ? "No matches" : "No artists yet"}
+            description={query ? "Try a different search term." : undefined}
+          />
+        ) : (
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+            {filteredArtists.map((a) => {
+              const avatar = a.avatar_path ? artworkUrl(a.avatar_path) : null;
+              return (
+                <Link
+                  key={a.id}
+                  to="/artists/$artistId"
+                  params={{ artistId: a.id }}
+                  className="group overflow-hidden rounded-lg border border-border bg-card transition hover:border-primary"
+                >
+                  <div className="flex aspect-square w-full items-center justify-center bg-secondary">
+                    {avatar ? (
+                      <img
+                        src={avatar}
+                        alt={a.name}
+                        className="h-full w-full object-cover"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <User className="h-12 w-12 text-muted-foreground" />
+                    )}
+                  </div>
+                  <div className="p-3">
+                    <h2 className="line-clamp-1 text-sm font-semibold group-hover:text-primary">
+                      {a.name}
+                    </h2>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        )
+      ) : isLoading ? (
         <p className="text-sm text-muted-foreground">Loading…</p>
       ) : error ? (
         <ErrorState error={error as Error} onRetry={() => refetch()} />
