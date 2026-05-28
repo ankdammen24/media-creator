@@ -311,6 +311,7 @@ function TrackCard({ item }: { item: Row }) {
         ) : (
           <p className="line-clamp-1 text-xs text-muted-foreground">Unknown artist</p>
         )}
+        <EditorTrackMeta meta={item} />
       </div>
     </article>
   );
