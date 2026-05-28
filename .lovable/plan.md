@@ -1,36 +1,83 @@
-Lgg till tydliga demo-lgesmarkrer i Submit Music-fldet s anvndare inte tror att ltar verkligen skickas till Spotify, Apple Music osv.
+# Upload → Podcast-only
 
-## Bakgrund
-Submit Music (Release Wizard + Upload) ger idag ett starkt intryck av att vara en riktig distributions-tjnst. Steg 2 heter "Streaming Platforms" med Spotify, Apple Music m.fl. som checkboxar. Rttighetssteget pratar om "streaming platform policies". Framgngsmeddelandena sger bara "submitted for review". Detta kan vilseleda anvndare.
+Idag är Upload-flödet en generell "music or podcast"-uppladdare som återanvänder musik-fält. Vi gör om det till en renodlad **Podcast**-värld: poddar grupperas under en **Show/Serie**, och varje uppladdning är ett **Avsnitt (Episode)**. Musik går framöver enbart via Submit Music (Release Wizard).
 
-## Plan
+## Vad krävs för att publicera en Podcast (kravspec)
 
-### 1. Release Wizard (`/releases/new`) – Demo-banner och omformulerade steg
-- Lgg till en persistent **demo-banner**verst i wizardn (orange/gul tonad ruta):
-  - "Demo-läge — din release hamnar i Media Rosenqvist Catalog och skickas till Radio Uppsala. Distribution till Spotify, Apple Music m.fl. är inte aktiv."
-- **Steg 1 (Release Details)**: uppdatera `description` s det str att allt sparas i Catalog.
-- **Steg 2 (Platforms)**: 
-  - Byt titel till "Platforms (for future use)" eller liknande.
-  - Lgg till en tydlig notis under: "Platform selection is for reference only — actual distribution is not active in demo mode."
-  - Kanske gra ut alternativen eller lgga en badge p dem.
-- **Steg 4 (Rights)**: omformulera "I understand streaming platform policies" → "I understand this is a demo catalog submission" och "I agree to the distribution terms" → "I agree to the catalog submission terms".
-- **Steg 5 (Review)**: under "Distribution"-avsnittet, lgg till en notis om att plattformarna endastr fr referens.
-- **Success-skärm**: tydligt skriv:
-  - "Release saved to the catalog and submitted to Radio Uppsala for review."
-  - "Distribution to streaming platforms is not active — this is a demo submission."
+Baserat på hur poddar normalt struktureras (Show → Episode, samma modell som RSS/Apple/Spotify) och er demo (Catalog + Radio Uppsala):
 
-### 2. Upload-sidor (`/upload` och `/upload-batch`)
-- Lägg till demo-notis i introtexten p båda sidorna.
-- Uppdatera framgångsskärmarna så de tydligt anger att låten hamnar i Catalog + Radio Uppsala, inte Spotify etc.
+**Show / Serie-nivå** (grupperar avsnitt — återanvänder `albums`):
+- Namn (titel) – obligatoriskt
+- Beskrivning
+- Omslag (kvadratiskt) – ärvs av avsnitt som saknar eget
+- Kategori (t.ex. Samhälle, Kultur, Sport, Komedi …)
+- Språk (finns redan på albums)
 
-### 3. My-submissions (`/my-submissions`)
-- Lägg till en förklarande text under rubriken om vad "Mine"/submissions innebär i demo-läget.
+**Avsnitt / Episode-nivå** (återanvänder `submissions`, `media_type='podcast'`):
+- Titel – obligatoriskt
+- Ljudfil – obligatoriskt
+- Omslag (valfritt, faller tillbaka på show-omslag)
+- Beskrivning / show notes
+- Säsongsnummer + avsnittsnummer (avsnittsnr auto om tomt)
+- Avsnittstyp: Full / Trailer / Bonus
+- Värd(ar) (hosts) och gäster (guests)
+- Publiceringsdatum (planerat)
+- Explicit innehåll (ja/nej)
 
-### 4. Navigation (SiteHeader)
-- Lägg till en liten "Demo"-badge bredvid eller på "Submit Music"-knappen i headern.
+**Publicering**: Som musik-demon — avsnittet sparas i Media Rosenqvist Catalog och skickas till Radio Uppsala för granskning. Ingen distribution till Spotify/Apple Podcasts (demo).
+
+## Datamodell (migration)
+
+Vi återanvänder befintliga tabeller för minsta möjliga omskrivning:
+
+- `album_type`-enum: lägg till värdet `podcast_show`. En "Show" = en `albums`-rad med `album_type='podcast_show'`.
+- `albums`: ny kolumn `podcast_category text`.
+- Ny enum `podcast_episode_type` = (`full`, `trailer`, `bonus`).
+- `submissions`: nya kolumner
+  - `season_number integer`
+  - `episode_number integer`
+  - `episode_type podcast_episode_type default 'full'`
+  - `hosts text[] default '{}'`
+  - `guests text[] default '{}'`
+  - `scheduled_publish_at timestamptz`
+  - (återanvänder befintliga: `explicit`, `description` = show notes, `album_id` = show, `artwork_path`)
+
+Befintlig RLS på `albums`/`submissions` täcker redan ägare + admin, så inga nya policies behövs (kolumntillägg ärver tabellens policies).
+
+## Frontend
+
+### `/upload` (single)
+- Ta bort "Media type"-väljaren — sidan är alltid podcast. Byt rubrik/copy/ikoner till poddvärld ("Submit a podcast episode", Mic-ikon).
+- Ersätt `AlbumPicker` med en **ShowPicker** (samma inline-create-mönster, men filtrerar/skapar `album_type='podcast_show'` och frågar efter kategori vid create). Obligatorisk.
+- Lägg till avsnittsfält: säsong, avsnittsnummer (auto om tomt), avsnittstyp (Full/Trailer/Bonus), värdar, gäster, publiceringsdatum, explicit-toggle.
+- Episodomslag blir valfritt (faller tillbaka på show-omslag via befintlig `effectiveArtworkPath`); ljud + titel + show fortsatt obligatoriskt.
+- Uppdatera insert till `submissions` med de nya fälten; sätt `media_type='podcast'`, `album_id = showId`, `episode_number`.
+- Uppdatera demo-banner och success-text till poddformuleringar (Catalog + Radio Uppsala).
+
+### `/upload-batch`
+- Gör podcast-only: ta bort musik-default och musiklogik. Delade inställningar = Show + (valfri) säsong + delat omslag.
+- Per fil: titel, beskrivning, auto avsnittsnummer inom showen (analogt med dagens track-number). Avancerade per-avsnitt-fält hålls i single-flödet.
+- Uppdatera copy/ikoner/demo-banner.
+
+### Pickers & helpers
+- Ny `nextEpisodeNumber(showId)` (som `nextTrackNumber`, men på `episode_number`).
+- `AlbumPicker` (musik) filtreras till `album_type <> 'podcast_show'` så shows inte dyker upp i musikflöden.
+
+### Visning (editor-meta + listor)
+- `EditorCardMeta`: lägg till podd-badges (S/E-nummer, avsnittstyp, explicit, antal gäster) för podcast-objekt (admin/artist).
+- Artistsidan: separera "Shows" från musik-album i albumlistan (filtrera på `album_type`).
+- Återanvänd `albums.$albumId`-sidan för en Show och visa "Episodes" istället för "Tracks" när `album_type='podcast_show'` (lättviktig label-anpassning).
+
+### Navigation
+- `SiteHeader`: ge Upload-knappen poddformulering/ikon (t.ex. "Upload podcast", Mic) och behåll Demo-badge.
+
+## Ordning
+1. Migration (enum + kolumner) – godkänns först, sedan typgenerering.
+2. Helpers + ShowPicker.
+3. Skriv om `/upload` och `/upload-batch`.
+4. Visning (EditorCardMeta, artistsida, show-sida) + header-copy.
 
 ## Tekniska detaljer
-- Använd existerande design tokens (borders, bakgrunder, textfärger).
-- För demo-bannern: gul/orange accent (`amber-500` eller motsvarande semantisk token) med border och en Info-ikon.
-- Ingen backend-förändring behövs — enbart frontend-text och UI.
-- All text på svenska med engelska parenteser där det passar.
+- Inga nya RLS-policies; kolumner ärver befintliga tabellpolicies.
+- `episode_type` som enum för datakonsistens (ingen tidsberoende CHECK).
+- Ingen backend-publiceringsändring — demo-flödet (Catalog + Radio Uppsala) återanvänds; endast metadata + copy ändras.
