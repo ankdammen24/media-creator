@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQueryClient } from "@tanstack/react-query";
-import { ImagePlus, Loader2, Users, Disc3, Sparkles, AlertTriangle, Music } from "lucide-react";
+import { ImagePlus, Loader2, Users, Disc3, Sparkles, AlertTriangle, Music, Disc } from "lucide-react";
 import {
   bulkFetchMissingAlbumArtwork,
   bulkFetchMissingArtistArtwork,
   bulkRegenerateArtistArtwork,
   bulkRegenerateTrackArtwork,
+  bulkRegenerateSingleArtwork,
   type BulkResult,
   type RegenerateResult,
 } from "@/lib/artwork.functions";
@@ -14,7 +15,8 @@ import {
 type ResultState =
   | { kind: "artists" | "albums"; res: BulkResult }
   | { kind: "regen"; res: RegenerateResult }
-  | { kind: "tracks"; res: RegenerateResult };
+  | { kind: "tracks"; res: RegenerateResult }
+  | { kind: "singles"; res: RegenerateResult };
 
 function renderSummary(result: ResultState) {
   switch (result.kind) {
@@ -31,7 +33,8 @@ function renderSummary(result: ResultState) {
       );
     }
     case "regen":
-    case "tracks": {
+    case "tracks":
+    case "singles": {
       const r = result.res;
       return (
         <ul className="space-y-1 text-muted-foreground">
@@ -39,6 +42,7 @@ function renderSummary(result: ResultState) {
           <li>Uppdaterade: {r.updated}</li>
           <li>Källa iTunes: {r.bySource.itunes}</li>
           <li>Källa Deezer: {r.bySource.deezer}</li>
+          <li>Källa MusicBrainz: {r.bySource.musicbrainz}</li>
           <li>Källa AI: {r.bySource.ai}</li>
           <li>Misslyckade: {r.failed}</li>
         </ul>
@@ -53,7 +57,10 @@ export function AdminAutoArtwork() {
   const fetchAlbums = useServerFn(bulkFetchMissingAlbumArtwork);
   const regenerateAll = useServerFn(bulkRegenerateArtistArtwork);
   const regenerateTracks = useServerFn(bulkRegenerateTrackArtwork);
-  const [busy, setBusy] = useState<"artists" | "albums" | "regen" | "tracks" | null>(null);
+  const regenerateSingles = useServerFn(bulkRegenerateSingleArtwork);
+  const [busy, setBusy] = useState<
+    "artists" | "albums" | "regen" | "tracks" | "singles" | null
+  >(null);
   const [result, setResult] = useState<ResultState | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -107,6 +114,26 @@ export function AdminAutoArtwork() {
     try {
       const res = await regenerateTracks({ data: {} });
       setResult({ kind: "tracks", res });
+      qc.invalidateQueries({ queryKey: ["catalog"] });
+      qc.invalidateQueries({ queryKey: ["admin-artists"] });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function runRegenerateSingles() {
+    const ok = window.confirm(
+      "Detta hämtar nya omslag för ALLA singlar och skriver över befintliga. Söker iTunes → Deezer → MusicBrainz (verifierat på artist + titel), annars genereras ett unikt AI-omslag (förbrukar AI-credits). Både singelns omslag och dess låt-omslag uppdateras. Max 100 per körning. Fortsätt?",
+    );
+    if (!ok) return;
+    setBusy("singles");
+    setError(null);
+    setResult(null);
+    try {
+      const res = await regenerateSingles({ data: {} });
+      setResult({ kind: "singles", res });
       qc.invalidateQueries({ queryKey: ["catalog"] });
       qc.invalidateQueries({ queryKey: ["admin-artists"] });
     } catch (e) {
@@ -208,6 +235,31 @@ export function AdminAutoArtwork() {
         </button>
       </div>
 
+      <div className="rounded-xl border border-border bg-card p-5">
+        <div className="mb-3 flex items-center gap-2">
+          <Disc className="h-4 w-4 text-primary" />
+          <h2 className="text-base font-semibold">Regenerera singel-omslag</h2>
+        </div>
+        <p className="mb-4 text-sm text-muted-foreground">
+          Hämtar nya omslag för alla singlar och skriver över befintliga. Söker iTunes → Deezer →
+          MusicBrainz/Cover Art Archive (verifierat på artist + titel), annars genereras ett unikt
+          AI-omslag (förbrukar AI-credits). Både singelns omslag och dess låt-omslag uppdateras. Max
+          100 per körning.
+        </p>
+        <button
+          onClick={runRegenerateSingles}
+          disabled={busy !== null}
+          className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+        >
+          {busy === "singles" ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <Disc className="h-3.5 w-3.5" />
+          )}
+          Regenerera singel-omslag
+        </button>
+      </div>
+
       {error && (
         <div className="rounded-xl border border-destructive bg-destructive/10 p-4 text-sm text-destructive">
           {error}
@@ -224,7 +276,9 @@ export function AdminAutoArtwork() {
                 ? "album"
                 : result.kind === "tracks"
                   ? "låtar"
-                  : "regenerering"}
+                  : result.kind === "singles"
+                    ? "singlar"
+                    : "regenerering"}
           </h3>
           {renderSummary(result)}
           {result.res.details.length > 0 && (

@@ -1,23 +1,44 @@
 ## Mål
 
-På startsidan ska listan under **Latest music** och **Featured artists** bytas ut lite slumpmässigt automatiskt var 5:e minut, så att sidan känns levande utan att man behöver ladda om.
+Lägg till en admin-åtgärd som hämtar **nya omslag för alla singlar** (releaser med typen *single*). Sökordning: iTunes/Apple → Deezer → MusicBrainz/Cover Art Archive. Hittas inget officiellt omslag genererar AI ett unikt abstrakt omslag. Både singelns albumomslag och dess låt-omslag uppdateras. Befintliga omslag skrivs över (alla singlar berörs).
 
-## Så fungerar det
+Katalogen har idag 262 singlar, varav ~250 använder samma generiska AzuraCast-omslag – syftet är att ge varje single ett eget, varierat omslag.
 
-Idag hämtas exakt de 8 senaste godkända låtarna (och 8 senaste artisterna) och visas alltid i samma ordning. Istället:
+## Ny gratis källa: MusicBrainz / Cover Art Archive
 
-1. Vi hämtar en **större pool** (t.ex. de 30 senaste godkända låtarna respektive ~24 artister).
-2. Vi blandar poolen slumpmässigt och visar **8 stycken**.
-3. En timer som tickar **var 5:e minut** triggar en ny blandning, så urvalet byts ut "lite randomly" – helt på klientsidan, inga omladdningar och ingen backend behövs.
+Ny serverhjälpare i `src/lib/itunes.server.ts`:
 
-Eftersom poolen är begränsad till de senaste posterna håller vi det fortfarande relevant (nya låtar/artister kommer med), men ordningen och vilka 8 som syns roterar.
+- `searchTrackImageCoverArtArchive(artistName, trackTitle)`:
+  1. Slå upp inspelning/release via MusicBrainz (`https://musicbrainz.org/ws/2/release?query=...&fmt=json`), med en beskrivande `User-Agent` (krav från MusicBrainz).
+  2. Verifiera artist + titel med samma fuzzy-matchning som redan finns.
+  3. Hämta omslag från Cover Art Archive (`https://coverartarchive.org/release/{mbid}/front-500`). Returnera URL bara om bild finns.
+- Helt gratis, ingen nyckel. Extra `sleep` läggs in mellan anrop (MusicBrainz tillåter ~1 req/s).
+
+## Ny server-funktion (admin)
+
+I `src/lib/artwork.functions.ts`, ny `bulkRegenerateSingleArtwork` (createServerFn, `requireSupabaseAuth`, admin-koll via befintliga `isAdmin`):
+
+- Hämta album där `album_type = 'single'`, sorterade på `created_at`, `limit` (default 100, max 500).
+- För varje single:
+  - Hämta artistnamn (`artist_profiles.name`) och den/de kopplade `submissions` (titel används för verifiering; fallback = albumtiteln).
+  - Försök i ordning: `searchTrackImageVerified` (iTunes) → `searchTrackImageDeezerVerified` → `searchTrackImageCoverArtArchive` → `generateTrackFallbackImage` (AI).
+  - Ladda upp via befintliga `uploadAuto` / `uploadBlob` till `auto/albums/...`.
+  - Uppdatera **`albums.artwork_path`** och **alla kopplade `submissions.artwork_path`** med samma sökväg.
+- Returnera utökad `RegenerateResult` med en ny källa `musicbrainz` i `bySource`.
+
+Typen `RegenerateSource` utökas: `"itunes" | "deezer" | "musicbrainz" | "ai" | "failed"` och `bySource` får fältet `musicbrainz`.
+
+## UI
+
+I `src/components/AdminAutoArtwork.tsx`:
+
+- Nytt kort **"Regenerera singel-omslag"** med en knapp och en `window.confirm` som varnar att alla singlar skrivs över och att AI används som sista utväg (förbrukar credits).
+- Lägg till `"singles"` i `busy`/`ResultState`-typerna och visa källan MusicBrainz i `renderSummary` (samt i den övriga regen-summeringen).
+- Efter körning invalideras `["catalog"]` och `["admin-artists"]`.
 
 ## Tekniska detaljer
 
-I `src/routes/index.tsx`:
-
-- **`LatestMusic`**: höj `limit(8)` → `limit(30)` i frågan. Lägg till en `shuffleTick`-state (number) som ökas av en `setInterval(..., 5 * 60 * 1000)` i en `useEffect`. Härled den visade listan med `useMemo(() => shuffle(pool).slice(0, 8), [pool, shuffleTick])`.
-- **`FeaturedArtists`**: samma mönster – behåll dedupliceringen men bygg en större unik artistpool (t.ex. upp till 24), och plocka slumpmässigt 8 som roterar var 5:e minut via samma `shuffleTick`-mekanism.
-- Lägg till en liten `shuffle`-hjälpfunktion (Fisher–Yates) i filen.
-
-Intervallet städas upp i `useEffect` cleanup. Allt är ren frontend/presentation – inga ändringar i databas, queries-struktur eller affärslogik utöver den ökade `limit`.
+- Inga databasändringar behövs – endast uppdatering av befintliga `artwork_path`-fält via service-role-klienten på servern.
+- Skrivningar sker med `supabaseAdmin` (kringgår RLS) men funktionen är admin-låst.
+- Throttling: `sleep(~200ms)` mellan singlar, plus extra paus runt MusicBrainz-anropen.
+- Körs i batchar (max 500) så långa kataloger kan betas av i omgångar; resultatlistan visar källa per single och ev. felorsak.
