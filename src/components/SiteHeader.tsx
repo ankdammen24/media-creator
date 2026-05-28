@@ -6,7 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { GlobalSearch } from "@/components/GlobalSearch";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import logoMR from "@/assets/logo-mr.png";
+import logoMR from "@/assets/logo-mr-128.png";
 
 export function SiteHeader() {
   const { user, logout } = useAuth();
