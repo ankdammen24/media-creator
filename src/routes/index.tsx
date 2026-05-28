@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { ArrowRight, Music2, Mic, UploadCloud, User } from "lucide-react";
 import { EmptyState, ErrorState } from "@/components/StateViews";
+import { EditorTrackMeta, EditorArtistMeta } from "@/components/EditorCardMeta";
 import { supabase } from "@/integrations/supabase/client";
 import { PlayButton } from "@/components/player/PlayButton";
 import type { PlayerTrack } from "@/components/player/PlayerProvider";
@@ -38,12 +39,27 @@ type Row = {
   audio_web_path: string | null;
   artist_profiles: { id: string; name: string } | null;
   albums: { artwork_path: string | null } | null;
+  isrc?: string | null;
+  upc?: string | null;
+  version?: string | null;
+  track_number?: number | null;
+  duration_seconds?: number | null;
+  loudness_lufs?: number | null;
+  explicit?: boolean | null;
+  instrumental?: boolean | null;
+  ai_generated?: boolean | null;
+  dolby_atmos_available?: boolean | null;
+  songwriters?: string[] | null;
+  producers?: string[] | null;
+  featured_artists?: string[] | null;
+  processing_status?: string | null;
 };
 
 type ArtistRow = {
   id: string;
   name: string;
   avatar_path: string | null;
+  approval_status?: string | null;
 };
 
 function artworkUrl(path: string) {
@@ -100,7 +116,7 @@ function Hero() {
       const { data, error } = await supabase
         .from("submissions")
         .select(
-          "id, title, description, media_type, artwork_path, audio_path, audio_web_path, artist_profiles!submissions_artist_profile_id_fkey(id, name), albums(artwork_path)",
+          "id, title, description, media_type, artwork_path, audio_path, audio_web_path, isrc, upc, version, track_number, duration_seconds, loudness_lufs, explicit, instrumental, ai_generated, dolby_atmos_available, songwriters, producers, featured_artists, processing_status, artist_profiles!submissions_artist_profile_id_fkey(id, name), albums(artwork_path)",
         )
         .eq("status", "approved")
         .eq("media_type", "music")
@@ -235,7 +251,7 @@ function LatestMusic() {
       const { data, error } = await supabase
         .from("submissions")
         .select(
-          "id, title, description, media_type, artwork_path, audio_path, audio_web_path, artist_profiles!submissions_artist_profile_id_fkey(id, name), albums(artwork_path)",
+          "id, title, description, media_type, artwork_path, audio_path, audio_web_path, isrc, upc, version, track_number, duration_seconds, loudness_lufs, explicit, instrumental, ai_generated, dolby_atmos_available, songwriters, producers, featured_artists, processing_status, artist_profiles!submissions_artist_profile_id_fkey(id, name), albums(artwork_path)",
         )
         .eq("status", "approved")
         .eq("media_type", "music")
@@ -296,6 +312,7 @@ function TrackCard({ item }: { item: Row }) {
         ) : (
           <p className="line-clamp-1 text-xs text-muted-foreground">Unknown artist</p>
         )}
+        <EditorTrackMeta meta={item} />
       </div>
     </article>
   );
@@ -308,7 +325,7 @@ function LatestPodcasts() {
       const { data, error } = await supabase
         .from("submissions")
         .select(
-          "id, title, description, media_type, artwork_path, audio_path, audio_web_path, artist_profiles!submissions_artist_profile_id_fkey(id, name), albums(artwork_path)",
+          "id, title, description, media_type, artwork_path, audio_path, audio_web_path, isrc, upc, version, track_number, duration_seconds, loudness_lufs, explicit, instrumental, ai_generated, dolby_atmos_available, songwriters, producers, featured_artists, processing_status, artist_profiles!submissions_artist_profile_id_fkey(id, name), albums(artwork_path)",
         )
         .eq("status", "approved")
         .eq("media_type", "podcast")
@@ -365,6 +382,7 @@ function PodcastRow({ item }: { item: Row }) {
         {item.description ? (
           <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{item.description}</p>
         ) : null}
+        <EditorTrackMeta meta={item} />
         <div className="mt-auto pt-2">
           <PlayButton track={track} size="sm" />
         </div>
@@ -381,7 +399,7 @@ function FeaturedArtists() {
       const { data, error } = await supabase
         .from("submissions")
         .select(
-          "artist_profile_id, created_at, artist_profiles!submissions_artist_profile_id_fkey(id, name, avatar_path)",
+          "artist_profile_id, created_at, artist_profiles!submissions_artist_profile_id_fkey(id, name, avatar_path, approval_status)",
         )
         .eq("status", "approved")
         .order("created_at", { ascending: false })
@@ -441,6 +459,7 @@ function FeaturedArtists() {
                   )}
                 </div>
                 <p className="mt-2 line-clamp-1 text-xs font-medium text-foreground">{a.name}</p>
+                <EditorArtistMeta meta={a} />
               </Link>
             );
           })}

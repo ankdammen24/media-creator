@@ -38,6 +38,7 @@ import {
   type EditableSubmission,
 } from "@/components/SubmissionActions";
 import { EditAlbumDialog } from "@/components/EditAlbumDialog";
+import { EditorTrackMeta } from "@/components/EditorCardMeta";
 import {
   DndContext,
   PointerSensor,
@@ -78,6 +79,19 @@ type Track = {
   status: string;
   user_id: string;
   media_type: "music" | "podcast";
+  isrc: string | null;
+  upc: string | null;
+  version: string | null;
+  duration_seconds: number | null;
+  loudness_lufs: number | null;
+  explicit: boolean | null;
+  instrumental: boolean | null;
+  ai_generated: boolean | null;
+  dolby_atmos_available: boolean | null;
+  songwriters: string[] | null;
+  producers: string[] | null;
+  featured_artists: string[] | null;
+  processing_status: string | null;
 };
 
 type ArtistMini = { id: string; name: string; avatar_path: string | null } | null;
@@ -128,7 +142,7 @@ function AlbumPage() {
             let q = supabase
               .from("submissions")
               .select(
-                "id, title, track_number, artwork_path, audio_path, audio_web_path, description, status, user_id, media_type",
+                "id, title, track_number, artwork_path, audio_path, audio_web_path, description, status, user_id, media_type, isrc, upc, version, duration_seconds, loudness_lufs, explicit, instrumental, ai_generated, dolby_atmos_available, songwriters, producers, featured_artists, processing_status",
               )
               .eq("album_id", album.id)
               .order("track_number", { ascending: true });
@@ -642,6 +656,7 @@ function SortableTrackRow({
             {track.status.replace("_", " ")}
           </p>
         )}
+        <EditorTrackMeta meta={track} />
       </div>
       {canEditTrack && <EditButton onClick={onEdit} />}
       <Music2 className="hidden h-4 w-4 text-muted-foreground sm:block" />
