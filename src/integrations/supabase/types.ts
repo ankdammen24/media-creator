@@ -21,9 +21,19 @@ export type Database = {
           artwork_path: string | null
           created_at: string
           description: string | null
+          distribution_platforms: string[]
           genre: string | null
           id: string
+          internal_notes: string | null
+          label: string | null
+          language: string | null
+          previously_released: boolean
+          published_at: string | null
           release_date: string | null
+          rights_accepted_at: string | null
+          secondary_genre: string | null
+          status: Database["public"]["Enums"]["release_status"]
+          submitted_at: string | null
           title: string
           updated_at: string
           user_id: string
@@ -34,9 +44,19 @@ export type Database = {
           artwork_path?: string | null
           created_at?: string
           description?: string | null
+          distribution_platforms?: string[]
           genre?: string | null
           id?: string
+          internal_notes?: string | null
+          label?: string | null
+          language?: string | null
+          previously_released?: boolean
+          published_at?: string | null
           release_date?: string | null
+          rights_accepted_at?: string | null
+          secondary_genre?: string | null
+          status?: Database["public"]["Enums"]["release_status"]
+          submitted_at?: string | null
           title: string
           updated_at?: string
           user_id: string
@@ -47,9 +67,19 @@ export type Database = {
           artwork_path?: string | null
           created_at?: string
           description?: string | null
+          distribution_platforms?: string[]
           genre?: string | null
           id?: string
+          internal_notes?: string | null
+          label?: string | null
+          language?: string | null
+          previously_released?: boolean
+          published_at?: string | null
           release_date?: string | null
+          rights_accepted_at?: string | null
+          secondary_genre?: string | null
+          status?: Database["public"]["Enums"]["release_status"]
+          submitted_at?: string | null
           title?: string
           updated_at?: string
           user_id?: string
@@ -263,6 +293,7 @@ export type Database = {
           created_at: string
           display_name: string | null
           id: string
+          notification_prefs: Json
           preferred_language: Database["public"]["Enums"]["app_language"]
           updated_at: string
           user_id: string
@@ -272,6 +303,7 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           id?: string
+          notification_prefs?: Json
           preferred_language?: Database["public"]["Enums"]["app_language"]
           updated_at?: string
           user_id: string
@@ -281,6 +313,7 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           id?: string
+          notification_prefs?: Json
           preferred_language?: Database["public"]["Enums"]["app_language"]
           updated_at?: string
           user_id?: string
@@ -328,67 +361,106 @@ export type Database = {
       }
       submissions: {
         Row: {
+          ai_generated: boolean
           album_id: string | null
           approved_at: string | null
           approved_by: string | null
           artist_profile_id: string
           artwork_path: string
+          atmos_audio_path: string | null
           audio_path: string
           azuracast_unique_id: string | null
           created_at: string
           description: string | null
+          dolby_atmos_available: boolean
+          duration_seconds: number | null
+          explicit: boolean
+          featured_artists: string[]
           id: string
+          instrumental: boolean
+          isrc: string | null
+          loudness_lufs: number | null
           media_type: Database["public"]["Enums"]["media_type"]
+          preview_start_seconds: number | null
+          producers: string[]
           rejection_reason: string | null
           reviewed_at: string | null
           reviewed_by: string | null
+          songwriters: string[]
           status: Database["public"]["Enums"]["submission_status"]
           title: string
           track_number: number | null
           updated_at: string
           user_id: string
+          version: string | null
         }
         Insert: {
+          ai_generated?: boolean
           album_id?: string | null
           approved_at?: string | null
           approved_by?: string | null
           artist_profile_id: string
           artwork_path: string
+          atmos_audio_path?: string | null
           audio_path: string
           azuracast_unique_id?: string | null
           created_at?: string
           description?: string | null
+          dolby_atmos_available?: boolean
+          duration_seconds?: number | null
+          explicit?: boolean
+          featured_artists?: string[]
           id?: string
+          instrumental?: boolean
+          isrc?: string | null
+          loudness_lufs?: number | null
           media_type: Database["public"]["Enums"]["media_type"]
+          preview_start_seconds?: number | null
+          producers?: string[]
           rejection_reason?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
+          songwriters?: string[]
           status?: Database["public"]["Enums"]["submission_status"]
           title: string
           track_number?: number | null
           updated_at?: string
           user_id: string
+          version?: string | null
         }
         Update: {
+          ai_generated?: boolean
           album_id?: string | null
           approved_at?: string | null
           approved_by?: string | null
           artist_profile_id?: string
           artwork_path?: string
+          atmos_audio_path?: string | null
           audio_path?: string
           azuracast_unique_id?: string | null
           created_at?: string
           description?: string | null
+          dolby_atmos_available?: boolean
+          duration_seconds?: number | null
+          explicit?: boolean
+          featured_artists?: string[]
           id?: string
+          instrumental?: boolean
+          isrc?: string | null
+          loudness_lufs?: number | null
           media_type?: Database["public"]["Enums"]["media_type"]
+          preview_start_seconds?: number | null
+          producers?: string[]
           rejection_reason?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
+          songwriters?: string[]
           status?: Database["public"]["Enums"]["submission_status"]
           title?: string
           track_number?: number | null
           updated_at?: string
           user_id?: string
+          version?: string | null
         }
         Relationships: [
           {
@@ -448,6 +520,13 @@ export type Database = {
       artist_image_kind: "avatar" | "cover" | "press"
       artist_image_visibility: "public" | "link_only"
       media_type: "music" | "podcast"
+      release_status:
+        | "draft"
+        | "uploaded"
+        | "under_review"
+        | "approved"
+        | "rejected"
+        | "published"
       submission_status: "pending_review" | "approved" | "rejected"
     }
     CompositeTypes: {
@@ -582,6 +661,14 @@ export const Constants = {
       artist_image_kind: ["avatar", "cover", "press"],
       artist_image_visibility: ["public", "link_only"],
       media_type: ["music", "podcast"],
+      release_status: [
+        "draft",
+        "uploaded",
+        "under_review",
+        "approved",
+        "rejected",
+        "published",
+      ],
       submission_status: ["pending_review", "approved", "rejected"],
     },
   },

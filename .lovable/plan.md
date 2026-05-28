@@ -1,77 +1,131 @@
-## Mål
 
-Överallt där en inloggad användare (artist eller admin) kan ladda upp en bild ska det också finnas en knapp **"Skapa med AI"** som öppnar en streamande generator och lämnar tillbaka en färdig fil till det vanliga uppladdningsflödet. Inga nya rättigheter införs — knappen visas bara där användaren redan har rätt att ladda upp, så befintlig RLS + UI-gating räcker.
+# New Release Wizard — Crystal Pier Records / Media Rosenqvist
 
-## Identifierade uppladdningsställen
+En modern, premium uppladdnings­wizard som ersätter `/upload-batch` och utökar databasen så vi sparar allt det nya flödet samlar in. Designen följer befintligt mörkt graphite-tema med Scandinavian-minimal touch.
 
-| # | Plats | Bildtyp | Aspekt |
-|---|---|---|---|
-| 1 | `src/components/ArtistProfileEditor.tsx` | Artistens avatar | 1:1 |
-| 2 | `src/components/AlbumForm.tsx` | Albumomslag | 1:1 |
-| 3 | `src/components/SubmissionActions.tsx` (admin/ägar-byte) | Spår-omslag | 1:1 |
-| 4 | `src/routes/upload.tsx` | Spår-omslag (single) | 1:1 |
-| 5 | `src/routes/upload-batch.tsx` | Spår-omslag (per draft + delad) | 1:1 |
-| 6 | `src/components/ArtistImageManager.tsx` | Artistgalleri — *redan klart via `AiImageGenerator`* | — |
+## Navigation & routes
 
-## Lösning
+- Ny route: `src/routes/releases.new.tsx` — hela wizarden (5 steg).
+- `/upload-batch` blir en thin redirect till `/releases/new` så gamla länkar inte dör.
+- Lämnar `/upload` (single-track) orörd.
+- Sidomeny / CTA pekas om till "New Release" → `/releases/new`.
 
-### 1. Generisk server-route — `src/routes/api/generate-artwork.ts`
+## Wizard-layout
 
-En förenklad, återanvändbar version av `generate-artist-image.ts`:
+Sticky vänster-sidebar med stegindikator (på desktop) + bottom progress på mobil. Höger pane är aktivt steg. "Save Draft"-knapp är floating bottom-right hela tiden (autosave var 10 s när det finns ändringar). Smooth fade/slide-transitions mellan steg via Tailwind + Motion.
 
-- `POST { prompt: string, aspect: "1:1" | "16:9" | "3:2" }`.
-- Verifierar bara att anroparen är inloggad (samma `verifyUser`-mönster). Ingen ägar-/admin-koll — den görs av RLS när bilden sen laddas upp.
-- Strömmar SSE från Lovable AI Gateway `/v1/images/generations` med `google/gemini-3.1-flash-image-preview` (samma modell + kostnadsprofil som befintlig generator).
-- Skriver **inget** till databasen — returnerar bara strömmen.
+Steg:
 
-### 2. Generisk klient-komponent — `src/components/AiArtworkDialog.tsx`
+1. **Release Details** — titel, artist (kopplad till `artist_profiles`), label, release date, primary/secondary genre, language, previously released?, cover art drag-and-drop med 1:1-preview + "Skapa med AI"-knapp (återanvänder befintlig `AiArtworkDialog`).
+2. **Streaming Platforms** — togglekort för Spotify, Apple Music, YouTube Music, TikTok, Instagram/Facebook, Amazon Music, Deezer, Tidal, Beatport, Pandora. Helper text. Platshållar-ikoner (Lucide), inga riktiga logotyper.
+3. **Tracks** — drag-and-drop flera audiofiler (wav/flac/aiff/mp3). Auto-genererar editerbara metadatakort per spår med alla fält i specen. Progress­barer under uppladdning. Track duration läses ur audio via `HTMLAudioElement.duration`.
+4. **Rights & Ownership** — fem obligatoriska checkboxar; submit-knapp disablad tills alla är ikryssade.
+5. **Review & Submit** — sammanfattningskort (cover, artist, label, datum, plattformar som chips, track-lista, metadata-overview). Två knappar: "Save Draft" och "Submit for Review".
 
-Modal med samma look som `AiImageGenerator`, men frikopplad från `artist_images`:
+## Statussystem
 
-```ts
-type Props = {
-  open: boolean;
-  defaultPrompt?: string;          // t.ex. "Albumomslag: {titel} av {artist}"
-  aspect?: "1:1" | "16:9" | "3:2"; // default 1:1
-  onClose: () => void;
-  onGenerated: (file: File) => void; // PNG-fil till anroparen
-};
+Visuella badges för: `draft`, `uploaded`, `under_review`, `approved`, `rejected`, `published`. Färgkodning via design tokens.
+
+## Komponentstruktur
+
+```text
+src/components/release-wizard/
+  ReleaseWizard.tsx          (state + step orchestration)
+  WizardSidebar.tsx
+  StepReleaseDetails.tsx
+  StepPlatforms.tsx
+  StepTracks.tsx
+  TrackMetadataCard.tsx
+  StepRights.tsx
+  StepReview.tsx
+  ReleaseStatusBadge.tsx
+  PlatformToggleCard.tsx
+  FloatingSaveBar.tsx
+src/lib/release.functions.ts (createServerFn: saveDraft, submitRelease, getDraft)
 ```
 
-- Återanvänder befintlig SSE-parser, `flushSync`-mönstret och blur-på-partial från `AiImageGenerator` (kopieras, ej delas, för att hålla diff:en lokal).
-- "Använd bild"-knapp anropar `onGenerated(new File([blob], "ai-artwork.png", { type: "image/png" }))` och stänger modal.
-- Anroparen sköter därefter sitt vanliga upload-flöde (Storage + DB-rad) precis som vid manuell filuppladdning.
+State hålls i en `useReducer` i `ReleaseWizard`. Validering via zod per steg.
 
-### 3. Knapp + integration på varje ställe
+## Databasändringar (en migration)
 
-Bredvid varje `<input type="file">` läggs en `<button>` med Sparkles-ikon "Skapa med AI". Klick → öppnar `<AiArtworkDialog>` med en lämplig default-prompt; `onGenerated` matar in filen i samma state-variabel som filinputen sätter (`setArtwork`, `setAvatarFile`, draftens `artwork`-fält osv).
+Utöka `albums` (en release = ett album, även singlar):
 
-Default-prompter (svenska, abstrakt/konstnärlig stil i linje med tidigare beslut):
+- `label TEXT`
+- `language TEXT`
+- `secondary_genre TEXT`
+- `previously_released BOOLEAN DEFAULT false`
+- `distribution_platforms TEXT[] DEFAULT '{}'` (enkla string-koder: 'spotify', 'apple_music', ...)
+- `status release_status DEFAULT 'draft'` (ny enum: draft, uploaded, under_review, approved, rejected, published)
+- `submitted_at TIMESTAMPTZ`, `published_at TIMESTAMPTZ`
+- `internal_notes TEXT` (admin-only via RLS)
+- `rights_accepted_at TIMESTAMPTZ`
 
-- Avatar: `"Stiliserat, abstrakt porträttmotiv för musikartisten {artistName}, lugn färgpalett, inga ansikten, inga texter"`.
-- Albumomslag: `"Abstrakt albumomslag för '{albumTitle}' av {artistName}, konstnärlig komposition, ingen text"`.
-- Spår-omslag: `"Abstrakt omslag för låten '{trackTitle}' av {artistName}, konstnärligt motiv, ingen text"`.
+Utöka `submissions` (track-nivå):
 
-Användaren kan redigera prompten i modalen innan generering.
+- `version TEXT` (t.ex. "Radio Edit")
+- `featured_artists TEXT[]`
+- `isrc TEXT`
+- `explicit BOOLEAN DEFAULT false`
+- `instrumental BOOLEAN DEFAULT false`
+- `ai_generated BOOLEAN DEFAULT false`
+- `preview_start_seconds INTEGER`
+- `songwriters TEXT[]`
+- `producers TEXT[]`
+- `dolby_atmos_available BOOLEAN DEFAULT false`
+- `atmos_audio_path TEXT`
+- `duration_seconds NUMERIC`
+- `loudness_lufs NUMERIC` (placeholder, nullable)
 
-### 4. Inga ändringar i
+RLS uppdateras så `internal_notes` bara är läsbar av admin (skapas via en view eller column-grant). Owner/admin write-policies består.
 
-- `AiImageGenerator.tsx` / `/api/generate-artist-image` — fortsätter driva artistgalleriet (skriver direkt till `artist_images`).
-- `bulkRegenerateArtistArtwork` och iTunes/Deezer-flöden.
-- RLS-policies, tabeller eller buckets.
+## Admin-placeholders
 
-## Filer som ändras
+Komponenter (oanvända men exporterade): `<AdminReleaseActions>` med Approve / Reject / Publish-knappar + textarea för internal_notes. Anropar `setReleaseStatus` server-fn (admin-only via `has_role(auth.uid(),'admin')`).
 
-- **Ny** `src/routes/api/generate-artwork.ts`
-- **Ny** `src/components/AiArtworkDialog.tsx`
-- **Ändras** `src/components/ArtistProfileEditor.tsx`
-- **Ändras** `src/components/AlbumForm.tsx`
-- **Ändras** `src/components/SubmissionActions.tsx`
-- **Ändras** `src/routes/upload.tsx`
-- **Ändras** `src/routes/upload-batch.tsx` (knapp både per draft och för delat omslag)
+## Email-placeholders
 
-## Utelämnat medvetet
+Settings-sektion `src/components/release-wizard/EmailNotificationSettings.tsx` (frontend-only state nu): toggle approval/rejection-mail, val sv/en. Sparas i `profiles.preferred_language` (finns redan) + ny `profiles.notification_prefs JSONB` (lägg till i samma migration).
 
-- Ingen separat backend-rättighetscheck per resurs — Storage/DB-skrivningen som redan finns kvar bakom RLS är det riktiga skyddet, så vi undviker att duplicera logiken i AI-endpointen.
-- Inga nya tabeller/kolumner.
-- Befintlig generator för artistgalleri rörs inte.
+## Server functions
+
+I `src/lib/release.functions.ts` (med `requireSupabaseAuth`):
+- `saveReleaseDraft(input)` — upsert i albums + submissions, status `draft`.
+- `submitRelease(albumId)` — sätter status `under_review`, `submitted_at = now()`, validerar att rights är accepterade.
+- `getRelease(albumId)` — laddar för edit.
+- `setReleaseStatus(albumId, status, internalNote?)` — admin-gated.
+
+Upload av audio/cover sker browser-side mot befintliga buckets `audio` (private) och `artwork` (public), exakt samma mönster som dagens upload-batch.
+
+## Design tokens & styling
+
+Allt via `src/styles.css` semantiska tokens. Lägger till om saknas:
+- `--gradient-cinematic` (mjuk graphite → primary)
+- `--shadow-elegant`
+- `--surface-elevated`
+
+Mörkt läge är default; light-mode stöds via befintlig `next-themes` setup. Typography: rubriker i `font-display` (befintlig), body i `font-sans`. Inga hårdkodade färgklasser i komponenter.
+
+## Validering & UX
+
+- Per steg: kan inte gå framåt om obligatoriska fält saknas (visuell feedback med shake + röd ring via tokens).
+- Cover art och audio: storleksgränser från befintliga konstanter (500MB audio, 20MB image).
+- ISRC-validering: regex `^[A-Z]{2}[A-Z0-9]{3}\d{7}$` (mjuk varning, inte block).
+- Tom state: när inga tracks uppladdade visas illustrerad drop-zone.
+- Floating save: visar "Sparat kl 14:32" / "Sparar..." / "Osparade ändringar".
+
+## Out of scope (för denna iteration)
+
+- Faktisk distribution till streamingtjänster (bara val sparas).
+- Loudness-mätning (kolumn finns, men ingen beräkning).
+- Atmos-validering (filen sparas men ingen verifiering).
+- Email-utskick (UI-toggles sparas, ingen sändlogik).
+
+## Verifieringssteg
+
+1. Migration körs och Supabase-typer uppdateras.
+2. `/releases/new` renderar alla 5 steg, kan gå fram/tillbaka.
+3. Draft sparas (verifiera rad i `albums` med `status='draft'`).
+4. Submit flyttar status till `under_review`.
+5. Mobil viewport: sidebar kollapsar till topp-progress.
+6. Dark/light toggle fungerar utan färgglitchar.
+
