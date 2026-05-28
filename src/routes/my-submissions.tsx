@@ -66,9 +66,9 @@ function MyPage() {
           </div>
           <Link
             to="/albums/new"
-            className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs hover:bg-accent"
+            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
           >
-            <Disc3 className="h-3.5 w-3.5" /> Skapa album
+            <Disc3 className="h-3.5 w-3.5" /> Skapa nytt album
           </Link>
         </div>
       </div>
@@ -78,7 +78,15 @@ function MyPage() {
           <Loader2 className="h-4 w-4 animate-spin" /> Loading…
         </div>
       ) : (data ?? []).length === 0 ? (
-        <p className="text-sm text-muted-foreground">You haven't uploaded anything yet.</p>
+        <div className="rounded-xl border border-border bg-card p-5">
+          <p className="text-sm text-muted-foreground">You haven't uploaded anything yet.</p>
+          <Link
+            to="/albums/new"
+            className="mt-4 inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            <Disc3 className="h-3.5 w-3.5" /> Skapa nytt album
+          </Link>
+        </div>
       ) : (
         <ul className="space-y-3">
           {data!.map((s) => (
