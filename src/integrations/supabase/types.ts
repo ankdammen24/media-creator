@@ -207,6 +207,7 @@ export type Database = {
         Row: {
           amazon_music_url: string | null
           apple_music_url: string | null
+          approval_status: Database["public"]["Enums"]["artist_approval_status"]
           avatar_path: string | null
           bio: string | null
           created_at: string
@@ -214,6 +215,9 @@ export type Database = {
           id: string
           instagram_url: string | null
           name: string
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
           spotify_url: string | null
           updated_at: string
           user_id: string
@@ -223,6 +227,7 @@ export type Database = {
         Insert: {
           amazon_music_url?: string | null
           apple_music_url?: string | null
+          approval_status?: Database["public"]["Enums"]["artist_approval_status"]
           avatar_path?: string | null
           bio?: string | null
           created_at?: string
@@ -230,6 +235,9 @@ export type Database = {
           id?: string
           instagram_url?: string | null
           name: string
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           spotify_url?: string | null
           updated_at?: string
           user_id: string
@@ -239,6 +247,7 @@ export type Database = {
         Update: {
           amazon_music_url?: string | null
           apple_music_url?: string | null
+          approval_status?: Database["public"]["Enums"]["artist_approval_status"]
           avatar_path?: string | null
           bio?: string | null
           created_at?: string
@@ -246,6 +255,9 @@ export type Database = {
           id?: string
           instagram_url?: string | null
           name?: string
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           spotify_url?: string | null
           updated_at?: string
           user_id?: string
@@ -693,6 +705,7 @@ export type Database = {
       album_type: "album" | "ep" | "single" | "compilation"
       app_language: "sv" | "en"
       app_role: "admin" | "moderator" | "user" | "artist"
+      artist_approval_status: "pending" | "approved" | "rejected"
       artist_image_kind: "avatar" | "cover" | "press"
       artist_image_visibility: "public" | "link_only"
       audio_processing_status:
@@ -840,6 +853,7 @@ export const Constants = {
       album_type: ["album", "ep", "single", "compilation"],
       app_language: ["sv", "en"],
       app_role: ["admin", "moderator", "user", "artist"],
+      artist_approval_status: ["pending", "approved", "rejected"],
       artist_image_kind: ["avatar", "cover", "press"],
       artist_image_visibility: ["public", "link_only"],
       audio_processing_status: [
