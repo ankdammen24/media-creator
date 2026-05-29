@@ -54,7 +54,7 @@ function CatalogNotFound() {
   return <EmptyState title={t("catalog.notFound")} />;
 }
 
-type Tab = "all" | "music" | "podcast" | "artists";
+type Tab = "all" | "music" | "podcast" | "artists" | "albums";
 
 type CatalogItem = {
   id: string;
@@ -83,6 +83,8 @@ type CatalogItem = {
   featured_artists: string[] | null;
   processing_status: string | null;
 };
+
+type AlbumRow = PublicAlbum;
 
 async function fetchApproved(): Promise<CatalogItem[]> {
   const { data, error } = await supabase
