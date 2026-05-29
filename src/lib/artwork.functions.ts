@@ -13,6 +13,7 @@ import {
   searchTrackImageCoverArtArchive,
 } from "@/lib/itunes.server";
 import { generateArtistFallbackImage, generateTrackFallbackImage } from "@/lib/ai-image.server";
+import { sweepAzuracastTracks, sweepAzuracastAlbums } from "@/lib/artwork-sweep.server";
 
 const BUCKET = "artwork";
 
