@@ -340,20 +340,13 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const goToTrack = useCallback(
     async (
       track: PlayerTrack,
-      opts?: { keepQueue?: boolean; useCrossfade?: boolean },
+      opts?: { keepQueue?: boolean },
     ) => {
       const decks = decksRef.current;
       if (decks.length < 2) return;
       const fromIdx = activeIdxRef.current;
       const fromEl = decks[fromIdx];
       const toEl = decks[fromIdx ^ 1];
-      const fromTrack = currentRef.current;
-
-      const crossfade =
-        !!opts?.useCrossfade &&
-        track.mediaType === "music" &&
-        fromTrack?.mediaType === "music" &&
-        !fromEl.paused;
 
       const url = await signedUrlFor(track);
       if (!url) return;
@@ -366,7 +359,10 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(true);
       setProgress(0);
       setDuration(0);
-      fadeGuardRef.current = null;
+      handoffGuardRef.current = null;
+      // New track replacing the old one — anything preloaded for the
+      // previous "next" is now stale.
+      clearPreload();
 
       // New track is starting — reset the 30s completion timer. Log a "play"
       // event the first time this submission is played in this session.
@@ -393,35 +389,23 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
         }
       }, 30_000);
 
-      if (!crossfade) {
-        // Hard switch on the active deck; stop the other deck + any fade.
-        cancelFade();
-        toEl.pause();
-        fromEl.volume = 1;
-        fromEl.src = url;
-        setCurrent(track);
-        try {
-          await fromEl.play();
-        } catch {
-          setIsLoading(false);
-        }
-        return;
-      }
-
-      // Crossfade: start the inactive deck silent, make it active, ramp.
-      cancelFade();
-      toEl.src = url;
-      toEl.volume = 0;
-      activeIdxRef.current = fromIdx ^ 1;
+      // Hard switch on the active deck; stop the other deck.
+      toEl.pause();
+      toEl.removeAttribute("src");
+      try { toEl.load(); } catch { /* ignore */ }
+      preloadedRef.current = null;
+      fromEl.volume = 1;
+      fromEl.src = url;
       setCurrent(track);
       try {
-        await toEl.play();
+        await fromEl.play();
       } catch {
         setIsLoading(false);
       }
-      startFade(fromEl, toEl);
+      // Kick off preloading of whatever is currently next in the queue.
+      void preloadNextRef.current?.();
     },
-    [buildRandomQueue, signedUrlFor, cancelFade, startFade],
+    [buildRandomQueue, signedUrlFor, clearPreload, clearCompletedTimer, fireEvent],
   );
 
   useEffect(() => {
@@ -460,7 +444,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       const before = tracks.slice(0, idx);
       setHistory(before);
       setQueue(rest);
-      void goToTrack(first, { keepQueue: true, useCrossfade: false });
+      void goToTrack(first, { keepQueue: true });
     },
     [goToTrack],
   );
@@ -471,7 +455,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     const prev = currentRef.current;
     if (prev) setHistory((h) => [...h, prev]);
     setQueue((q) => q.slice(1));
-    void goToTrack(next, { keepQueue: true, useCrossfade: true });
+    void goToTrack(next, { keepQueue: true });
   }, [goToTrack]);
 
   const skipPrev = useCallback(() => {
@@ -481,7 +465,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     const cur = currentRef.current;
     setHistory((h) => h.slice(0, -1));
     if (cur) setQueue((q) => [cur, ...q]);
-    void goToTrack(prev, { keepQueue: true, useCrossfade: true });
+    void goToTrack(prev, { keepQueue: true });
   }, [goToTrack]);
 
   const toggle = useCallback(() => {
@@ -491,8 +475,6 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       el.play().catch(() => {});
     } else {
       el.pause();
-      // If a crossfade is mid-flight, pause the outgoing deck too.
-      fadingOutElRef.current?.pause();
     }
   }, [getActive, current]);
 
@@ -503,21 +485,21 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   }, [getActive]);
 
   const close = useCallback(() => {
-    cancelFade();
+    clearPreload();
     for (const el of decksRef.current) {
       el.pause();
       el.removeAttribute("src");
       el.volume = 1;
       el.load();
     }
-    fadeGuardRef.current = null;
+    handoffGuardRef.current = null;
     setCurrent(null);
     setIsPlaying(false);
     setProgress(0);
     setDuration(0);
     setQueue([]);
     setHistory([]);
-  }, [cancelFade]);
+  }, [clearPreload]);
 
   const value = useMemo<PlayerContextValue>(
     () => ({
