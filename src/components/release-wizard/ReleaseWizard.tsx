@@ -253,9 +253,9 @@ function reducer(state: ReleaseState, action: Action): ReleaseState {
 // Steps definition
 // ============================================================
 const STEPS = [
-  { id: 1, label: "Release Details", icon: Disc3 },
-  { id: 2, label: "Platforms", icon: Globe },
-  { id: 3, label: "Tracks", icon: FileMusic },
+  { id: 1, label: "Tracks", icon: FileMusic },
+  { id: 2, label: "Release Details", icon: Disc3 },
+  { id: 3, label: "Platforms", icon: Globe },
   { id: 4, label: "Rights", icon: ShieldCheck },
   { id: 5, label: "Review", icon: Check },
 ] as const;
@@ -586,9 +586,12 @@ export function ReleaseWizard() {
               className="animate-in fade-in slide-in-from-bottom-2 duration-300"
             >
               {step === 1 && (
+                <StepTracks state={state} dispatch={dispatch} />
+              )}
+              {step === 2 && (
                 <StepReleaseDetails
                   state={state}
-                  errors={errors[1]}
+                  errors={errors[2]}
                   profiles={profiles}
                   profilesLoading={profilesLoading}
                   dispatch={dispatch}
@@ -598,11 +601,8 @@ export function ReleaseWizard() {
                   }}
                 />
               )}
-              {step === 2 && (
-                <StepPlatforms state={state} dispatch={dispatch} />
-              )}
               {step === 3 && (
-                <StepTracks state={state} dispatch={dispatch} />
+                <StepPlatforms state={state} dispatch={dispatch} />
               )}
               {step === 4 && (
                 <StepRights state={state} dispatch={dispatch} />
@@ -687,26 +687,26 @@ export function ReleaseWizard() {
 function validate(s: ReleaseState): Record<StepId, string[]> {
   const e: Record<StepId, string[]> = { 1: [], 2: [], 3: [], 4: [], 5: [] };
 
-  // Step 1
-  if (!s.title.trim()) e[1].push("Release title is required.");
-  if (!s.artistProfileId) e[1].push("Pick an artist profile.");
-  if (!s.primaryGenre) e[1].push("Primary genre is required.");
-  if (!s.releaseDate) e[1].push("Release date is required.");
-  if (!s.cover && !s.albumId) e[1].push("Upload cover artwork.");
-
-  // Step 2
-  if (s.platforms.length === 0) e[2].push("Pick at least one platform.");
-
-  // Step 3
-  if (s.tracks.length === 0) e[3].push("Add at least one track.");
+  // Step 1 — Tracks
+  if (s.tracks.length === 0) e[1].push("Add at least one track.");
   const notReady = s.tracks.filter((t) => t.status !== "ready");
   if (notReady.length > 0)
-    e[3].push(`${notReady.length} track(s) still uploading or in error.`);
+    e[1].push(`${notReady.length} track(s) still uploading or in error.`);
   for (const t of s.tracks) {
-    if (!t.title.trim()) e[3].push(`Track "${t.file.name}" needs a title.`);
+    if (!t.title.trim()) e[1].push(`Track "${t.file.name}" needs a title.`);
     if (t.isrc.trim() && !ISRC_RE.test(t.isrc.trim().toUpperCase()))
-      e[3].push(`ISRC for "${t.title || t.file.name}" looks invalid.`);
+      e[1].push(`ISRC for "${t.title || t.file.name}" looks invalid.`);
   }
+
+  // Step 2 — Release Details
+  if (!s.title.trim()) e[2].push("Release title is required.");
+  if (!s.artistProfileId) e[2].push("Pick an artist profile.");
+  if (!s.primaryGenre) e[2].push("Primary genre is required.");
+  if (!s.releaseDate) e[2].push("Release date is required.");
+  if (!s.cover && !s.albumId) e[2].push("Upload cover artwork.");
+
+  // Step 3 — Platforms
+  if (s.platforms.length === 0) e[3].push("Pick at least one platform.");
 
   // Step 4
   const r = s.rights;
@@ -848,7 +848,7 @@ function StepReleaseDetails({
 
   return (
     <StepCard
-      step={1}
+      step={2}
       title="Release Details"
       description="Grunduppgifterna om din release. Allt sparas i Media Rosenqvist Catalog och går att redigera senare."
     >
@@ -1219,7 +1219,7 @@ function StepPlatforms({
 }) {
   return (
     <StepCard
-      step={2}
+      step={3}
       title="Plattformar (endast referens)"
       description="Markera var releasen skulle distribueras. I demo-läget är distributionen inte aktiv."
     >
@@ -1391,7 +1391,7 @@ function StepTracks({
 
   return (
     <StepCard
-      step={3}
+      step={1}
       title="Tracks"
       description="Lägg till alla låtar för releasen. Drag-and-drop eller välj filer."
     >
