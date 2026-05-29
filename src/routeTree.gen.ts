@@ -42,6 +42,7 @@ import { Route as ApiV1AudioIdRouteImport } from './routes/api/v1/audio.$id'
 import { Route as ApiV1AdminModerationRouteImport } from './routes/api/v1/admin/moderation'
 import { Route as ApiPublicTracksIdRouteImport } from './routes/api/public/tracks.$id'
 import { Route as ApiPublicStreamIdRouteImport } from './routes/api/public/stream.$id'
+import { Route as ApiPublicHooksSyncAzuracastRouteImport } from './routes/api/public/hooks/sync-azuracast'
 import { Route as ApiPublicHooksImportRadioUppsalaRouteImport } from './routes/api/public/hooks/import-radio-uppsala'
 import { Route as ApiPublicHooksAudioProcessedRouteImport } from './routes/api/public/hooks/audio-processed'
 import { Route as ApiPublicEpisodesIdRouteImport } from './routes/api/public/episodes.$id'
@@ -213,6 +214,12 @@ const ApiPublicStreamIdRoute = ApiPublicStreamIdRouteImport.update({
   path: '/api/public/stream/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicHooksSyncAzuracastRoute =
+  ApiPublicHooksSyncAzuracastRouteImport.update({
+    id: '/api/public/hooks/sync-azuracast',
+    path: '/api/public/hooks/sync-azuracast',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksImportRadioUppsalaRoute =
   ApiPublicHooksImportRadioUppsalaRouteImport.update({
     id: '/api/public/hooks/import-radio-uppsala',
@@ -274,6 +281,7 @@ export interface FileRoutesByFullPath {
   '/api/public/episodes/$id': typeof ApiPublicEpisodesIdRoute
   '/api/public/hooks/audio-processed': typeof ApiPublicHooksAudioProcessedRoute
   '/api/public/hooks/import-radio-uppsala': typeof ApiPublicHooksImportRadioUppsalaRoute
+  '/api/public/hooks/sync-azuracast': typeof ApiPublicHooksSyncAzuracastRoute
   '/api/public/stream/$id': typeof ApiPublicStreamIdRoute
   '/api/public/tracks/$id': typeof ApiPublicTracksIdRoute
   '/api/v1/admin/moderation': typeof ApiV1AdminModerationRoute
@@ -314,6 +322,7 @@ export interface FileRoutesByTo {
   '/api/public/episodes/$id': typeof ApiPublicEpisodesIdRoute
   '/api/public/hooks/audio-processed': typeof ApiPublicHooksAudioProcessedRoute
   '/api/public/hooks/import-radio-uppsala': typeof ApiPublicHooksImportRadioUppsalaRoute
+  '/api/public/hooks/sync-azuracast': typeof ApiPublicHooksSyncAzuracastRoute
   '/api/public/stream/$id': typeof ApiPublicStreamIdRoute
   '/api/public/tracks/$id': typeof ApiPublicTracksIdRoute
   '/api/v1/admin/moderation': typeof ApiV1AdminModerationRoute
@@ -355,6 +364,7 @@ export interface FileRoutesById {
   '/api/public/episodes/$id': typeof ApiPublicEpisodesIdRoute
   '/api/public/hooks/audio-processed': typeof ApiPublicHooksAudioProcessedRoute
   '/api/public/hooks/import-radio-uppsala': typeof ApiPublicHooksImportRadioUppsalaRoute
+  '/api/public/hooks/sync-azuracast': typeof ApiPublicHooksSyncAzuracastRoute
   '/api/public/stream/$id': typeof ApiPublicStreamIdRoute
   '/api/public/tracks/$id': typeof ApiPublicTracksIdRoute
   '/api/v1/admin/moderation': typeof ApiV1AdminModerationRoute
@@ -397,6 +407,7 @@ export interface FileRouteTypes {
     | '/api/public/episodes/$id'
     | '/api/public/hooks/audio-processed'
     | '/api/public/hooks/import-radio-uppsala'
+    | '/api/public/hooks/sync-azuracast'
     | '/api/public/stream/$id'
     | '/api/public/tracks/$id'
     | '/api/v1/admin/moderation'
@@ -437,6 +448,7 @@ export interface FileRouteTypes {
     | '/api/public/episodes/$id'
     | '/api/public/hooks/audio-processed'
     | '/api/public/hooks/import-radio-uppsala'
+    | '/api/public/hooks/sync-azuracast'
     | '/api/public/stream/$id'
     | '/api/public/tracks/$id'
     | '/api/v1/admin/moderation'
@@ -477,6 +489,7 @@ export interface FileRouteTypes {
     | '/api/public/episodes/$id'
     | '/api/public/hooks/audio-processed'
     | '/api/public/hooks/import-radio-uppsala'
+    | '/api/public/hooks/sync-azuracast'
     | '/api/public/stream/$id'
     | '/api/public/tracks/$id'
     | '/api/v1/admin/moderation'
@@ -515,6 +528,7 @@ export interface RootRouteChildren {
   ApiPublicEpisodesIdRoute: typeof ApiPublicEpisodesIdRoute
   ApiPublicHooksAudioProcessedRoute: typeof ApiPublicHooksAudioProcessedRoute
   ApiPublicHooksImportRadioUppsalaRoute: typeof ApiPublicHooksImportRadioUppsalaRoute
+  ApiPublicHooksSyncAzuracastRoute: typeof ApiPublicHooksSyncAzuracastRoute
   ApiPublicStreamIdRoute: typeof ApiPublicStreamIdRoute
   ApiV1AdminModerationRoute: typeof ApiV1AdminModerationRoute
   ApiV1AudioIdRoute: typeof ApiV1AudioIdRoute
@@ -754,6 +768,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicStreamIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/sync-azuracast': {
+      id: '/api/public/hooks/sync-azuracast'
+      path: '/api/public/hooks/sync-azuracast'
+      fullPath: '/api/public/hooks/sync-azuracast'
+      preLoaderRoute: typeof ApiPublicHooksSyncAzuracastRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/import-radio-uppsala': {
       id: '/api/public/hooks/import-radio-uppsala'
       path: '/api/public/hooks/import-radio-uppsala'
@@ -880,6 +901,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicEpisodesIdRoute: ApiPublicEpisodesIdRoute,
   ApiPublicHooksAudioProcessedRoute: ApiPublicHooksAudioProcessedRoute,
   ApiPublicHooksImportRadioUppsalaRoute: ApiPublicHooksImportRadioUppsalaRoute,
+  ApiPublicHooksSyncAzuracastRoute: ApiPublicHooksSyncAzuracastRoute,
   ApiPublicStreamIdRoute: ApiPublicStreamIdRoute,
   ApiV1AdminModerationRoute: ApiV1AdminModerationRoute,
   ApiV1AudioIdRoute: ApiV1AudioIdRoute,
