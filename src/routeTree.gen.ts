@@ -27,6 +27,7 @@ import { Route as ApiGenerateArtistImageRouteImport } from './routes/api/generat
 import { Route as AlbumsNewRouteImport } from './routes/albums.new'
 import { Route as AlbumsAlbumIdRouteImport } from './routes/albums.$albumId'
 import { Route as AlbumsAlbumIdEditRouteImport } from './routes/albums.$albumId.edit'
+import { Route as ApiPublicHooksImportRadioUppsalaRouteImport } from './routes/api/public/hooks/import-radio-uppsala'
 import { Route as ApiPublicHooksAudioProcessedRouteImport } from './routes/api/public/hooks/audio-processed'
 
 const UploadBatchRoute = UploadBatchRouteImport.update({
@@ -119,6 +120,12 @@ const AlbumsAlbumIdEditRoute = AlbumsAlbumIdEditRouteImport.update({
   path: '/edit',
   getParentRoute: () => AlbumsAlbumIdRoute,
 } as any)
+const ApiPublicHooksImportRadioUppsalaRoute =
+  ApiPublicHooksImportRadioUppsalaRouteImport.update({
+    id: '/api/public/hooks/import-radio-uppsala',
+    path: '/api/public/hooks/import-radio-uppsala',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksAudioProcessedRoute =
   ApiPublicHooksAudioProcessedRouteImport.update({
     id: '/api/public/hooks/audio-processed',
@@ -146,6 +153,7 @@ export interface FileRoutesByFullPath {
   '/releases/new': typeof ReleasesNewRoute
   '/albums/$albumId/edit': typeof AlbumsAlbumIdEditRoute
   '/api/public/hooks/audio-processed': typeof ApiPublicHooksAudioProcessedRoute
+  '/api/public/hooks/import-radio-uppsala': typeof ApiPublicHooksImportRadioUppsalaRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -167,6 +175,7 @@ export interface FileRoutesByTo {
   '/releases/new': typeof ReleasesNewRoute
   '/albums/$albumId/edit': typeof AlbumsAlbumIdEditRoute
   '/api/public/hooks/audio-processed': typeof ApiPublicHooksAudioProcessedRoute
+  '/api/public/hooks/import-radio-uppsala': typeof ApiPublicHooksImportRadioUppsalaRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -189,6 +198,7 @@ export interface FileRoutesById {
   '/releases/new': typeof ReleasesNewRoute
   '/albums/$albumId/edit': typeof AlbumsAlbumIdEditRoute
   '/api/public/hooks/audio-processed': typeof ApiPublicHooksAudioProcessedRoute
+  '/api/public/hooks/import-radio-uppsala': typeof ApiPublicHooksImportRadioUppsalaRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -212,6 +222,7 @@ export interface FileRouteTypes {
     | '/releases/new'
     | '/albums/$albumId/edit'
     | '/api/public/hooks/audio-processed'
+    | '/api/public/hooks/import-radio-uppsala'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -233,6 +244,7 @@ export interface FileRouteTypes {
     | '/releases/new'
     | '/albums/$albumId/edit'
     | '/api/public/hooks/audio-processed'
+    | '/api/public/hooks/import-radio-uppsala'
   id:
     | '__root__'
     | '/'
@@ -254,6 +266,7 @@ export interface FileRouteTypes {
     | '/releases/new'
     | '/albums/$albumId/edit'
     | '/api/public/hooks/audio-processed'
+    | '/api/public/hooks/import-radio-uppsala'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -275,6 +288,7 @@ export interface RootRouteChildren {
   ArtistsNewRoute: typeof ArtistsNewRoute
   ReleasesNewRoute: typeof ReleasesNewRoute
   ApiPublicHooksAudioProcessedRoute: typeof ApiPublicHooksAudioProcessedRoute
+  ApiPublicHooksImportRadioUppsalaRoute: typeof ApiPublicHooksImportRadioUppsalaRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -405,6 +419,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AlbumsAlbumIdEditRouteImport
       parentRoute: typeof AlbumsAlbumIdRoute
     }
+    '/api/public/hooks/import-radio-uppsala': {
+      id: '/api/public/hooks/import-radio-uppsala'
+      path: '/api/public/hooks/import-radio-uppsala'
+      fullPath: '/api/public/hooks/import-radio-uppsala'
+      preLoaderRoute: typeof ApiPublicHooksImportRadioUppsalaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/audio-processed': {
       id: '/api/public/hooks/audio-processed'
       path: '/api/public/hooks/audio-processed'
@@ -446,6 +467,7 @@ const rootRouteChildren: RootRouteChildren = {
   ArtistsNewRoute: ArtistsNewRoute,
   ReleasesNewRoute: ReleasesNewRoute,
   ApiPublicHooksAudioProcessedRoute: ApiPublicHooksAudioProcessedRoute,
+  ApiPublicHooksImportRadioUppsalaRoute: ApiPublicHooksImportRadioUppsalaRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
