@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Check, X, Globe, Loader2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { ReleaseStatusBadge, type ReleaseStatus } from "./ReleaseStatusBadge";
 
@@ -16,6 +17,7 @@ export function AdminReleaseActions({
   initialStatus: ReleaseStatus;
   initialNotes?: string | null;
 }) {
+  const { t } = useTranslation();
   const [status, setStatus] = useState<ReleaseStatus>(initialStatus);
   const [notes, setNotes] = useState(initialNotes ?? "");
   const [busy, setBusy] = useState(false);
@@ -39,7 +41,7 @@ export function AdminReleaseActions({
       if (error) throw error;
       setStatus(next);
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "Update failed");
+      setErr(e instanceof Error ? e.message : t("adminRelease.updateFailed"));
     } finally {
       setBusy(false);
     }
@@ -48,14 +50,14 @@ export function AdminReleaseActions({
   return (
     <section className="rounded-xl border border-border bg-card p-4">
       <div className="mb-3 flex items-center justify-between">
-        <h3 className="text-sm font-semibold">Admin actions</h3>
+        <h3 className="text-sm font-semibold">{t("adminRelease.heading")}</h3>
         <ReleaseStatusBadge status={status} />
       </div>
       <textarea
         rows={3}
         value={notes}
         onChange={(e) => setNotes(e.target.value)}
-        placeholder="Internal notes (admin-only)"
+        placeholder={t("adminRelease.notesPlaceholder")}
         className="mb-3 w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/40"
       />
       <div className="flex flex-wrap gap-2">
@@ -65,21 +67,21 @@ export function AdminReleaseActions({
           className="inline-flex items-center gap-1.5 rounded-md bg-emerald-500/15 px-3 py-1.5 text-xs font-medium text-emerald-400 hover:bg-emerald-500/25 disabled:opacity-50"
         >
           {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
-          Approve
+          {t("adminRelease.approve")}
         </button>
         <button
           disabled={busy}
           onClick={() => update("rejected")}
           className="inline-flex items-center gap-1.5 rounded-md bg-destructive/15 px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/25 disabled:opacity-50"
         >
-          <X className="h-3 w-3" /> Reject
+          <X className="h-3 w-3" /> {t("adminRelease.reject")}
         </button>
         <button
           disabled={busy || status !== "approved"}
           onClick={() => update("published")}
           className="inline-flex items-center gap-1.5 rounded-md bg-primary/15 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/25 disabled:opacity-50"
         >
-          <Globe className="h-3 w-3" /> Publish
+          <Globe className="h-3 w-3" /> {t("adminRelease.publish")}
         </button>
       </div>
       {err && <p className="mt-2 text-xs text-destructive">{err}</p>}
@@ -91,15 +93,16 @@ export function AdminReleaseActions({
  * Placeholder email notification settings. Frontend-only for now.
  */
 export function EmailNotificationSettings() {
+  const { t } = useTranslation();
   const [approval, setApproval] = useState(true);
   const [rejection, setRejection] = useState(true);
   const [lang, setLang] = useState<"sv" | "en">("sv");
 
   return (
     <section className="rounded-xl border border-border bg-card p-4 text-sm">
-      <h3 className="mb-3 font-semibold">Email notifications</h3>
+      <h3 className="mb-3 font-semibold">{t("adminRelease.emailHeading")}</h3>
       <label className="flex items-center justify-between py-2">
-        <span>Approval email</span>
+        <span>{t("adminRelease.approvalEmail")}</span>
         <input
           type="checkbox"
           checked={approval}
@@ -108,7 +111,7 @@ export function EmailNotificationSettings() {
         />
       </label>
       <label className="flex items-center justify-between py-2">
-        <span>Rejection email</span>
+        <span>{t("adminRelease.rejectionEmail")}</span>
         <input
           type="checkbox"
           checked={rejection}
@@ -117,14 +120,14 @@ export function EmailNotificationSettings() {
         />
       </label>
       <label className="mt-2 block">
-        <span className="mb-1 block text-xs text-muted-foreground">Language</span>
+        <span className="mb-1 block text-xs text-muted-foreground">{t("adminRelease.language")}</span>
         <select
           value={lang}
           onChange={(e) => setLang(e.target.value as "sv" | "en")}
           className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
         >
-          <option value="sv">Svenska</option>
-          <option value="en">English</option>
+          <option value="sv">{t("language.sv")}</option>
+          <option value="en">{t("language.en")}</option>
         </select>
       </label>
     </section>

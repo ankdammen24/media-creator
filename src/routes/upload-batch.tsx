@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type ChangeEvent } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Upload as UploadIcon,
   X,
@@ -87,6 +88,7 @@ export const Route = createFileRoute("/upload-batch")({
 
 function BatchUploadPage() {
   const { user } = useAuth();
+  const { t } = useTranslation();
 
   // Profiles
   const [profiles, setProfiles] = useState<ArtistProfile[]>([]);
@@ -128,7 +130,7 @@ function BatchUploadPage() {
         setProfiles(items);
         if (items.length === 1) setProfileId(items[0].id);
       } catch (e) {
-        if (on) setProfilesError(e instanceof Error ? e.message : "Could not load profiles");
+        if (on) setProfilesError(e instanceof Error ? e.message : t("batchUpload.couldNotLoadProfiles"));
       } finally {
         if (on) setProfilesLoading(false);
       }
@@ -146,12 +148,12 @@ function BatchUploadPage() {
       return;
     }
     if (!IMAGE_EXTS.includes(extOf(f.name))) {
-      setSharedArtworkError(`Unsupported image format. Allowed: ${IMAGE_EXTS.join(", ").toUpperCase()}.`);
+      setSharedArtworkError(t("uploadEpisode.artworkUnsupported", { formats: IMAGE_EXTS.join(", ").toUpperCase() }));
       setSharedArtwork(null);
       return;
     }
     if (f.size > MAX_IMAGE_BYTES) {
-      setSharedArtworkError(`Artwork too large (${formatBytes(f.size)}). Max ${formatBytes(MAX_IMAGE_BYTES)}.`);
+      setSharedArtworkError(t("uploadEpisode.artworkTooLarge", { size: formatBytes(f.size), max: formatBytes(MAX_IMAGE_BYTES) }));
       setSharedArtwork(null);
       return;
     }
@@ -172,9 +174,9 @@ function BatchUploadPage() {
       status: AUDIO_EXTS.includes(extOf(f.name)) && f.size <= MAX_AUDIO_BYTES ? "queued" : "error",
       errorMsg: AUDIO_EXTS.includes(extOf(f.name))
         ? f.size > MAX_AUDIO_BYTES
-          ? `Too large (${formatBytes(f.size)})`
+          ? t("batchUpload.draft.tooLarge", { size: formatBytes(f.size) })
           : null
-        : `Unsupported format`,
+        : t("batchUpload.draft.unsupportedFormat"),
       selected: true,
       title: baseName(f.name),
       description: "",
@@ -211,7 +213,7 @@ function BatchUploadPage() {
         ),
       );
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Upload failed";
+      const msg = err instanceof Error ? err.message : t("batchUpload.draft.uploadFailed");
       setDrafts((cur) =>
         cur.map((x) => (x.id === d.id ? { ...x, status: "error", errorMsg: msg } : x)),
       );
@@ -228,11 +230,11 @@ function BatchUploadPage() {
       return;
     }
     if (!IMAGE_EXTS.includes(extOf(f.name))) {
-      updateDraft(id, { artwork: null, artworkError: "Unsupported image format" });
+      updateDraft(id, { artwork: null, artworkError: t("batchUpload.draft.imageUnsupported") });
       return;
     }
     if (f.size > MAX_IMAGE_BYTES) {
-      updateDraft(id, { artwork: null, artworkError: `Too large (${formatBytes(f.size)})` });
+      updateDraft(id, { artwork: null, artworkError: t("batchUpload.draft.imageTooLarge", { size: formatBytes(f.size) }) });
       return;
     }
     updateDraft(id, { artwork: f, artworkError: null });
@@ -265,11 +267,11 @@ function BatchUploadPage() {
 
   async function submitSelected() {
     if (!user || !profileId) {
-      setGlobalError("Choose an artist profile first.");
+      setGlobalError(t("batchUpload.chooseArtist"));
       return;
     }
     if (!showId) {
-      setGlobalError("Pick a show for the episodes.");
+      setGlobalError(t("batchUpload.pickShow"));
       return;
     }
     setGlobalError(null);
@@ -277,7 +279,7 @@ function BatchUploadPage() {
 
     const toSubmit = drafts.filter((d) => d.selected && isDraftSubmittable(d));
     if (!toSubmit.length) {
-      setGlobalError("No selected drafts are ready to submit.");
+      setGlobalError(t("batchUpload.noneReady"));
       return;
     }
 
@@ -306,7 +308,7 @@ function BatchUploadPage() {
           });
           if (up.error) throw up.error;
         } else {
-          throw new Error("Missing artwork");
+          throw new Error(t("batchUpload.draft.missingArtwork"));
         }
 
         const { data: inserted, error: insErr } = await supabase
@@ -341,7 +343,7 @@ function BatchUploadPage() {
         updateDraft(d.id, { status: "submitted" });
       } catch (err) {
         failed += 1;
-        const msg = err instanceof Error ? err.message : "Submission failed";
+        const msg = err instanceof Error ? err.message : t("batchUpload.draft.submissionFailed");
         updateDraft(d.id, { status: "ready", errorMsg: msg });
       }
     }
@@ -355,32 +357,30 @@ function BatchUploadPage() {
 
       <div className="mb-8">
         <h1 className="flex items-center gap-2 text-3xl font-semibold tracking-tight">
-          <Layers className="h-7 w-7 text-primary" /> Batch upload
+          <Layers className="h-7 w-7 text-primary" /> {t("batchUpload.title")}
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Upload multiple audio files at once, fill in metadata for each, then submit the ones you&rsquo;re ready with.
+          {t("batchUpload.intro")}
         </p>
         <div className="mt-4 flex items-start gap-3 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
           <p>
-            <span className="font-semibold">Demo-läge.</span> Det du laddar upp
-            sparas i Media Rosenqvist Catalog och skickas till Radio Uppsala.
-            Distribution till Spotify, Apple Music m.fl. är inte aktiv.
+            <span className="font-semibold">{t("batchUpload.demoLabel")}</span> {t("batchUpload.demoBody")}
           </p>
         </div>
       </div>
 
       {/* Profile */}
-      <Section title="1. Artist profile" icon={<UserIcon className="h-4 w-4" />}>
+      <Section title={t("batchUpload.step1")} icon={<UserIcon className="h-4 w-4" />}>
         {profilesLoading ? (
-          <p className="text-sm text-muted-foreground">Loading profiles…</p>
+          <p className="text-sm text-muted-foreground">{t("batchUpload.loadingProfiles")}</p>
         ) : profiles.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            You don&rsquo;t have any artist profiles yet.{" "}
+            {t("batchUpload.noProfiles1")}
             <Link to="/upload" className="text-primary underline">
-              Create one in the single upload flow
+              {t("batchUpload.noProfiles2")}
             </Link>{" "}
-            and come back.
+            {t("batchUpload.noProfiles3")}
           </p>
         ) : (
           <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-3">
@@ -415,27 +415,27 @@ function BatchUploadPage() {
       </Section>
 
       {/* Shared settings */}
-      <Section title="2. Shared settings (optional)" icon={<ImageIcon className="h-4 w-4" />}>
+      <Section title={t("batchUpload.step2")} icon={<ImageIcon className="h-4 w-4" />}>
         {profileId && (
           <div className="mb-4 rounded-lg border border-border bg-background/40 p-3">
             <label className="mb-2 block text-sm font-medium">
-              Show for episodes <span className="text-destructive">*</span>
+              {t("batchUpload.showForEpisodes")} <span className="text-destructive">*</span>
             </label>
             <ShowPicker artistId={profileId} value={showId} onChange={setShowId} />
             <p className="mt-2 text-xs text-muted-foreground">
-              Required. Episode numbers are auto-assigned.
+              {t("batchUpload.showRequiredNote")}
             </p>
           </div>
         )}
         <div className="grid gap-4 md:grid-cols-2">
           <div>
-            <span className="mb-2 block text-sm font-medium">Shared artwork</span>
+            <span className="mb-2 block text-sm font-medium">{t("batchUpload.sharedArtwork")}</span>
             {!sharedArtwork ? (
               <label className="flex h-24 cursor-pointer flex-col items-center justify-center rounded-md border border-dashed border-border bg-background px-4 text-center hover:bg-accent/40">
                 <ImageIcon className="h-5 w-5 text-muted-foreground" />
-                <span className="mt-1 text-sm font-medium">Choose shared artwork</span>
+                <span className="mt-1 text-sm font-medium">{t("batchUpload.chooseSharedArtwork")}</span>
                 <span className="text-xs text-muted-foreground">
-                  Used for any item without its own artwork
+                  {t("batchUpload.sharedArtworkHint")}
                 </span>
                 <input
                   type="file"
@@ -456,21 +456,21 @@ function BatchUploadPage() {
               className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs hover:bg-accent"
             >
               <Sparkles className="h-3.5 w-3.5 text-primary" />
-              Skapa delat omslag med AI
+              {t("batchUpload.aiSharedArtwork")}
             </button>
           </div>
         </div>
       </Section>
 
       {/* Pick audios */}
-      <Section title="3. Select audio files" icon={<UploadIcon className="h-4 w-4" />}>
+      <Section title={t("batchUpload.step3")} icon={<UploadIcon className="h-4 w-4" />}>
         <label className="flex h-32 cursor-pointer flex-col items-center justify-center rounded-md border border-dashed border-border bg-background px-4 text-center hover:bg-accent/40">
           <UploadIcon className="h-6 w-6 text-muted-foreground" />
           <span className="mt-2 text-sm font-medium">
-            Add audio files {drafts.length > 0 ? "(more)" : ""}
+            {t("batchUpload.addAudio")} {drafts.length > 0 ? t("batchUpload.addMore") : ""}
           </span>
           <span className="mt-1 text-xs text-muted-foreground">
-            {AUDIO_EXTS.join(", ").toUpperCase()} — up to {formatBytes(MAX_AUDIO_BYTES)} each
+            {t("batchUpload.audioHint", { formats: AUDIO_EXTS.join(", ").toUpperCase(), max: formatBytes(MAX_AUDIO_BYTES) })}
           </span>
           <input
             type="file"
@@ -485,7 +485,7 @@ function BatchUploadPage() {
       {/* Drafts list */}
       {drafts.length > 0 && (
         <Section
-          title={`4. Drafts (${drafts.length})`}
+          title={t("batchUpload.step4", { count: drafts.length })}
           icon={<Layers className="h-4 w-4" />}
         >
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-xs">
@@ -497,10 +497,10 @@ function BatchUploadPage() {
                   setDrafts((cur) => cur.map((x) => ({ ...x, selected: e.target.checked })))
                 }
               />
-              Select all
+              {t("batchUpload.selectAll")}
             </label>
             <span className="text-muted-foreground">
-              {selectedReadyCount} selected & ready to submit
+              {t("batchUpload.readyCount", { count: selectedReadyCount })}
             </span>
           </div>
 
@@ -523,7 +523,7 @@ function BatchUploadPage() {
 
       {/* Submit */}
       {drafts.length > 0 && (
-        <Section title="5. Submit selected for review" icon={<CheckCircle2 className="h-4 w-4" />}>
+        <Section title={t("batchUpload.step5")} icon={<CheckCircle2 className="h-4 w-4" />}>
           {globalError && (
             <div className="mb-3 flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
@@ -532,14 +532,15 @@ function BatchUploadPage() {
           )}
           {submitSummary && (
             <div className="mb-3 rounded-md border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm">
-              Submitted {submitSummary.ok} item{submitSummary.ok === 1 ? "" : "s"} for review
-              {submitSummary.failed > 0 ? `, ${submitSummary.failed} failed.` : "."}{" "}
+              {t("batchUpload.submittedSummary", { count: submitSummary.ok })}
+              {submitSummary.failed > 0
+                ? t("batchUpload.submittedFailed", { count: submitSummary.failed })
+                : t("batchUpload.submittedDot")}{" "}
               <span className="text-amber-700 dark:text-amber-300">
-                Sparas i katalogen och skickas till Radio Uppsala — ingen
-                streamingdistribution i demo-läget.
+                {t("batchUpload.demoTail")}
               </span>{" "}
               <Link to="/catalog" className="underline">
-                Back to catalog
+                {t("batchUpload.backToCatalog")}
               </Link>
             </div>
           )}
@@ -549,16 +550,16 @@ function BatchUploadPage() {
             disabled={!profileId || selectedReadyCount === 0}
             className="inline-flex w-full items-center justify-center rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Submit {selectedReadyCount} selected for review
+            {t("batchUpload.submitBtn", { count: selectedReadyCount })}
           </button>
         </Section>
       )}
       <AiArtworkDialog
         open={sharedAiOpen}
         aspect="1:1"
-        title="Skapa delat omslag med AI"
+        title={t("batchUpload.aiSharedDialog")}
         filenameHint={`shared-${primaryArtistName || "artwork"}`}
-        defaultPrompt={`Abstrakt delat omslag${primaryArtistName ? ` för ${primaryArtistName}` : ""}, konstnärlig komposition som funkar för flera spår, ingen text, inga ansikten`}
+        defaultPrompt={t("batchUpload.aiSharedPrompt", { artistPart: primaryArtistName ? t("batchUpload.aiArtist", { name: primaryArtistName }) : "" })}
         onClose={() => setSharedAiOpen(false)}
         onGenerated={(file) => {
           setSharedArtwork(file);
@@ -570,6 +571,7 @@ function BatchUploadPage() {
 }
 
 function ModeTabs({ current }: { current: "single" | "batch" }) {
+  const { t } = useTranslation();
   return (
     <div className="mb-6 inline-flex rounded-lg border border-border bg-card p-1">
       <Link
@@ -578,7 +580,7 @@ function ModeTabs({ current }: { current: "single" | "batch" }) {
           current === "single" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
         }`}
       >
-        Single upload
+        {t("batchUpload.tabs.single")}
       </Link>
       <Link
         to="/upload-batch"
@@ -586,7 +588,7 @@ function ModeTabs({ current }: { current: "single" | "batch" }) {
           current === "batch" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
         }`}
       >
-        Batch upload
+        {t("batchUpload.tabs.batch")}
       </Link>
     </div>
   );
@@ -613,6 +615,7 @@ function Section({
 }
 
 function SharedArtworkPreview({ file, onRemove }: { file: File; onRemove: () => void }) {
+  const { t } = useTranslation();
   const [url, setUrl] = useState<string | null>(null);
   useEffect(() => {
     const u = URL.createObjectURL(file);
@@ -630,7 +633,7 @@ function SharedArtworkPreview({ file, onRemove }: { file: File; onRemove: () => 
         type="button"
         onClick={onRemove}
         className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border hover:bg-accent"
-        aria-label="Remove shared artwork"
+        aria-label={t("batchUpload.removeSharedAria")}
       >
         <X className="h-4 w-4" />
       </button>
@@ -655,6 +658,7 @@ function DraftRow({
   onRemove: () => void;
   onRetryUpload: () => void;
 }) {
+  const { t } = useTranslation();
   const [artUrl, setArtUrl] = useState<string | null>(null);
   const [aiOpen, setAiOpen] = useState(false);
   useEffect(() => {
@@ -670,25 +674,25 @@ function DraftRow({
   const statusBadge = (() => {
     switch (d.status) {
       case "queued":
-        return <span className="text-muted-foreground">Queued</span>;
+        return <span className="text-muted-foreground">{t("batchUpload.draft.status.queued")}</span>;
       case "uploading":
         return (
           <span className="inline-flex items-center gap-1 text-primary">
-            <Loader2 className="h-3 w-3 animate-spin" /> Uploading… {d.uploadPct}%
+            <Loader2 className="h-3 w-3 animate-spin" /> {t("batchUpload.draft.status.uploading", { pct: d.uploadPct })}
           </span>
         );
       case "ready":
-        return <span className="text-emerald-500">Uploaded · draft</span>;
+        return <span className="text-emerald-500">{t("batchUpload.draft.status.ready")}</span>;
       case "submitting":
         return (
           <span className="inline-flex items-center gap-1 text-primary">
-            <Loader2 className="h-3 w-3 animate-spin" /> Submitting…
+            <Loader2 className="h-3 w-3 animate-spin" /> {t("batchUpload.draft.status.submitting")}
           </span>
         );
       case "submitted":
-        return <span className="text-emerald-500">Submitted for review</span>;
+        return <span className="text-emerald-500">{t("batchUpload.draft.status.submitted")}</span>;
       case "error":
-        return <span className="text-destructive">{d.errorMsg ?? "Error"}</span>;
+        return <span className="text-destructive">{d.errorMsg ?? t("batchUpload.draft.status.error")}</span>;
     }
   })();
 
@@ -703,7 +707,7 @@ function DraftRow({
           disabled={disabled || d.status === "error" || d.status === "uploading"}
           onChange={(e) => onChange({ selected: e.target.checked })}
           className="mt-1"
-          aria-label={`Select ${d.title}`}
+          aria-label={t("batchUpload.draft.selectAria", { title: d.title })}
         />
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-medium">{d.file.name}</p>
@@ -726,7 +730,7 @@ function DraftRow({
               onClick={onRetryUpload}
               className="rounded-md border border-border px-2 py-1 text-xs hover:bg-accent"
             >
-              Retry
+              {t("batchUpload.draft.retry")}
             </button>
           )}
           <button
@@ -734,7 +738,7 @@ function DraftRow({
             onClick={onRemove}
             disabled={d.status === "submitting"}
             className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border hover:bg-accent disabled:opacity-60"
-            aria-label="Remove draft"
+            aria-label={t("batchUpload.removeDraftAria")}
           >
             <Trash2 className="h-4 w-4" />
           </button>
@@ -743,7 +747,7 @@ function DraftRow({
 
       <div className="grid gap-3 md:grid-cols-2">
         <div>
-          <label className="mb-1 block text-xs font-medium">Title</label>
+          <label className="mb-1 block text-xs font-medium">{t("batchUpload.draft.title")}</label>
           <input
             type="text"
             value={d.title}
@@ -755,7 +759,7 @@ function DraftRow({
         </div>
 
         <div>
-          <label className="mb-1 block text-xs font-medium">Description (optional)</label>
+          <label className="mb-1 block text-xs font-medium">{t("batchUpload.draft.descriptionOptional")}</label>
           <textarea
             value={d.description}
             onChange={(e) => onChange({ description: e.target.value })}
@@ -767,10 +771,10 @@ function DraftRow({
 
           <div className="mt-3">
             <span className="mb-1 block text-xs font-medium">
-              Artwork{" "}
+              {t("batchUpload.draft.artwork")}{" "}
               {hasSharedArtwork && !d.artwork && (
                 <span className="font-normal text-muted-foreground">
-                  · using shared artwork
+                  {t("batchUpload.draft.usingShared")}
                 </span>
               )}
             </span>
@@ -785,7 +789,7 @@ function DraftRow({
                   onClick={() => onArtwork(null)}
                   disabled={disabled}
                   className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-border hover:bg-accent disabled:opacity-60"
-                  aria-label="Remove artwork"
+                  aria-label={t("batchUpload.removeArtworkAria")}
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>
@@ -793,7 +797,7 @@ function DraftRow({
             ) : (
               <label className="flex h-14 cursor-pointer items-center justify-center rounded-md border border-dashed border-border bg-background px-3 text-xs hover:bg-accent/40">
                 <ImageIcon className="mr-2 h-4 w-4 text-muted-foreground" />
-                {hasSharedArtwork ? "Override with custom artwork" : "Choose artwork (required)"}
+                {hasSharedArtwork ? t("batchUpload.draft.overrideWithCustom") : t("batchUpload.draft.chooseArtworkRequired")}
                 <input
                   type="file"
                   accept={IMAGE_ACCEPT}
@@ -813,14 +817,17 @@ function DraftRow({
               className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-2 py-1 text-xs hover:bg-accent disabled:opacity-50"
             >
               <Sparkles className="h-3.5 w-3.5 text-primary" />
-              Skapa med AI
+              {t("batchUpload.draft.aiButton")}
             </button>
             <AiArtworkDialog
               open={aiOpen}
               aspect="1:1"
-              title="Skapa omslag med AI"
+              title={t("batchUpload.draft.aiDialogTitle")}
               filenameHint={`track-${d.title || "untitled"}`}
-              defaultPrompt={`Abstrakt omslag för låten "${d.title || "låten"}"${artistName ? ` av ${artistName}` : ""}, konstnärlig komposition, ingen text, inga ansikten`}
+              defaultPrompt={t("batchUpload.draft.aiPrompt", {
+                title: d.title || t("batchUpload.draft.fallbackTitle"),
+                artistPart: artistName ? t("batchUpload.aiArtist", { name: artistName }) : "",
+              })}
               onClose={() => setAiOpen(false)}
               onGenerated={(file) => onArtwork(file)}
             />

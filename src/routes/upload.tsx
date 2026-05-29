@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent, type ChangeEvent, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Upload as UploadIcon,
   X,
@@ -72,6 +73,7 @@ function parseList(s: string): string[] {
 
 function UploadPage() {
   const { user } = useAuth();
+  const { t } = useTranslation();
 
   // Profiles
   const [profiles, setProfiles] = useState<ArtistProfile[]>([]);
@@ -129,7 +131,7 @@ function UploadPage() {
         setProfiles(items);
       if (items.length === 1) setProfileIds([items[0].id]);
       } catch (e) {
-        if (on) setProfilesError(e instanceof Error ? e.message : "Could not load profiles");
+        if (on) setProfilesError(e instanceof Error ? e.message : t("uploadEpisode.couldNotLoadProfiles"));
       } finally {
         if (on) setProfilesLoading(false);
       }
@@ -142,18 +144,18 @@ function UploadPage() {
   const audioError = (() => {
     if (!audio) return null;
     if (!AUDIO_EXTS.includes(extOf(audio.name)))
-      return `Unsupported audio format. Allowed: ${AUDIO_EXTS.join(", ").toUpperCase()}.`;
+      return t("uploadEpisode.audioUnsupported", { formats: AUDIO_EXTS.join(", ").toUpperCase() });
     if (audio.size > MAX_AUDIO_BYTES)
-      return `Audio is too large (${formatBytes(audio.size)}). Max ${formatBytes(MAX_AUDIO_BYTES)}.`;
+      return t("uploadEpisode.audioTooLarge", { size: formatBytes(audio.size), max: formatBytes(MAX_AUDIO_BYTES) });
     return null;
   })();
 
   const artworkError = (() => {
     if (!artwork) return null;
     if (!IMAGE_EXTS.includes(extOf(artwork.name)))
-      return `Unsupported image format. Allowed: ${IMAGE_EXTS.join(", ").toUpperCase()}.`;
+      return t("uploadEpisode.artworkUnsupported", { formats: IMAGE_EXTS.join(", ").toUpperCase() });
     if (artwork.size > MAX_IMAGE_BYTES)
-      return `Artwork is too large (${formatBytes(artwork.size)}). Max ${formatBytes(MAX_IMAGE_BYTES)}.`;
+      return t("uploadEpisode.artworkTooLarge", { size: formatBytes(artwork.size), max: formatBytes(MAX_IMAGE_BYTES) });
     return null;
   })();
 
@@ -214,7 +216,7 @@ function UploadPage() {
         console.warn("autoFetchArtistArtwork failed", e),
       );
     } catch (err) {
-      setProfilesError(err instanceof Error ? err.message : "Could not create profile");
+      setProfilesError(err instanceof Error ? err.message : t("uploadEpisode.couldNotCreateProfile"));
     } finally {
       setCreateBusy(false);
     }
@@ -315,7 +317,7 @@ function UploadPage() {
       const msg =
         err && typeof err === "object" && "message" in err
           ? String((err as { message: unknown }).message)
-          : "Something went wrong while submitting";
+          : t("uploadEpisode.somethingWrong");
       setError(msg);
       setStatus("error");
     }
@@ -328,14 +330,12 @@ function UploadPage() {
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-400">
             <CheckCircle2 className="h-7 w-7" />
           </div>
-          <h1 className="mb-2 text-2xl font-semibold">Your episode has been sent for review.</h1>
+          <h1 className="mb-2 text-2xl font-semibold">{t("uploadEpisode.success.title")}</h1>
           <p className="mb-2 text-sm text-muted-foreground">
-            Tack! Ditt avsnitt sparas i Media Rosenqvist Catalog och skickas
-            till Radio Uppsala för granskning. Vi hör av oss när det är publicerat.
+            {t("uploadEpisode.success.body")}
           </p>
           <p className="mb-6 text-xs text-amber-700 dark:text-amber-300">
-            Obs: distribution till Spotify, Apple Podcasts m.fl. är inte aktiv —
-            detta är en demo-inskickning.
+            {t("uploadEpisode.success.demo")}
           </p>
           <div className="flex flex-wrap justify-center gap-2">
             <button
@@ -343,13 +343,13 @@ function UploadPage() {
               onClick={resetForm}
               className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
             >
-              Submit another
+              {t("uploadEpisode.success.submitAnother")}
             </button>
             <Link
               to="/catalog"
               className="inline-flex items-center justify-center rounded-md border border-border bg-background px-4 py-2 text-sm font-medium hover:bg-accent"
             >
-              Back to catalog
+              {t("uploadEpisode.success.backToCatalog")}
             </Link>
           </div>
         </div>
@@ -378,39 +378,37 @@ function UploadPage() {
           to="/upload"
           className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground"
         >
-          Single episode
+          {t("uploadEpisode.tabs.single")}
         </Link>
         <Link
           to="/upload-batch"
           className="rounded-md px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
         >
-          Batch upload
+          {t("uploadEpisode.tabs.batch")}
         </Link>
       </div>
       <div className="mb-8">
         <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-border bg-secondary/40 px-3 py-1 text-xs text-muted-foreground">
           <Mic className="h-3.5 w-3.5 text-primary" />
-          Welcome{user?.name ? `, ${user.name}` : ""} — let&rsquo;s publish your podcast
+          {t("uploadEpisode.welcome", { name: user?.name ? t("uploadEpisode.welcomeName", { name: user.name }) : "" })}
         </div>
-        <h1 className="text-3xl font-semibold tracking-tight">Submit a podcast episode</h1>
+        <h1 className="text-3xl font-semibold tracking-tight">{t("uploadEpisode.pageTitle")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Choose a profile, pick or create a show, add episode details, upload the audio and submit for review.
+          {t("uploadEpisode.intro")}
         </p>
         <div className="mt-4 flex items-start gap-3 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
           <p>
-            <span className="font-semibold">Demo-läge.</span> Avsnittet du laddar upp
-            sparas i Media Rosenqvist Catalog och skickas till Radio Uppsala.
-            Distribution till Spotify, Apple Podcasts m.fl. är inte aktiv.
+            <span className="font-semibold">{t("uploadEpisode.demoLabel")}</span> {t("uploadEpisode.demoBody")}
           </p>
         </div>
       </div>
 
       <form onSubmit={onSubmit} className="space-y-6">
         {/* Step 1: profile */}
-        <Step n={1} title="Choose profile" icon={<UserIcon className="h-4 w-4" />}>
+        <Step n={1} title={t("uploadEpisode.step1")} icon={<UserIcon className="h-4 w-4" />}>
           {profilesLoading ? (
-            <p className="text-sm text-muted-foreground">Loading profiles…</p>
+            <p className="text-sm text-muted-foreground">{t("uploadEpisode.loadingProfiles")}</p>
           ) : (
             <>
               {profiles.length > 0 && !creatingProfile && (
@@ -469,13 +467,13 @@ function UploadPage() {
               )}
               {profileIds.length > 1 && (
                 <p className="mt-2 text-xs text-muted-foreground">
-                  Välj flera profiler för samarbeten. Den första räknas som huvudprofil.
+                  {t("uploadEpisode.multiProfileHint")}
                 </p>
               )}
 
               {profiles.length === 0 && !creatingProfile && (
                 <p className="text-sm text-muted-foreground">
-                  You don&rsquo;t have any profiles yet. Create one to continue.
+                  {t("uploadEpisode.noProfiles")}
                 </p>
               )}
 
@@ -485,35 +483,35 @@ function UploadPage() {
                   onClick={() => setCreatingProfile(true)}
                   className="mt-3 inline-flex items-center gap-1 rounded-md border border-dashed border-border bg-background px-3 py-2 text-sm hover:bg-accent/40"
                 >
-                  + New profile
+                  {t("uploadEpisode.newProfile")}
                 </button>
               ) : (
                 <div className="mt-3 rounded-lg border border-border bg-background p-4">
                   <div className="mb-3 flex items-center justify-between">
-                    <h3 className="text-sm font-medium">Create a new profile</h3>
+                    <h3 className="text-sm font-medium">{t("uploadEpisode.createProfile")}</h3>
                     <button
                       type="button"
                       onClick={() => setCreatingProfile(false)}
                       className="text-muted-foreground hover:text-foreground"
-                      aria-label="Cancel"
+                      aria-label={t("uploadEpisode.cancel")}
                     >
                       <X className="h-4 w-4" />
                     </button>
                   </div>
                   <div className="space-y-3">
                     <div>
-                      <label className="mb-1 block text-xs font-medium">Host or show name</label>
+                      <label className="mb-1 block text-xs font-medium">{t("uploadEpisode.hostName")}</label>
                       <input
                         type="text"
                         value={newProfileName}
                         onChange={(e) => setNewProfileName(e.target.value)}
                         maxLength={100}
                         className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/40"
-                        placeholder="e.g. Morgonpasset"
+                        placeholder={t("uploadEpisode.hostNamePlaceholder")}
                       />
                     </div>
                     <div>
-                      <label className="mb-1 block text-xs font-medium">Short bio (optional)</label>
+                      <label className="mb-1 block text-xs font-medium">{t("uploadEpisode.shortBio")}</label>
                       <textarea
                         value={newProfileBio}
                         onChange={(e) => setNewProfileBio(e.target.value)}
@@ -529,7 +527,7 @@ function UploadPage() {
                         disabled={!newProfileName.trim() || createBusy}
                         className="inline-flex items-center justify-center rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
                       >
-                        {createBusy ? "Creating…" : "Create profile"}
+                        {createBusy ? t("uploadEpisode.creating") : t("uploadEpisode.createProfileBtn")}
                       </button>
                     </div>
                   </div>
@@ -544,11 +542,11 @@ function UploadPage() {
         </Step>
 
         {/* Step 2: episode details */}
-        <Step n={2} title="Episode details" icon={<Mic className="h-4 w-4" />}>
+        <Step n={2} title={t("uploadEpisode.step2")} icon={<Mic className="h-4 w-4" />}>
           <div className="space-y-3">
             <div className="rounded-lg border border-border bg-background/40 p-3">
               <label className="mb-2 block text-sm font-medium">
-                Show / series <span className="text-destructive">*</span>
+                {t("uploadEpisode.show")} <span className="text-destructive">*</span>
               </label>
               <ShowPicker
                 artistId={profileIds[0] ?? null}
@@ -560,7 +558,7 @@ function UploadPage() {
 
             <div>
               <label htmlFor="title" className="mb-1 block text-sm font-medium">
-                Episode title <span className="text-destructive">*</span>
+                {t("uploadEpisode.episodeTitle")} <span className="text-destructive">*</span>
               </label>
               <input
                 id="title"
@@ -575,7 +573,7 @@ function UploadPage() {
 
             <div>
               <label htmlFor="desc" className="mb-1 block text-sm font-medium">
-                Show notes <span className="text-xs font-normal text-muted-foreground">(optional)</span>
+                {t("uploadEpisode.showNotes")} <span className="text-xs font-normal text-muted-foreground">{t("uploadEpisode.optional")}</span>
               </label>
               <textarea
                 id="desc"
@@ -591,7 +589,7 @@ function UploadPage() {
             <div className="grid gap-3 sm:grid-cols-3">
               <div>
                 <label className="mb-1 block text-xs font-medium">
-                  Season <span className="font-normal text-muted-foreground">(optional)</span>
+                  {t("uploadEpisode.season")} <span className="font-normal text-muted-foreground">{t("uploadEpisode.optional")}</span>
                 </label>
                 <input
                   type="number"
@@ -605,29 +603,29 @@ function UploadPage() {
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium">
-                  Episode # <span className="font-normal text-muted-foreground">(auto if blank)</span>
+                  {t("uploadEpisode.episodeNum")} <span className="font-normal text-muted-foreground">{t("uploadEpisode.autoIfBlank")}</span>
                 </label>
                 <input
                   type="number"
                   min={1}
                   value={episodeInput}
                   onChange={(e) => setEpisodeInput(e.target.value)}
-                  placeholder="Auto"
+                  placeholder={t("uploadEpisode.auto")}
                   disabled={status === "submitting"}
                   className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
                 />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium">Episode type</label>
+                <label className="mb-1 block text-xs font-medium">{t("uploadEpisode.episodeType")}</label>
                 <select
                   value={episodeType}
                   onChange={(e) => setEpisodeType(e.target.value as PodcastEpisodeType)}
                   disabled={status === "submitting"}
                   className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
                 >
-                  {(Object.keys(EPISODE_TYPE_LABELS) as PodcastEpisodeType[]).map((t) => (
-                    <option key={t} value={t}>
-                      {EPISODE_TYPE_LABELS[t]}
+                  {(Object.keys(EPISODE_TYPE_LABELS) as PodcastEpisodeType[]).map((et) => (
+                    <option key={et} value={et}>
+                      {t(`podcastEpisodeType.${et}`)}
                     </option>
                   ))}
                 </select>
@@ -637,26 +635,26 @@ function UploadPage() {
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
                 <label className="mb-1 block text-xs font-medium">
-                  Host(s) <span className="font-normal text-muted-foreground">(comma separated)</span>
+                  {t("uploadEpisode.hosts")} <span className="font-normal text-muted-foreground">{t("uploadEpisode.commaSeparated")}</span>
                 </label>
                 <input
                   type="text"
                   value={hostsInput}
                   onChange={(e) => setHostsInput(e.target.value)}
-                  placeholder="e.g. Anna, Erik"
+                  placeholder={t("uploadEpisode.hostsPlaceholder")}
                   disabled={status === "submitting"}
                   className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
                 />
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium">
-                  Guest(s) <span className="font-normal text-muted-foreground">(comma separated)</span>
+                  {t("uploadEpisode.guests")} <span className="font-normal text-muted-foreground">{t("uploadEpisode.commaSeparated")}</span>
                 </label>
                 <input
                   type="text"
                   value={guestsInput}
                   onChange={(e) => setGuestsInput(e.target.value)}
-                  placeholder="e.g. Maja Andersson"
+                  placeholder={t("uploadEpisode.guestsPlaceholder")}
                   disabled={status === "submitting"}
                   className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
                 />
@@ -666,7 +664,7 @@ function UploadPage() {
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
                 <label className="mb-1 block text-xs font-medium">
-                  Publish date <span className="font-normal text-muted-foreground">(optional)</span>
+                  {t("uploadEpisode.publishDate")} <span className="font-normal text-muted-foreground">{t("uploadEpisode.optional")}</span>
                 </label>
                 <input
                   type="date"
@@ -685,7 +683,7 @@ function UploadPage() {
                     disabled={status === "submitting"}
                     className="h-4 w-4 rounded border-border"
                   />
-                  Explicit content
+                  {t("uploadEpisode.explicit")}
                 </label>
               </div>
             </div>
@@ -693,30 +691,30 @@ function UploadPage() {
         </Step>
 
         {/* Step 3: media */}
-        <Step n={3} title="Upload media" icon={<UploadIcon className="h-4 w-4" />}>
+        <Step n={3} title={t("uploadEpisode.step3")} icon={<UploadIcon className="h-4 w-4" />}>
           <div className="grid gap-4 md:grid-cols-2">
             <FilePicker
               id="audio"
-              label="Audio file"
+              label={t("uploadEpisode.audioFile")}
               required
               accept={AUDIO_ACCEPT}
               file={audio}
               error={audioError}
               disabled={status === "submitting"}
               icon={<Mic className="h-5 w-5 text-muted-foreground" />}
-              hint={`WAV, FLAC, AIFF, MP3, M4A — up to ${formatBytes(MAX_AUDIO_BYTES)}`}
+              hint={t("uploadEpisode.audioHint", { max: formatBytes(MAX_AUDIO_BYTES) })}
               onChange={(f) => setAudio(f)}
             />
             <FilePicker
               id="artwork"
-              label="Episode artwork"
+              label={t("uploadEpisode.artwork")}
               required
               accept={IMAGE_ACCEPT}
               file={artwork}
               error={artworkError}
               disabled={status === "submitting"}
               icon={<ImageIcon className="h-5 w-5 text-muted-foreground" />}
-              hint={`Square recommended. JPG, PNG, WEBP — up to ${formatBytes(MAX_IMAGE_BYTES)}`}
+              hint={t("uploadEpisode.artworkHint", { max: formatBytes(MAX_IMAGE_BYTES) })}
               onChange={(f) => setArtwork(f)}
               preview
             />
@@ -729,26 +727,26 @@ function UploadPage() {
               className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs hover:bg-accent disabled:opacity-50"
             >
               <Sparkles className="h-3.5 w-3.5 text-primary" />
-              Skapa omslag med AI
+              {t("uploadEpisode.aiArtworkButton")}
             </button>
           </div>
 
           {status === "submitting" && (
             <div className="mt-5 space-y-3">
-              <ProgressRow label="Audio" pct={audioPct} active={phase === "audio"} done={phase === "artwork" || phase === "complete"} />
-              <ProgressRow label="Artwork" pct={artworkPct} active={phase === "artwork"} done={phase === "complete"} />
+              <ProgressRow label={t("uploadEpisode.uploadProgress.audio")} pct={audioPct} active={phase === "audio"} done={phase === "artwork" || phase === "complete"} />
+              <ProgressRow label={t("uploadEpisode.uploadProgress.artwork")} pct={artworkPct} active={phase === "artwork"} done={phase === "complete"} />
               {phase === "presign" && (
-                <p className="text-xs text-muted-foreground">Preparing secure upload…</p>
+                <p className="text-xs text-muted-foreground">{t("uploadEpisode.preparing")}</p>
               )}
               {phase === "complete" && (
-                <p className="text-xs text-muted-foreground">Finalizing submission…</p>
+                <p className="text-xs text-muted-foreground">{t("uploadEpisode.finalizing")}</p>
               )}
             </div>
           )}
         </Step>
 
         {/* Step 4: submit */}
-        <Step n={4} title="Submit for review" icon={<CheckCircle2 className="h-4 w-4" />}>
+        <Step n={4} title={t("uploadEpisode.step4")} icon={<CheckCircle2 className="h-4 w-4" />}>
           {error && (
             <div className="mb-3 flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
@@ -756,33 +754,36 @@ function UploadPage() {
             </div>
           )}
           <p className="mb-3 text-xs text-muted-foreground">
-            Submitting as{" "}
+            {t("uploadEpisode.submittingAs")}{" "}
             <strong className="text-foreground">{primaryProfile?.name ?? "—"}</strong>
             {selectedProfiles.length > 1 && (
               <>
-                {" "}with{" "}
+                {" "}{t("uploadEpisode.with")}{" "}
                 <strong className="text-foreground">
                   {selectedProfiles.slice(1).map((p) => p.name).join(", ")}
                 </strong>
               </>
             )}
-            . Your episode will be reviewed before going live.
+            {t("uploadEpisode.tailReview")}
           </p>
           <button
             type="submit"
             disabled={!canSubmit}
             className="inline-flex w-full items-center justify-center rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {status === "submitting" ? "Submitting…" : "Submit for review"}
+            {status === "submitting" ? t("uploadEpisode.submittingBtn") : t("uploadEpisode.submitBtn")}
           </button>
         </Step>
       </form>
       <AiArtworkDialog
         open={aiOpen}
         aspect="1:1"
-        title="Skapa omslag med AI"
+        title={t("uploadEpisode.aiArtworkDialog")}
         filenameHint={`episode-${title || "untitled"}`}
-        defaultPrompt={`Omslag för poddavsnittet "${title || "avsnittet"}"${primaryProfile ? ` av ${primaryProfile.name}` : ""}, konstnärlig komposition, ingen text, inga ansikten`}
+        defaultPrompt={t("uploadEpisode.aiArtworkPrompt", {
+          title: title || t("uploadEpisode.fallbackTitle"),
+          artistPart: primaryProfile ? t("uploadEpisode.ofArtist", { name: primaryProfile.name }) : "",
+        })}
         onClose={() => setAiOpen(false)}
         onGenerated={(file) => setArtwork(file)}
       />
@@ -842,6 +843,7 @@ function FilePicker({
   onChange: (f: File | null) => void;
   preview?: boolean;
 }) {
+  const { t } = useTranslation();
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   useEffect(() => {
     if (!preview || !file) {
@@ -868,7 +870,7 @@ function FilePicker({
           className="flex h-32 cursor-pointer flex-col items-center justify-center rounded-md border border-dashed border-border bg-background px-4 py-4 text-center hover:bg-accent/40"
         >
           {icon}
-          <span className="mt-2 text-sm font-medium">Choose {label.toLowerCase()}</span>
+          <span className="mt-2 text-sm font-medium">{t("uploadEpisode.chooseLabel", { label: label.toLowerCase() })}</span>
           <span className="mt-1 text-xs text-muted-foreground">{hint}</span>
           <input
             id={id}
@@ -895,7 +897,7 @@ function FilePicker({
             onClick={() => onChange(null)}
             disabled={disabled}
             className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border hover:bg-accent disabled:opacity-60"
-            aria-label={`Remove ${label}`}
+            aria-label={t("uploadEpisode.removeAria", { label })}
           >
             <X className="h-4 w-4" />
           </button>
@@ -917,12 +919,13 @@ function ProgressRow({
   active: boolean;
   done: boolean;
 }) {
+  const { t } = useTranslation();
   const shown = done ? 100 : pct;
   return (
     <div>
       <div className="mb-1 flex justify-between text-xs text-muted-foreground">
         <span>
-          {label} {done ? "· uploaded" : active ? "· uploading…" : ""}
+          {label} {done ? t("uploadEpisode.uploadProgress.uploaded") : active ? t("uploadEpisode.uploadProgress.uploading") : ""}
         </span>
         <span>{shown}%</span>
       </div>
