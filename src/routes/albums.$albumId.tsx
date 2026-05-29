@@ -39,6 +39,7 @@ import {
 } from "@/components/SubmissionActions";
 import { EditAlbumDialog } from "@/components/EditAlbumDialog";
 import { EditorTrackMeta } from "@/components/EditorCardMeta";
+import { ShareButton } from "@/components/ShareButton";
 import {
   DndContext,
   PointerSensor,
@@ -304,6 +305,11 @@ function AlbumPage() {
                     </button>
                   </>
                 )}
+                <ShareButton
+                  path={`/albums/${album.id}`}
+                  title={`${album.title}${data!.artist ? ` — ${data!.artist.name}` : ""}`}
+                  text={album.description ?? `Lyssna på ${album.title}`}
+                />
               </div>
               {deleteError && (
                 <p className="mt-2 text-xs text-destructive">{deleteError}</p>
