@@ -754,11 +754,6 @@ function SubmissionRow({
   );
 }
 
-function RadioUppsalaImport() {
-  void 0;
-  return <RadioUppsalaImportInner />;
-}
-
 function RadioSpinsImport() {
   const runImport = useServerFn(runRadioSpinsImport);
   const [busy, setBusy] = useState(false);
@@ -813,7 +808,7 @@ function RadioSpinsImport() {
   );
 }
 
-function RadioUppsalaImportInner() {
+function RadioUppsalaImport() {
   const runImport = useServerFn(runAzuracastImport);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<Awaited<ReturnType<typeof runAzuracastImport>> | null>(null);
