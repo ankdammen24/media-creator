@@ -141,6 +141,31 @@ function LanguageSync() {
   const { user } = useAuth();
   const { i18n } = useTranslation();
 
+  // After hydration, restore language from localStorage / browser preference.
+  // Done in an effect (not at i18n init) to keep SSR and first client render
+  // deterministic and avoid hydration mismatch.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    let stored: string | null = null;
+    try {
+      stored = window.localStorage.getItem("i18nextLng");
+    } catch {
+      /* ignore */
+    }
+    const nav = (typeof navigator !== "undefined" ? navigator.language : "")
+      .slice(0, 2)
+      .toLowerCase();
+    const pick = stored === "sv" || stored === "en"
+      ? stored
+      : nav === "en"
+      ? "en"
+      : "sv";
+    if (pick !== (i18n.resolvedLanguage ?? i18n.language)) {
+      setAppLanguage(pick as AppLang);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Keep <html lang> in sync with the active language.
   useEffect(() => {
     if (typeof document === "undefined") return;
