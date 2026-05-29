@@ -208,6 +208,11 @@ export function SiteHeader() {
                   <>
                     <MobileNavLink to="/upload" onSelect={() => setMenuOpen(false)}>{t("nav.upload")}</MobileNavLink>
                     <MobileNavLink to="/my-submissions" onSelect={() => setMenuOpen(false)}>{t("nav.mine")}</MobileNavLink>
+                    <MobileNavLink to="/stats" onSelect={() => setMenuOpen(false)}>
+                      <span className="inline-flex items-center gap-2">
+                        <BarChart3 className="h-4 w-4" /> {t("nav.stats")}
+                      </span>
+                    </MobileNavLink>
                     <MobileNavLink to="/notifications" onSelect={() => setMenuOpen(false)}>
                       <span className="inline-flex items-center gap-2">
                         <Bell className="h-4 w-4" /> {t("nav.notifications")}
