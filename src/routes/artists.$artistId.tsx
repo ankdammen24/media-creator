@@ -20,6 +20,7 @@ import { ArtistProfileEditor, type EditableArtist } from "@/components/ArtistPro
 import { ArtistImageManager, type ArtistImage } from "@/components/ArtistImageManager";
 import { useEditorRole } from "@/lib/useEditorRole";
 import { deleteArtistProfile } from "@/lib/catalog-edit.functions";
+import { getArtistAlbums, type PublicAlbum } from "@/lib/albums.functions";
 import { usePlayer, type PlayerTrack } from "@/components/player/PlayerProvider";
 import { ALBUM_TYPE_LABELS, type AlbumType } from "@/lib/album-helpers";
 import {
@@ -68,22 +69,7 @@ type ArtistItem = {
   processing_status: string | null;
 };
 
-type AlbumRow = {
-  id: string;
-  title: string;
-  album_type: AlbumType;
-  artwork_path: string | null;
-  release_date: string | null;
-  trackCount: number;
-  status: string | null;
-  upc: string | null;
-  label: string | null;
-  language: string | null;
-  genre: string | null;
-  secondary_genre: string | null;
-  distribution_platforms: string[] | null;
-  previously_released: boolean | null;
-};
+type AlbumRow = PublicAlbum;
 
 type ArtistData = {
   profile: EditableArtist | null;
@@ -106,10 +92,11 @@ function ArtistPage() {
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const deleteArtistFn = useServerFn(deleteArtistProfile);
+  const fetchArtistAlbums = useServerFn(getArtistAlbums);
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["artist", artistId],
     queryFn: async (): Promise<ArtistData> => {
-      const [profileRes, linksRes, imagesRes, albumsRes] = await Promise.all([
+      const [profileRes, linksRes, imagesRes, albums] = await Promise.all([
         supabase
           .from("artist_profiles")
           .select(
@@ -130,26 +117,16 @@ function ArtistPage() {
           .eq("artist_profile_id", artistId)
           .order("sort_order", { ascending: true })
           .order("created_at", { ascending: true }),
-        supabase
-          .from("albums")
-          .select("id, title, album_type, artwork_path, release_date, status, upc, label, language, genre, secondary_genre, distribution_platforms, previously_released")
-          .eq("artist_profile_id", artistId)
-          .order("release_date", { ascending: false, nullsFirst: false }),
+        fetchArtistAlbums({ data: { artistProfileId: artistId } }),
       ]);
       if (profileRes.error) throw profileRes.error;
       if (linksRes.error) throw linksRes.error;
       if (imagesRes.error) throw imagesRes.error;
-      if (albumsRes.error) throw albumsRes.error;
       const rows = (linksRes.data ?? []) as unknown as Array<{ submissions: ArtistItem }>;
       const items = rows
         .map((r) => r.submissions)
         .filter(Boolean)
         .sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
-      const rawAlbums = (albumsRes.data ?? []) as Array<Omit<AlbumRow, "trackCount">>;
-      const albums: AlbumRow[] = rawAlbums.map((al) => ({
-        ...al,
-        trackCount: items.filter((i) => i.album_id === al.id).length,
-      }));
       return {
         profile: profileRes.data as EditableArtist | null,
         items,

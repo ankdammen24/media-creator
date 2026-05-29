@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { useState, useMemo, useEffect, useRef } from "react";
-import { Search, Music2, Mic, User } from "lucide-react";
+import { Search, Music2, Mic, User, Disc3 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { EmptyState, ErrorState } from "@/components/StateViews";
@@ -11,7 +12,9 @@ import { z } from "zod";
 import { effectiveArtworkPath } from "@/lib/album-helpers";
 import { PlayButton } from "@/components/player/PlayButton";
 import type { PlayerTrack } from "@/components/player/PlayerProvider";
-import { EditorTrackMeta, EditorArtistMeta } from "@/components/EditorCardMeta";
+import { EditorTrackMeta, EditorArtistMeta, EditorAlbumMeta } from "@/components/EditorCardMeta";
+import { getAllAlbums, type PublicAlbum } from "@/lib/albums.functions";
+import { ALBUM_TYPE_LABELS } from "@/lib/album-helpers";
 
 const catalogSearchSchema = z.object({
   focus: fallback(z.string(), "").optional(),
@@ -51,7 +54,7 @@ function CatalogNotFound() {
   return <EmptyState title={t("catalog.notFound")} />;
 }
 
-type Tab = "all" | "music" | "podcast" | "artists";
+type Tab = "all" | "music" | "podcast" | "artists" | "albums";
 
 type CatalogItem = {
   id: string;
@@ -80,6 +83,8 @@ type CatalogItem = {
   featured_artists: string[] | null;
   processing_status: string | null;
 };
+
+type AlbumRow = PublicAlbum;
 
 async function fetchApproved(): Promise<CatalogItem[]> {
   const { data, error } = await supabase
@@ -129,6 +134,18 @@ function CatalogPage() {
     staleTime: 60_000,
   });
 
+  const fetchAlbums = useServerFn(getAllAlbums);
+  const {
+    data: albumsAll,
+    isLoading: albumsLoading,
+    error: albumsError,
+    refetch: refetchAlbums,
+  } = useQuery({
+    queryKey: ["catalog", "albums"],
+    queryFn: () => fetchAlbums({ data: {} }),
+    staleTime: 60_000,
+  });
+
   const artists = useMemo(() => {
     const map = new Map<string, string>();
     (data ?? []).forEach((i) => {
@@ -151,6 +168,18 @@ function CatalogPage() {
     }
     return list;
   }, [data, tab, query, artistId]);
+
+  const filteredAlbums = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    let list = albumsAll ?? [];
+    if (artistId !== "all") list = list.filter((a) => a.artist_profile_id === artistId);
+    if (!q) return list;
+    return list.filter(
+      (a) =>
+        a.title.toLowerCase().includes(q) ||
+        a.artist_name.toLowerCase().includes(q),
+    );
+  }, [albumsAll, query, artistId]);
 
   const focusRef = useRef<HTMLDivElement | null>(null);
   const [highlight, setHighlight] = useState(false);
@@ -182,6 +211,7 @@ function CatalogPage() {
     music: t("catalog.music"),
     podcast: t("catalog.podcast"),
     artists: t("catalog.artists"),
+    albums: t("catalog.albums"),
   };
 
   return (
@@ -198,7 +228,7 @@ function CatalogPage() {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder={tab === "artists" ? t("catalog.searchArtist") : t("catalog.searchTitleOrArtist")}
+            placeholder={tab === "artists" ? t("catalog.searchArtist") : tab === "albums" ? t("catalog.searchAlbumOrArtist") : t("catalog.searchTitleOrArtist")}
             className="w-full rounded-md border border-border bg-card py-2 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
           />
         </div>
@@ -206,7 +236,7 @@ function CatalogPage() {
 
       <div className="mb-6 flex flex-wrap items-center gap-3">
         <div className="inline-flex rounded-lg border border-border bg-card p-1">
-          {(["all", "music", "podcast", "artists"] as Tab[]).map((t) => (
+          {(["all", "music", "podcast", "albums", "artists"] as Tab[]).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -278,6 +308,61 @@ function CatalogPage() {
                 </Link>
               );
             })}
+          </div>
+        )
+      ) : tab === "albums" ? (
+        albumsLoading ? (
+          <p className="text-sm text-muted-foreground">{t("catalog.loading")}</p>
+        ) : albumsError ? (
+          <ErrorState error={albumsError as Error} onRetry={() => refetchAlbums()} />
+        ) : filteredAlbums.length === 0 ? (
+          <EmptyState
+            title={query ? t("catalog.noMatches") : t("catalog.noAlbumsYet")}
+            description={query ? t("catalog.tryDifferent") : t("catalog.noAlbumsBody")}
+          />
+        ) : (
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+            {filteredAlbums.map((al) => (
+              <Link
+                key={al.id}
+                to="/albums/$albumId"
+                params={{ albumId: al.id }}
+                className="group block overflow-hidden rounded-lg border border-border bg-card transition hover:border-primary"
+              >
+                <div className="relative aspect-square w-full bg-secondary">
+                  {al.artwork_path ? (
+                    <img
+                      src={artworkUrl(al.artwork_path)}
+                      alt={al.title}
+                      className="h-full w-full object-cover transition group-hover:scale-105"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-muted-foreground">
+                      <Disc3 className="h-10 w-10" />
+                    </div>
+                  )}
+                  <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-background/80 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-foreground backdrop-blur">
+                    {ALBUM_TYPE_LABELS[al.album_type]}
+                  </span>
+                </div>
+                <div className="space-y-0.5 p-3">
+                  <h2 className="line-clamp-1 text-sm font-semibold group-hover:text-primary">
+                    {al.title}
+                  </h2>
+                  <p className="line-clamp-1 text-xs text-muted-foreground">
+                    {al.artist_name}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">
+                    {al.trackCount} låt{al.trackCount === 1 ? "" : "ar"}
+                    {al.release_date && (
+                      <> · {new Date(al.release_date).getFullYear()}</>
+                    )}
+                  </p>
+                  <EditorAlbumMeta meta={al} />
+                </div>
+              </Link>
+            ))}
           </div>
         )
       ) : isLoading ? (
