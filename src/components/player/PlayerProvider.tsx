@@ -157,6 +157,38 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  // Stable ref to the preload-next entry point so the gap-fill handler can
+  // re-trigger preloading after it has handed off to the next track.
+  const preloadNextRef = useRef<(() => Promise<void>) | null>(null);
+
+  // Arm the play + 30s "completed" tracking for a track that has just been
+  // promoted to the active deck (used by goToTrack and the gap-fill handoff).
+  const armTrackTracking = useCallback(
+    (track: PlayerTrack) => {
+      clearCompletedTimer();
+      if (!playSentRef.current.has(track.id)) {
+        playSentRef.current.add(track.id);
+        fireEvent(track.id, "play");
+      }
+      const targetId = track.id;
+      completedTrackIdRef.current = targetId;
+      completedTimerRef.current = setTimeout(() => {
+        const el = decksRef.current[activeIdxRef.current];
+        if (
+          completedTrackIdRef.current === targetId &&
+          currentRef.current?.id === targetId &&
+          el &&
+          !el.paused &&
+          !completedSentRef.current.has(targetId)
+        ) {
+          completedSentRef.current.add(targetId);
+          fireEvent(targetId, "completed_30s");
+        }
+      }, 30_000);
+    },
+    [clearCompletedTimer, fireEvent],
+  );
+
   // Create two audio elements on mount (client only).
   useEffect(() => {
     if (typeof window === "undefined") return;
