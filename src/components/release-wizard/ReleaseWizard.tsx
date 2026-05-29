@@ -1813,6 +1813,7 @@ function StepReview({
   errors: Record<StepId, string[]>;
   onJump: (id: StepId) => void;
 }) {
+  const { t } = useTranslation();
   const [cover, setCover] = useState<string | null>(null);
   useEffect(() => {
     if (!state.cover) {
@@ -1832,8 +1833,8 @@ function StepReview({
   return (
     <StepCard
       step={5}
-      title="Review & Submit"
-      description="Sista koll innan vi skickar releasen för granskning."
+      title={t("wizard.review.title")}
+      description={t("wizard.review.description")}
     >
       <div className="overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-card to-background">
         <div className="grid gap-6 p-6 sm:grid-cols-[180px_1fr]">
@@ -1851,35 +1852,31 @@ function StepReview({
               {state.label || "—"}
             </p>
             <h3 className="font-display mt-1 text-2xl font-semibold">
-              {state.title || "Untitled"}
+              {state.title || t("wizard.review.untitled")}
             </h3>
             <p className="text-sm text-muted-foreground">{artist}</p>
             <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
-              <Meta k="Release date" v={state.releaseDate || "—"} />
-              <Meta k="Primary genre" v={state.primaryGenre || "—"} />
-              <Meta k="Secondary genre" v={state.secondaryGenre || "—"} />
-              <Meta k="Language" v={state.language} />
+              <Meta k={t("wizard.review.releaseDate")} v={state.releaseDate || "—"} />
+              <Meta k={t("wizard.review.primaryGenre")} v={state.primaryGenre || "—"} />
+              <Meta k={t("wizard.review.secondaryGenre")} v={state.secondaryGenre || "—"} />
+              <Meta k={t("wizard.review.language")} v={state.language} />
+              <Meta k={t("wizard.review.tracks")} v={String(state.tracks.length)} />
               <Meta
-                k="Tracks"
-                v={String(state.tracks.length)}
-              />
-              <Meta
-                k="Previously released"
-                v={state.previouslyReleased ? "Yes" : "No"}
+                k={t("wizard.review.previouslyReleased")}
+                v={state.previouslyReleased ? t("wizard.details.reRelease") : t("wizard.details.brandNew")}
               />
             </dl>
           </div>
         </div>
 
         <div className="border-t border-border p-6">
-          <h4 className="mb-3 text-sm font-semibold">Distribution</h4>
+          <h4 className="mb-3 text-sm font-semibold">{t("wizard.review.distribution")}</h4>
           <p className="mb-3 text-xs text-amber-700 dark:text-amber-300">
-            Endast referens — ingen faktisk distribution till streamingtjänster
-            sker i demo-läget. Releasen skickas till katalogen och Radio Uppsala.
+            {t("wizard.review.distributionNote")}
           </p>
           <div className="flex flex-wrap gap-1.5">
             {state.platforms.length === 0 ? (
-              <span className="text-xs text-muted-foreground">None selected</span>
+              <span className="text-xs text-muted-foreground">{t("wizard.review.noneSelected")}</span>
             ) : (
               state.platforms.map((code) => {
                 const p = PLATFORMS.find((x) => x.code === code);
@@ -1900,9 +1897,9 @@ function StepReview({
         </div>
 
         <div className="border-t border-border p-6">
-          <h4 className="mb-3 text-sm font-semibold">Tracks</h4>
+          <h4 className="mb-3 text-sm font-semibold">{t("wizard.review.tracksHeading")}</h4>
           {state.tracks.length === 0 ? (
-            <p className="text-xs text-muted-foreground">No tracks added.</p>
+            <p className="text-xs text-muted-foreground">{t("wizard.review.noTracksAdded")}</p>
           ) : (
             <ol className="space-y-2">
               {state.tracks.map((t, i) => (
@@ -1939,7 +1936,7 @@ function StepReview({
       {allErrors.length > 0 && (
         <div className="mt-4 rounded-lg border border-destructive/30 bg-destructive/10 p-4">
           <p className="mb-2 text-sm font-medium text-destructive">
-            Fix dessa innan submit:
+            {t("wizard.review.fixBeforeSubmit")}
           </p>
           <ul className="space-y-1 text-xs">
             {allErrors.map((e, i) => (
@@ -1949,7 +1946,7 @@ function StepReview({
                   onClick={() => onJump(e.step)}
                   className="rounded border border-destructive/30 px-2 py-0.5 text-[10px] text-destructive hover:bg-destructive/10"
                 >
-                  Go to step {e.step}
+                  {t("wizard.review.goToStep", { n: e.step })}
                 </button>
               </li>
             ))}
