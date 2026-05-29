@@ -61,7 +61,7 @@ import { CSS } from "@dnd-kit/utilities";
 export const Route = createFileRoute("/albums/$albumId")({
   head: () => ({
     meta: [
-      { title: "Album — Media Rosenqvist" },
+      { title: "Album — Catalogus Musicus" },
       { name: "description", content: "Album details and tracks." },
     ],
   }),

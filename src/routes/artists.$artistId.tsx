@@ -33,7 +33,7 @@ import { EditorTrackMeta, EditorAlbumMeta } from "@/components/EditorCardMeta";
 export const Route = createFileRoute("/artists/$artistId")({
   head: () => ({
     meta: [
-      { title: "Artist — Media Rosenqvist" },
+      { title: "Artist — Catalogus Musicus" },
       { name: "description", content: "Approved music and podcasts from this artist." },
     ],
   }),
