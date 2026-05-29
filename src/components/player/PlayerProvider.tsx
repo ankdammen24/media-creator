@@ -42,9 +42,8 @@ type PlayerContextValue = {
 
 const PlayerContext = createContext<PlayerContextValue | null>(null);
 
-/** Crossfade length between music tracks. */
-const CROSSFADE_SEC = 2.5;
-const CROSSFADE_MS = CROSSFADE_SEC * 1000;
+/** How many seconds before a track ends we kick off the next (already preloaded) track. */
+const GAP_FILL_SEC = 0.8;
 
 export function usePlayer() {
   const ctx = useContext(PlayerContext);
@@ -57,11 +56,11 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   // Two "decks" so we can crossfade one track out while the next fades in.
   const decksRef = useRef<HTMLAudioElement[]>([]);
   const activeIdxRef = useRef(0);
-  const fadeRafRef = useRef<number | null>(null);
-  const fadingOutElRef = useRef<HTMLAudioElement | null>(null);
-  // Track id whose automatic end-of-track crossfade has already started,
+  // Track id whose automatic end-of-track handoff has already started,
   // so the timeupdate handler only triggers it once.
-  const fadeGuardRef = useRef<string | null>(null);
+  const handoffGuardRef = useRef<string | null>(null);
+  // Preloaded next track sitting silent on the inactive deck.
+  const preloadedRef = useRef<{ trackId: string; url: string } | null>(null);
   const [current, setCurrent] = useState<PlayerTrack | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -142,48 +141,21 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const goToTrackRef = useRef<
     | ((
         track: PlayerTrack,
-        opts?: { keepQueue?: boolean; useCrossfade?: boolean },
+        opts?: { keepQueue?: boolean },
       ) => Promise<void>)
     | null
   >(null);
 
-  // Cancel any in-flight volume ramp and silence/stop the fading-out deck.
-  const cancelFade = useCallback(() => {
-    if (fadeRafRef.current !== null) {
-      cancelAnimationFrame(fadeRafRef.current);
-      fadeRafRef.current = null;
-    }
-    const fo = fadingOutElRef.current;
-    if (fo) {
-      fo.pause();
-      fo.volume = 1;
-      fadingOutElRef.current = null;
+  // Clear whatever is preloaded on the inactive deck.
+  const clearPreload = useCallback(() => {
+    preloadedRef.current = null;
+    const inactive = decksRef.current[activeIdxRef.current ^ 1];
+    if (inactive) {
+      inactive.pause();
+      inactive.removeAttribute("src");
+      try { inactive.load(); } catch { /* ignore */ }
     }
   }, []);
-
-  // Linear 2.5s volume ramp: fromEl 1→0, toEl 0→1.
-  const startFade = useCallback(
-    (fromEl: HTMLAudioElement, toEl: HTMLAudioElement) => {
-      const start = performance.now();
-      const fromStart = fromEl.volume;
-      fadingOutElRef.current = fromEl;
-      const step = (now: number) => {
-        const t = Math.min(1, (now - start) / CROSSFADE_MS);
-        fromEl.volume = Math.max(0, fromStart * (1 - t));
-        toEl.volume = Math.min(1, t);
-        if (t < 1) {
-          fadeRafRef.current = requestAnimationFrame(step);
-        } else {
-          fromEl.pause();
-          fromEl.volume = 1; // reset so it can be reused as the next incoming deck
-          fadingOutElRef.current = null;
-          fadeRafRef.current = null;
-        }
-      };
-      fadeRafRef.current = requestAnimationFrame(step);
-    },
-    [],
-  );
 
   // Create two audio elements on mount (client only).
   useEffect(() => {
