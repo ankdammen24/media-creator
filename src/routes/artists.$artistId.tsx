@@ -69,22 +69,7 @@ type ArtistItem = {
   processing_status: string | null;
 };
 
-type AlbumRow = {
-  id: string;
-  title: string;
-  album_type: AlbumType;
-  artwork_path: string | null;
-  release_date: string | null;
-  trackCount: number;
-  status: string | null;
-  upc: string | null;
-  label: string | null;
-  language: string | null;
-  genre: string | null;
-  secondary_genre: string | null;
-  distribution_platforms: string[] | null;
-  previously_released: boolean | null;
-};
+type AlbumRow = PublicAlbum;
 
 type ArtistData = {
   profile: EditableArtist | null;
