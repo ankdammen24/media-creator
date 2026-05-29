@@ -38,6 +38,13 @@ type PlayerContextValue = {
   skipPrev: () => void;
   hasNext: boolean;
   hasPrev: boolean;
+  /**
+   * Synchronously "unlock" the audio decks within a user gesture.
+   * Required on iOS Safari — without this, any later programmatic
+   * play() that follows an `await` is blocked because the gesture
+   * context is lost across microtasks.
+   */
+  prime: () => void;
 };
 
 const PlayerContext = createContext<PlayerContextValue | null>(null);
@@ -56,6 +63,8 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   // Two "decks" so we can crossfade one track out while the next fades in.
   const decksRef = useRef<HTMLAudioElement[]>([]);
   const activeIdxRef = useRef(0);
+  // Whether the audio decks have been unlocked by a user gesture yet.
+  const unlockedRef = useRef(false);
   // Track id whose automatic end-of-track handoff has already started,
   // so the timeupdate handler only triggers it once.
   const handoffGuardRef = useRef<string | null>(null);
@@ -545,6 +554,41 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     setHistory([]);
   }, [clearPreload]);
 
+  // iOS Safari requires play() to be called synchronously inside a user
+  // gesture. Our play() awaits a signed URL before calling play(), which
+  // loses the gesture context. Calling this synchronously from the click
+  // handler primes both audio elements with a silent data URI so future
+  // programmatic play() calls succeed for the rest of the session.
+  const prime = useCallback(() => {
+    if (unlockedRef.current) return;
+    const decks = decksRef.current;
+    if (decks.length < 2) return;
+    // 0.1s of silence as a tiny base64 MP3.
+    const SILENT_MP3 =
+      "data:audio/mp3;base64,SUQzBAAAAAABEVRYWFgAAAAtAAADY29tbWVudABCaWdTb3VuZEJhbmsuY29tIC8gTGFTb25vdGhlcXVlLm9yZwBURU5DAAAAHQAAA1N3aXRjaCBQbHVzIMKpIE5DSCBTb2Z0d2FyZQA=";
+    for (const el of decks) {
+      try {
+        el.src = SILENT_MP3;
+        el.muted = true;
+        const p = el.play();
+        if (p && typeof p.then === "function") {
+          p.then(() => {
+            el.pause();
+            el.currentTime = 0;
+            el.muted = false;
+            el.removeAttribute("src");
+            try { el.load(); } catch { /* ignore */ }
+          }).catch(() => {
+            el.muted = false;
+          });
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+    unlockedRef.current = true;
+  }, []);
+
   const value = useMemo<PlayerContextValue>(
     () => ({
       current,
@@ -561,8 +605,9 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       skipPrev,
       hasNext: queue.length > 0,
       hasPrev: history.length > 0,
+      prime,
     }),
-    [current, isPlaying, isLoading, progress, duration, play, playQueue, toggle, seek, close, skipNext, skipPrev, queue.length, history.length],
+    [current, isPlaying, isLoading, progress, duration, play, playQueue, toggle, seek, close, skipNext, skipPrev, queue.length, history.length, prime],
   );
 
   return <PlayerContext.Provider value={value}>{children}</PlayerContext.Provider>;

@@ -9,7 +9,7 @@ type Props = {
 };
 
 export function PlayButton({ track, size = "md", className = "", variant = "solid" }: Props) {
-  const { current, isPlaying, isLoading, play } = usePlayer();
+  const { current, isPlaying, isLoading, play, prime } = usePlayer();
   const active = current?.id === track.id;
   const showPause = active && isPlaying;
   const showLoader = active && isLoading;
@@ -34,6 +34,9 @@ export function PlayButton({ track, size = "md", className = "", variant = "soli
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();
+        // iOS Safari: unlock the audio decks synchronously inside the
+        // gesture, BEFORE play() awaits the signed URL.
+        prime();
         play(track);
       }}
       className={`inline-flex items-center justify-center rounded-full transition ${sizeClasses} ${base} ${className}`}
