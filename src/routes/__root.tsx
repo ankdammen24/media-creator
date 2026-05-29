@@ -7,28 +7,33 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
+import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 
 import appCss from "../styles.css?url";
 import { SiteFooter, SiteHeader } from "@/components/SiteHeader";
-import { AuthProvider } from "@/lib/auth";
+import { AuthProvider, useAuth } from "@/lib/auth";
 import { PlayerProvider, usePlayer } from "@/components/player/PlayerProvider";
 import { MiniPlayer } from "@/components/player/MiniPlayer";
+import { setAppLanguage, type AppLang } from "@/i18n";
+import { supabase } from "@/integrations/supabase/client";
 
 function NotFoundComponent() {
+  const { t } = useTranslation();
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
         <h1 className="text-7xl font-bold text-foreground">404</h1>
-        <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
+        <h2 className="mt-4 text-xl font-semibold text-foreground">{t("notFound.title")}</h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          The page you're looking for doesn't exist or has been moved.
+          {t("notFound.body")}
         </p>
         <div className="mt-6">
           <Link
             to="/"
             className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
-            Go home
+            {t("common.goHome")}
           </Link>
         </div>
       </div>
@@ -39,15 +44,16 @@ function NotFoundComponent() {
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
   const router = useRouter();
+  const { t } = useTranslation();
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
         <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          This page didn't load
+          {t("errorBoundary.title")}
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Something went wrong on our end. You can try refreshing or head back home.
+          {t("errorBoundary.body")}
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
@@ -57,13 +63,13 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
             }}
             className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
-            Try again
+            {t("common.tryAgain")}
           </button>
           <a
             href="/"
             className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
           >
-            Go home
+            {t("common.goHome")}
           </a>
         </div>
       </div>
@@ -123,11 +129,44 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <PlayerProvider>
+          <LanguageSync />
           <AppShell />
         </PlayerProvider>
       </AuthProvider>
     </QueryClientProvider>
   );
+}
+
+function LanguageSync() {
+  const { user } = useAuth();
+  const { i18n } = useTranslation();
+
+  // Keep <html lang> in sync with the active language.
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    document.documentElement.lang = (i18n.resolvedLanguage ?? i18n.language ?? "sv").slice(0, 2);
+  }, [i18n.resolvedLanguage, i18n.language]);
+
+  // When a user signs in, hydrate their preferred language from profiles.
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("preferred_language")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (cancelled) return;
+      const v = (data as { preferred_language?: string } | null)?.preferred_language;
+      if (v === "sv" || v === "en") setAppLanguage(v as AppLang);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
+  return null;
 }
 
 function AppShell() {
