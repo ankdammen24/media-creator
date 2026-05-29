@@ -1752,18 +1752,19 @@ function StepRights({
   state: ReleaseState;
   dispatch: React.Dispatch<Action>;
 }) {
+  const { t } = useTranslation();
   const items: Array<{ key: keyof ReleaseState["rights"]; label: string }> = [
-    { key: "owns", label: "I own or control the rights to this music" },
-    { key: "permission", label: "I have permission to distribute this content" },
-    { key: "policies", label: "I understand this is a demo catalog submission, not streaming distribution" },
-    { key: "noManipulation", label: "No artificial stream manipulation" },
-    { key: "terms", label: "I agree to the catalog submission terms" },
+    { key: "owns", label: t("wizard.rights.owns") },
+    { key: "permission", label: t("wizard.rights.permission") },
+    { key: "policies", label: t("wizard.rights.policies") },
+    { key: "noManipulation", label: t("wizard.rights.noManipulation") },
+    { key: "terms", label: t("wizard.rights.terms") },
   ];
   return (
     <StepCard
       step={4}
-      title="Rights & Ownership"
-      description="Bekräfta att du har rätt att distribuera musiken."
+      title={t("wizard.rights.title")}
+      description={t("wizard.rights.description")}
     >
       <ul className="space-y-3">
         {items.map((it) => {
