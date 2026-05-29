@@ -367,9 +367,9 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     return data.signedUrl;
   }, []);
 
-  // Core transition. With useCrossfade we fade between two decks; otherwise we
-  // hard-switch on the active deck. Crossfade only applies music→music while
-  // something is already playing.
+  // Core transition: always a hard switch on the active deck. The "next
+  // track" preloaded on the inactive deck is invalidated and rebuilt by
+  // preloadNext() once the new active track starts.
   const goToTrack = useCallback(
     async (
       track: PlayerTrack,
