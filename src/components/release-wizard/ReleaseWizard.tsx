@@ -691,34 +691,37 @@ export function ReleaseWizard() {
 // ============================================================
 // Validation
 // ============================================================
-function validate(s: ReleaseState): Record<StepId, string[]> {
+function validate(s: ReleaseState, t: TFunction): Record<StepId, string[]> {
   const e: Record<StepId, string[]> = { 1: [], 2: [], 3: [], 4: [], 5: [] };
 
   // Step 1 — Tracks
-  if (s.tracks.length === 0) e[1].push("Add at least one track.");
+  if (s.tracks.length === 0) e[1].push(t("wizard.errorsList.addAtLeastOne"));
   const notReady = s.tracks.filter((t) => t.status !== "ready");
   if (notReady.length > 0)
-    e[1].push(`${notReady.length} track(s) still uploading or in error.`);
-  for (const t of s.tracks) {
-    if (!t.title.trim()) e[1].push(`Track "${t.file.name}" needs a title.`);
-    if (t.isrc.trim() && !ISRC_RE.test(t.isrc.trim().toUpperCase()))
-      e[1].push(`ISRC for "${t.title || t.file.name}" looks invalid.`);
+    e[1].push(t("wizard.errorsList.stillUploading", { count: notReady.length }));
+  for (const tr of s.tracks) {
+    if (!tr.title.trim())
+      e[1].push(t("wizard.errorsList.trackNeedsTitle", { file: tr.file.name }));
+    if (tr.isrc.trim() && !ISRC_RE.test(tr.isrc.trim().toUpperCase()))
+      e[1].push(
+        t("wizard.errorsList.isrcInvalid", { title: tr.title || tr.file.name }),
+      );
   }
 
   // Step 2 — Release Details
-  if (!s.title.trim()) e[2].push("Release title is required.");
-  if (!s.artistProfileId) e[2].push("Pick an artist profile.");
-  if (!s.primaryGenre) e[2].push("Primary genre is required.");
-  if (!s.releaseDate) e[2].push("Release date is required.");
-  if (!s.cover && !s.albumId) e[2].push("Upload cover artwork.");
+  if (!s.title.trim()) e[2].push(t("wizard.errorsList.releaseTitleRequired"));
+  if (!s.artistProfileId) e[2].push(t("wizard.errorsList.pickArtist"));
+  if (!s.primaryGenre) e[2].push(t("wizard.errorsList.primaryGenreRequired"));
+  if (!s.releaseDate) e[2].push(t("wizard.errorsList.releaseDateRequired"));
+  if (!s.cover && !s.albumId) e[2].push(t("wizard.errorsList.uploadCover"));
 
   // Step 3 — Platforms
-  if (s.platforms.length === 0) e[3].push("Pick at least one platform.");
+  if (s.platforms.length === 0) e[3].push(t("wizard.errorsList.pickAtLeastOnePlatform"));
 
   // Step 4
   const r = s.rights;
   if (!(r.owns && r.permission && r.policies && r.noManipulation && r.terms))
-    e[4].push("All rights & ownership boxes must be checked.");
+    e[4].push(t("wizard.errorsList.rightsAll"));
 
   return e;
 }
