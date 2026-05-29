@@ -745,6 +745,16 @@ function StepSidebar({
   errors: Record<StepId, string[]>;
   onSelect: (id: StepId) => void;
 }) {
+  const { t } = useTranslation();
+  const labelFor = (id: StepId) => {
+    switch (id) {
+      case 1: return t("wizard.stepsLong.tracks");
+      case 2: return t("wizard.stepsLong.details");
+      case 3: return t("wizard.stepsLong.platforms");
+      case 4: return t("wizard.stepsLong.rights");
+      case 5: return t("wizard.stepsLong.review");
+    }
+  };
   return (
     <nav className="rounded-2xl border border-border bg-card/60 p-3 backdrop-blur">
       <ol className="space-y-1">
@@ -773,9 +783,9 @@ function StepSidebar({
                 </span>
                 <span className="flex-1">
                   <span className="block text-xs uppercase tracking-wider text-muted-foreground">
-                    Step {s.id}
+                    {t("wizard.step")} {s.id}
                   </span>
-                  <span className="block font-medium">{s.label}</span>
+                  <span className="block font-medium">{labelFor(s.id)}</span>
                 </span>
                 {hasErr && !active && (
                   <span className="h-1.5 w-1.5 rounded-full bg-destructive" />
@@ -790,14 +800,24 @@ function StepSidebar({
 }
 
 function MobileProgress({ step }: { step: StepId }) {
+  const { t } = useTranslation();
   const pct = (step / STEPS.length) * 100;
+  const labelFor = (id: StepId) => {
+    switch (id) {
+      case 1: return t("wizard.stepsLong.tracks");
+      case 2: return t("wizard.stepsLong.details");
+      case 3: return t("wizard.stepsLong.platforms");
+      case 4: return t("wizard.stepsLong.rights");
+      case 5: return t("wizard.stepsLong.review");
+    }
+  };
   return (
     <div className="mb-6 rounded-xl border border-border bg-card/60 p-4 backdrop-blur">
       <div className="mb-2 flex items-center justify-between text-xs">
         <span className="text-muted-foreground">
-          Step {step} of {STEPS.length}
+          {t("wizard.stepOf", { current: step, total: STEPS.length })}
         </span>
-        <span className="font-medium">{STEPS[step - 1].label}</span>
+        <span className="font-medium">{labelFor(step)}</span>
       </div>
       <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
         <div
