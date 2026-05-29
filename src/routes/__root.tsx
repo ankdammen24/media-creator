@@ -15,8 +15,11 @@ import { SiteFooter, SiteHeader } from "@/components/SiteHeader";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import { PlayerProvider, usePlayer } from "@/components/player/PlayerProvider";
 import { MiniPlayer } from "@/components/player/MiniPlayer";
+import { ThemeProvider } from "@/components/theme-provider";
 import { setAppLanguage, type AppLang } from "@/i18n";
 import { supabase } from "@/integrations/supabase/client";
+
+const noFlashScript = `(function(){try{var t=localStorage.getItem('theme');var d=t==='dark'||((!t||t==='system')&&window.matchMedia('(prefers-color-scheme: dark)').matches);var r=document.documentElement;if(d)r.classList.add('dark');else r.classList.remove('dark');r.style.colorScheme=d?'dark':'light';}catch(e){}})();`;
 
 function NotFoundComponent() {
   const { t } = useTranslation();
@@ -114,6 +117,7 @@ function RootShell({ children }: { children: React.ReactNode }) {
     <html lang="en" className="dark">
       <head>
         <HeadContent />
+        <script dangerouslySetInnerHTML={{ __html: noFlashScript }} />
       </head>
       <body className="min-h-screen bg-background text-foreground antialiased">
         {children}
@@ -128,12 +132,14 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <PlayerProvider>
-          <LanguageSync />
-          <AppShell />
-        </PlayerProvider>
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <PlayerProvider>
+            <LanguageSync />
+            <AppShell />
+          </PlayerProvider>
+        </AuthProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }
