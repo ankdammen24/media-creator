@@ -36,6 +36,8 @@ import { useAuth } from "@/lib/auth";
 import { AiArtworkDialog } from "@/components/AiArtworkDialog";
 import { PLATFORMS, type PlatformCode } from "@/lib/release-platforms";
 import { ReleaseStatusBadge, type ReleaseStatus } from "./ReleaseStatusBadge";
+import { useEditorRole } from "@/lib/useEditorRole";
+import { useAllArtistNames } from "@/lib/artist-list";
 
 // ============================================================
 // Constants
@@ -271,6 +273,7 @@ export function ReleaseWizard() {
   const { user } = useAuth();
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+  const { isAdmin } = useEditorRole();
   const [state, dispatch] = useReducer(reducer, undefined, initialState);
   const [step, setStep] = useState<StepId>(1);
   const [profiles, setProfiles] = useState<ArtistProfile[]>([]);
@@ -286,11 +289,13 @@ export function ReleaseWizard() {
     (async () => {
       if (!user) return;
       try {
-        const { data, error } = await supabase
-          .from("artist_profiles")
-          .select("id, name")
-          .eq("user_id", user.id)
-          .order("created_at", { ascending: true });
+        let q = supabase.from("artist_profiles").select("id, name");
+        if (isAdmin) {
+          q = q.order("name", { ascending: true });
+        } else {
+          q = q.eq("user_id", user.id).order("created_at", { ascending: true });
+        }
+        const { data, error } = await q;
         if (!on) return;
         if (error) throw error;
         const items = (data ?? []) as ArtistProfile[];
@@ -305,7 +310,7 @@ export function ReleaseWizard() {
     return () => {
       on = false;
     };
-  }, [user]);
+  }, [user, isAdmin]);
 
   // Validation per step
   const errors = useMemo(
