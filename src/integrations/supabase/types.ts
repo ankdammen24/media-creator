@@ -445,6 +445,50 @@ export type Database = {
         }
         Relationships: []
       }
+      playback_events: {
+        Row: {
+          azuracast_played_at: string | null
+          azuracast_song_id: string | null
+          event_type: Database["public"]["Enums"]["playback_event_type"]
+          id: string
+          occurred_at: string
+          session_id: string | null
+          source: string | null
+          submission_id: string
+          user_id: string | null
+        }
+        Insert: {
+          azuracast_played_at?: string | null
+          azuracast_song_id?: string | null
+          event_type: Database["public"]["Enums"]["playback_event_type"]
+          id?: string
+          occurred_at?: string
+          session_id?: string | null
+          source?: string | null
+          submission_id: string
+          user_id?: string | null
+        }
+        Update: {
+          azuracast_played_at?: string | null
+          azuracast_song_id?: string | null
+          event_type?: Database["public"]["Enums"]["playback_event_type"]
+          id?: string
+          occurred_at?: string
+          session_id?: string | null
+          source?: string | null
+          submission_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "playback_events_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -475,6 +519,45 @@ export type Database = {
           preferred_language?: Database["public"]["Enums"]["app_language"]
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      radio_import_runs: {
+        Row: {
+          completed_at: string | null
+          error: string | null
+          id: string
+          source: string
+          spins_inserted: number
+          spins_skipped: number
+          started_at: string
+          status: string
+          window_end: string | null
+          window_start: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          error?: string | null
+          id?: string
+          source?: string
+          spins_inserted?: number
+          spins_skipped?: number
+          started_at?: string
+          status?: string
+          window_end?: string | null
+          window_start?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          error?: string | null
+          id?: string
+          source?: string
+          spins_inserted?: number
+          spins_skipped?: number
+          started_at?: string
+          status?: string
+          window_end?: string | null
+          window_start?: string | null
         }
         Relationships: []
       }
@@ -736,6 +819,7 @@ export type Database = {
         | "failed"
         | "skipped"
       media_type: "music" | "podcast"
+      playback_event_type: "play" | "completed_30s" | "radio_spin"
       podcast_episode_type: "full" | "trailer" | "bonus"
       release_status:
         | "draft"
@@ -886,6 +970,7 @@ export const Constants = {
         "skipped",
       ],
       media_type: ["music", "podcast"],
+      playback_event_type: ["play", "completed_30s", "radio_spin"],
       podcast_episode_type: ["full", "trailer", "bonus"],
       release_status: [
         "draft",
