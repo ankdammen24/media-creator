@@ -2062,11 +2062,12 @@ function StepCard({
   description: string;
   children: ReactNode;
 }) {
+  const { t } = useTranslation();
   return (
     <section className="rounded-2xl border border-border bg-card/60 p-6 backdrop-blur-sm shadow-sm sm:p-8">
       <header className="mb-6">
         <p className="text-xs uppercase tracking-widest text-muted-foreground">
-          Step {step}
+          {t("wizard.step")} {step}
         </p>
         <h2 className="font-display mt-1 text-2xl font-semibold tracking-tight">
           {title}
