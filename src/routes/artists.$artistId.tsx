@@ -29,6 +29,7 @@ import {
   type EditableSubmission,
 } from "@/components/SubmissionActions";
 import { EditorTrackMeta, EditorAlbumMeta } from "@/components/EditorCardMeta";
+import { ShareButton } from "@/components/ShareButton";
 
 export const Route = createFileRoute("/artists/$artistId")({
   head: () => ({
@@ -251,8 +252,14 @@ function ArtistPage() {
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{profile.name}</h1>
-                  {canEdit && (
-                    <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <ShareButton
+                      path={`/artists/${profile.id}`}
+                      title={profile.name}
+                      text={profile.bio ?? `Lyssna på ${profile.name}`}
+                    />
+                    {canEdit && (
+                      <>
                       <Link
                         to="/albums/new"
                         search={{ artistId: profile.id }}
@@ -268,8 +275,9 @@ function ArtistPage() {
                         <Pencil className="h-3.5 w-3.5" />
                         Redigera profil
                       </button>
-                    </div>
-                  )}
+                      </>
+                    )}
+                  </div>
                 </div>
                 {profile.bio && (
                   <p className="mt-2 max-w-2xl text-sm text-muted-foreground">{profile.bio}</p>
