@@ -372,7 +372,7 @@ export const bulkRegenerateTrackArtwork = createServerFn({ method: "POST" })
   .inputValidator((input) => RegenerateInput.parse(input ?? {}))
   .handler(async ({ data, context }): Promise<RegenerateResult> => {
     if (!(await isAdmin(context.userId))) throw new Error("Endast admin");
-    const limit = data.limit ?? 100;
+    const limit = data.limit ?? 200;
 
     const { data: rows, error } = await supabaseAdmin
       .from("submissions")
