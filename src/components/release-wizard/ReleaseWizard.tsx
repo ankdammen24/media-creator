@@ -1219,7 +1219,7 @@ function StepPlatforms({
 }) {
   return (
     <StepCard
-      step={2}
+      step={3}
       title="Plattformar (endast referens)"
       description="Markera var releasen skulle distribueras. I demo-läget är distributionen inte aktiv."
     >
@@ -1391,7 +1391,7 @@ function StepTracks({
 
   return (
     <StepCard
-      step={3}
+      step={1}
       title="Tracks"
       description="Lägg till alla låtar för releasen. Drag-and-drop eller välj filer."
     >
