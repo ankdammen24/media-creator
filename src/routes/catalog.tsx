@@ -187,6 +187,7 @@ function CatalogPage() {
     music: t("catalog.music"),
     podcast: t("catalog.podcast"),
     artists: t("catalog.artists"),
+    albums: t("catalog.albums"),
   };
 
   return (
