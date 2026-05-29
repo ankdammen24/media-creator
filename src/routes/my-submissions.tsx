@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2, Plus, UserCircle2, Disc3, Music2, Info } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useAuth } from "@/lib/auth";
 import { useEditorRole } from "@/lib/useEditorRole";
@@ -32,6 +33,7 @@ type ArtistRow = {
 function MyPage() {
   const { user } = useAuth();
   const { isEditor, isAdmin } = useEditorRole();
+  const { t } = useTranslation();
 
   const { data, isLoading } = useQuery({
     queryKey: ["my-artists", user?.id, isEditor],
@@ -79,45 +81,43 @@ function MyPage() {
     <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
       <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Mine</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">{t("mySubmissions.title")}</h1>
           <p className="text-xs text-muted-foreground">
             {isAdmin
-              ? "Alla artister i katalogen. Välj en för att se album och låtar."
+              ? t("mySubmissions.subtitleAdmin")
               : isEditor
-                ? "Alla artister du kan redigera."
-                : "Dina artister. Välj en för att hantera album och låtar."}
+                ? t("mySubmissions.subtitleEditor")
+                : t("mySubmissions.subtitleUser")}
           </p>
         </div>
         <Link
           to="/artists/new"
           className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
         >
-          <Plus className="h-3.5 w-3.5" /> Skapa ny artist
+          <Plus className="h-3.5 w-3.5" /> {t("mySubmissions.createArtist")}
         </Link>
       </div>
 
       <div className="mb-6 flex items-start gap-3 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
         <Info className="mt-0.5 h-4 w-4 shrink-0" />
         <p>
-          <span className="font-semibold">Demo-läge.</span> Inskickad musik sparas
-          i Media Rosenqvist Catalog och skickas till Radio Uppsala för granskning.
-          Distribution till Spotify, Apple Music m.fl. är inte aktiv.
+          <span className="font-semibold">{t("mySubmissions.demoTitle")}</span> {t("mySubmissions.demoBody")}
         </p>
       </div>
 
       {isLoading ? (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" /> Laddar…
+          <Loader2 className="h-4 w-4 animate-spin" /> {t("mySubmissions.loading")}
         </div>
       ) : artists.length === 0 ? (
         <div className="rounded-xl border border-border bg-card p-6 text-center">
           <UserCircle2 className="mx-auto mb-2 h-10 w-10 text-muted-foreground" />
-          <p className="text-sm text-muted-foreground">Du har inga artister ännu.</p>
+          <p className="text-sm text-muted-foreground">{t("mySubmissions.emptyBody")}</p>
           <Link
             to="/artists/new"
             className="mt-4 inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
           >
-            <Plus className="h-3.5 w-3.5" /> Skapa din första artist
+            <Plus className="h-3.5 w-3.5" /> {t("mySubmissions.createFirst")}
           </Link>
         </div>
       ) : (
@@ -132,6 +132,7 @@ function MyPage() {
 }
 
 function ArtistCard({ a }: { a: ArtistRow }) {
+  const { t } = useTranslation();
   const avatarUrl = a.avatar_path
     ? supabase.storage.from("artwork").getPublicUrl(a.avatar_path).data.publicUrl
     : null;
@@ -155,11 +156,11 @@ function ArtistCard({ a }: { a: ArtistRow }) {
           <p className="truncate text-base font-semibold">{a.name}</p>
           <p className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
             <span className="inline-flex items-center gap-1">
-              <Disc3 className="h-3 w-3" /> {a.albumCount} album
+              <Disc3 className="h-3 w-3" /> {t("mySubmissions.albumsLabel", { count: a.albumCount })}
             </span>
             <span>·</span>
             <span className="inline-flex items-center gap-1">
-              <Music2 className="h-3 w-3" /> {a.trackCount} låt{a.trackCount === 1 ? "" : "ar"}
+              <Music2 className="h-3 w-3" /> {t("mySubmissions.tracksLabel", { count: a.trackCount })}
             </span>
           </p>
         </div>
