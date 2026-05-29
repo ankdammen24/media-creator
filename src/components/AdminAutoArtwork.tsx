@@ -366,7 +366,9 @@ export function AdminAutoArtwork() {
                   ? "låtar"
                   : result.kind === "singles"
                     ? "singlar"
-                    : "regenerering"}
+                    : result.kind === "sweep"
+                      ? "Radio Uppsala-svep"
+                      : "regenerering"}
           </h3>
           {renderSummary(result)}
           {result.res.details.length > 0 && (
