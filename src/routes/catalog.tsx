@@ -134,6 +134,18 @@ function CatalogPage() {
     staleTime: 60_000,
   });
 
+  const fetchAlbums = useServerFn(getAllAlbums);
+  const {
+    data: albumsAll,
+    isLoading: albumsLoading,
+    error: albumsError,
+    refetch: refetchAlbums,
+  } = useQuery({
+    queryKey: ["catalog", "albums"],
+    queryFn: () => fetchAlbums({ data: {} }),
+    staleTime: 60_000,
+  });
+
   const artists = useMemo(() => {
     const map = new Map<string, string>();
     (data ?? []).forEach((i) => {
@@ -156,6 +168,18 @@ function CatalogPage() {
     }
     return list;
   }, [data, tab, query, artistId]);
+
+  const filteredAlbums = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    let list = albumsAll ?? [];
+    if (artistId !== "all") list = list.filter((a) => a.artist_profile_id === artistId);
+    if (!q) return list;
+    return list.filter(
+      (a) =>
+        a.title.toLowerCase().includes(q) ||
+        a.artist_name.toLowerCase().includes(q),
+    );
+  }, [albumsAll, query, artistId]);
 
   const focusRef = useRef<HTMLDivElement | null>(null);
   const [highlight, setHighlight] = useState(false);
@@ -204,7 +228,7 @@ function CatalogPage() {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder={tab === "artists" ? t("catalog.searchArtist") : t("catalog.searchTitleOrArtist")}
+            placeholder={tab === "artists" ? t("catalog.searchArtist") : tab === "albums" ? t("catalog.searchAlbumOrArtist") : t("catalog.searchTitleOrArtist")}
             className="w-full rounded-md border border-border bg-card py-2 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
           />
         </div>
@@ -212,7 +236,7 @@ function CatalogPage() {
 
       <div className="mb-6 flex flex-wrap items-center gap-3">
         <div className="inline-flex rounded-lg border border-border bg-card p-1">
-          {(["all", "music", "podcast", "artists"] as Tab[]).map((t) => (
+          {(["all", "music", "podcast", "albums", "artists"] as Tab[]).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -284,6 +308,61 @@ function CatalogPage() {
                 </Link>
               );
             })}
+          </div>
+        )
+      ) : tab === "albums" ? (
+        albumsLoading ? (
+          <p className="text-sm text-muted-foreground">{t("catalog.loading")}</p>
+        ) : albumsError ? (
+          <ErrorState error={albumsError as Error} onRetry={() => refetchAlbums()} />
+        ) : filteredAlbums.length === 0 ? (
+          <EmptyState
+            title={query ? t("catalog.noMatches") : t("catalog.noAlbumsYet")}
+            description={query ? t("catalog.tryDifferent") : t("catalog.noAlbumsBody")}
+          />
+        ) : (
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+            {filteredAlbums.map((al) => (
+              <Link
+                key={al.id}
+                to="/albums/$albumId"
+                params={{ albumId: al.id }}
+                className="group block overflow-hidden rounded-lg border border-border bg-card transition hover:border-primary"
+              >
+                <div className="relative aspect-square w-full bg-secondary">
+                  {al.artwork_path ? (
+                    <img
+                      src={artworkUrl(al.artwork_path)}
+                      alt={al.title}
+                      className="h-full w-full object-cover transition group-hover:scale-105"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-muted-foreground">
+                      <Disc3 className="h-10 w-10" />
+                    </div>
+                  )}
+                  <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-background/80 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-foreground backdrop-blur">
+                    {ALBUM_TYPE_LABELS[al.album_type]}
+                  </span>
+                </div>
+                <div className="space-y-0.5 p-3">
+                  <h2 className="line-clamp-1 text-sm font-semibold group-hover:text-primary">
+                    {al.title}
+                  </h2>
+                  <p className="line-clamp-1 text-xs text-muted-foreground">
+                    {al.artist_name}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">
+                    {al.trackCount} låt{al.trackCount === 1 ? "" : "ar"}
+                    {al.release_date && (
+                      <> · {new Date(al.release_date).getFullYear()}</>
+                    )}
+                  </p>
+                  <EditorAlbumMeta meta={al} />
+                </div>
+              </Link>
+            ))}
           </div>
         )
       ) : isLoading ? (
