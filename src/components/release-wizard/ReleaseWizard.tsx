@@ -1110,6 +1110,7 @@ function CoverDropzone({
   title: string;
   onChange: (f: File | null, err: string | null) => void;
 }) {
+  const { t } = useTranslation();
   const [preview, setPreview] = useState<string | null>(null);
   const [drag, setDrag] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
@@ -1126,11 +1127,11 @@ function CoverDropzone({
 
   function accept(f: File) {
     if (!IMAGE_EXTS.includes(extOf(f.name))) {
-      onChange(null, "Filformat stöds inte. Tillåtet: JPG, PNG, WEBP.");
+      onChange(null, t("wizard.cover.unsupportedFormat"));
       return;
     }
     if (f.size > MAX_IMAGE_BYTES) {
-      onChange(null, `För stor (${formatBytes(f.size)}).`);
+      onChange(null, t("wizard.cover.tooLarge", { size: formatBytes(f.size) }));
       return;
     }
     onChange(f, null);
@@ -1167,17 +1168,16 @@ function CoverDropzone({
             />
             <div className="absolute inset-0 flex items-end justify-end bg-gradient-to-t from-black/60 via-black/0 to-transparent p-3 opacity-0 transition group-hover:opacity-100">
               <span className="rounded-md bg-background/80 px-2 py-1 text-xs">
-                Click to replace
+                {t("wizard.cover.clickToReplace")}
               </span>
             </div>
           </>
         ) : (
           <div className="flex flex-col items-center gap-2 p-6 text-center">
             <ImageIcon className="h-10 w-10 text-muted-foreground" />
-            <p className="text-sm font-medium">Drop cover here</p>
+            <p className="text-sm font-medium">{t("wizard.cover.dropHere")}</p>
             <p className="text-xs text-muted-foreground">
-              JPG, PNG eller WEBP · 1:1 rekommenderat · max{" "}
-              {formatBytes(MAX_IMAGE_BYTES)}
+              {t("wizard.cover.formatsHint", { max: formatBytes(MAX_IMAGE_BYTES) })}
             </p>
           </div>
         )}
@@ -1211,21 +1211,22 @@ function CoverDropzone({
           className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background/80 px-3 py-2 text-xs font-medium hover:bg-secondary"
         >
           <Sparkles className="h-3.5 w-3.5 text-primary" />
-          Skapa omslag med AI
+          {t("wizard.cover.aiButton")}
         </button>
         <p className="text-xs text-muted-foreground">
-          Tips: konstnärligt, abstrakt motiv håller bättre över tid än trender.
+          {t("wizard.cover.tip")}
         </p>
       </div>
 
       <AiArtworkDialog
         open={aiOpen}
         aspect="1:1"
-        title="Skapa omslag med AI"
+        title={t("wizard.cover.aiDialogTitle")}
         filenameHint={`release-${title || "untitled"}`}
-        defaultPrompt={`Abstrakt albumomslag för "${title || "släppet"}"${
-          artistName ? ` av ${artistName}` : ""
-        }, cinematic Scandinavian, ingen text, inga ansikten`}
+        defaultPrompt={t("wizard.cover.aiPrompt", {
+          title: title || t("wizard.cover.fallbackTitle"),
+          artistPart: artistName ? t("wizard.cover.ofArtist", { name: artistName }) : "",
+        })}
         onClose={() => setAiOpen(false)}
         onGenerated={(f) => {
           onChange(f, null);
