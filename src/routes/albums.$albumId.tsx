@@ -123,7 +123,9 @@ function AlbumPage() {
     queryFn: async (): Promise<AlbumData> => {
       const albumRes = await supabase
         .from("albums")
-        .select("*")
+        .select(
+          "id, user_id, artist_profile_id, title, description, album_type, artwork_path, genre, secondary_genre, language, label, upc, release_date, status, distribution_platforms, previously_released, podcast_category, published_at, submitted_at, created_at, updated_at",
+        )
         .eq("id", albumId)
         .maybeSingle();
       if (albumRes.error) throw albumRes.error;
