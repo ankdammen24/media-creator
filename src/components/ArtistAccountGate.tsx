@@ -120,28 +120,6 @@ export function ArtistAccountGate({ children }: { children: ReactNode }) {
   );
 }
 
-function StatusCard({
-  icon,
-  title,
-  body,
-}: {
-  icon: ReactNode;
-  title: string;
-  body: ReactNode;
-}) {
-  return (
-    <div className="mx-auto max-w-xl px-4 py-12 sm:px-6">
-      <div className="rounded-xl border border-border bg-card p-6 text-center">
-        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-secondary">
-          {icon}
-        </div>
-        <h1 className="mb-2 text-xl font-semibold tracking-tight">{title}</h1>
-        <p className="text-sm text-muted-foreground">{body}</p>
-      </div>
-    </div>
-  );
-}
-
 function ApplicationForm({ onCreated }: { onCreated: () => Promise<unknown> | void }) {
   const { user } = useAuth();
   const { t } = useTranslation();
