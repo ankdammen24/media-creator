@@ -283,8 +283,8 @@ function TrackCard({ item }: { item: Row }) {
     <article className="group overflow-hidden rounded-lg border border-border bg-card transition hover:border-primary/40">
       <div className="relative aspect-square w-full bg-secondary">
         <img src={art} alt={item.title} className="h-full w-full object-cover" loading="lazy" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 transition group-hover:opacity-100" />
-        <div className="absolute bottom-2 right-2 translate-y-1 opacity-0 transition group-hover:translate-y-0 group-hover:opacity-100">
+        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-100 transition md:opacity-0 md:group-hover:opacity-100" />
+        <div className="absolute bottom-2 right-2 translate-y-0 opacity-100 transition md:translate-y-1 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100">
           <PlayButton track={track} size="md" variant="overlay" />
         </div>
       </div>
