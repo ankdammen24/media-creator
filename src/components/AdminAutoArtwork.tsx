@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQueryClient } from "@tanstack/react-query";
-import { ImagePlus, Loader2, Users, Disc3, Sparkles, AlertTriangle, Music, Disc } from "lucide-react";
+import { ImagePlus, Loader2, Users, Disc3, Sparkles, AlertTriangle, Music, Disc, Radio } from "lucide-react";
 import {
   bulkFetchMissingAlbumArtwork,
   bulkFetchMissingArtistArtwork,
   bulkRegenerateArtistArtwork,
   bulkRegenerateTrackArtwork,
   bulkRegenerateSingleArtwork,
+  bulkRegenerateAzuracastAlbumArtwork,
   type BulkResult,
   type RegenerateResult,
 } from "@/lib/artwork.functions";
@@ -16,7 +17,8 @@ type ResultState =
   | { kind: "artists" | "albums"; res: BulkResult }
   | { kind: "regen"; res: RegenerateResult }
   | { kind: "tracks"; res: RegenerateResult }
-  | { kind: "singles"; res: RegenerateResult };
+  | { kind: "singles"; res: RegenerateResult }
+  | { kind: "sweep"; res: RegenerateResult };
 
 function renderSummary(result: ResultState) {
   switch (result.kind) {
@@ -34,7 +36,8 @@ function renderSummary(result: ResultState) {
     }
     case "regen":
     case "tracks":
-    case "singles": {
+    case "singles":
+    case "sweep": {
       const r = result.res;
       return (
         <ul className="space-y-1 text-muted-foreground">
@@ -58,11 +61,13 @@ export function AdminAutoArtwork() {
   const regenerateAll = useServerFn(bulkRegenerateArtistArtwork);
   const regenerateTracks = useServerFn(bulkRegenerateTrackArtwork);
   const regenerateSingles = useServerFn(bulkRegenerateSingleArtwork);
+  const regenerateAzAlbums = useServerFn(bulkRegenerateAzuracastAlbumArtwork);
   const [busy, setBusy] = useState<
-    "artists" | "albums" | "regen" | "tracks" | "singles" | null
+    "artists" | "albums" | "regen" | "tracks" | "singles" | "sweep" | null
   >(null);
   const [result, setResult] = useState<ResultState | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [sweepProgress, setSweepProgress] = useState<string | null>(null);
 
   async function run(kind: "artists" | "albums") {
     setBusy(kind);
