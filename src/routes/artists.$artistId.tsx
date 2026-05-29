@@ -20,8 +20,9 @@ import { ArtistProfileEditor, type EditableArtist } from "@/components/ArtistPro
 import { ArtistImageManager, type ArtistImage } from "@/components/ArtistImageManager";
 import { useEditorRole } from "@/lib/useEditorRole";
 import { deleteArtistProfile } from "@/lib/catalog-edit.functions";
+import { getArtistAlbums, type PublicAlbum } from "@/lib/albums.functions";
 import { usePlayer, type PlayerTrack } from "@/components/player/PlayerProvider";
-import { ALBUM_TYPE_LABELS, type AlbumType } from "@/lib/album-helpers";
+import { ALBUM_TYPE_LABELS } from "@/lib/album-helpers";
 import {
   EditButton,
   EditSubmissionDialog,
