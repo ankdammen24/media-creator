@@ -849,6 +849,20 @@ export type Database = {
         }
         Returns: boolean
       }
+      self_approve_artist_account: {
+        Args: {
+          _artist_profile_id?: string
+          _bio?: string
+          _mode: string
+          _name?: string
+          _user_id: string
+          _website?: string
+        }
+        Returns: {
+          id: string
+          name: string
+        }[]
+      }
     }
     Enums: {
       album_type: "album" | "ep" | "single" | "compilation" | "podcast_show"
