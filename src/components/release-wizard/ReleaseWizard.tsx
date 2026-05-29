@@ -854,6 +854,8 @@ function StepReleaseDetails({
 }) {
   const { user } = useAuth();
   const { t } = useTranslation();
+  const { isAdmin } = useEditorRole();
+  const { findDuplicate } = useAllArtistNames();
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState("");
   const [createBusy, setCreateBusy] = useState(false);
@@ -861,6 +863,16 @@ function StepReleaseDetails({
 
   async function handleCreate() {
     if (!user || !newName.trim()) return;
+    const dup = findDuplicate(newName);
+    if (dup && !isAdmin) {
+      setCreateError(
+        t("wizard.details.duplicateArtist", {
+          name: dup.name,
+          defaultValue: `En artist med namnet "${dup.name}" finns redan. Kontakta admin om det är ditt artistnamn.`,
+        }),
+      );
+      return;
+    }
     setCreateBusy(true);
     setCreateError(null);
     try {
