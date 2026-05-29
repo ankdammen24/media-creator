@@ -549,6 +549,7 @@
       "cancel": "Avbryt",
       "createNewArtist": "+ Skapa ny artist",
       "couldNotCreateArtist": "Kunde inte skapa artist",
+      "duplicateArtist": "En artist med namnet \"{{name}}\" finns redan. Kontakta admin om det är ditt artistnamn.",
       "label": "Skivbolag",
       "releaseDate": "Release-datum",
       "primaryGenre": "Primär genre",
