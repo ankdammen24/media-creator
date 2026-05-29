@@ -1,32 +1,51 @@
 ## Mål
 
-`/api/public/tracks` och `/api/public/tracks/:id` ska returnera ett `audio_url`-fält så att katalog-syncen (och andra konsumenter) får en spelbar URL. Audio-bucketen är privat, så vi exponerar en stabil proxy-URL istället för rå storage-path.
+Katalogen (`catalog.crystalpierrecords.org`) ska vara master för **musik** på AzuraCast (`stream.radiouppsala.se`, station 1). Allt godkänt musik-`submission` speglas till AzuraCast-mappen `Synced_music/`. Filer som ligger i `Synced_music/` men saknas i katalogen tas bort. Jinglar/SFX och andra mappar lämnas helt orörda.
 
-## Vad som ändras
+## Speglingsregler
 
-1. **Ny endpoint `src/routes/api/public/stream.$id.ts`** (`/api/public/stream/:id`)
-   - Slår upp submission via `supabaseAdmin` med `status = 'approved'`.
-   - Väljer `audio_web_path` om finns, annars `audio_path`.
-   - Skapar en signerad URL (kort TTL) mot `audio`-bucketen och svarar med `302`-redirect dit.
-   - Vidarebefordrar `Range`-headern är inte nödvändigt eftersom redirect:en låter klienten prata direkt med Supabase Storage (som stödjer range).
-   - Returnerar 404 om submission saknas/inte är approved eller saknar audio-path.
-   - CORS via `PUBLIC_CORS` + `OPTIONS`-handler.
+- **Källa:** `submissions` där `status = 'approved'` och `media_type = 'music'`.
+- **Mål-mapp i AzuraCast:** `Synced_music/` (skapas vid första push om den inte finns).
+- **Spellista:** alla nya filer kopplas till spellistan `default`.
+- **Identitet/dedupp:** submission-`id` läggs in i filnamnet, t.ex. `Synced_music/{submission_id}__{artist}__{title}.{ext}`. Submission-`id` är källan till sanningen vid dubbletts-/raderingsbeslut — inte ISRC eller titel.
+- **Skyddszon:** synken läser bara filer vars `path` börjar med `Synced_music/`. Allt utanför den prefixen ignoreras (jinglar, manuella uppladdningar, gamla importer).
+- **Säkerhetsspärr:** om diff:en skulle radera mer än 30 % av filerna i `Synced_music/` i en körning, avbryt rensningen, logga och notifiera — pusha bara nya.
 
-2. **`src/lib/api-projections.ts`**
-   - Lägg till `audio_url: string | null` i `PublicTrack`.
-   - Ny helper `streamUrl(id)` som returnerar absolut URL till `/api/public/stream/:id`. Base URL läses från `process.env.PUBLIC_SITE_URL` med fallback till `https://catalog.crystalpierrecords.org`.
-   - `projectTrack` sätter `audio_url = streamUrl(row.id)` när `audio_web_path` eller `audio_path` finns, annars `null`.
-   - Utöka `PUBLIC_TRACK_COLUMNS` med `audio_web_path, audio_path` så projektionen kan avgöra om audio finns (fälten själva läcker inte ut — de används bara för null-check).
+## Komponenter
 
-3. **Sync-anpassning** (säkerhetscheck)
-   - Bekräfta att `catalog-sync-core.server.ts` läser `audio_url` (inget kodbyte krävs om så är fallet — användaren har redan beskrivit att fältet plockas upp automatiskt).
+1. **`src/lib/azuracast-sync.server.ts`** (ny) — AzuraCast-klient + sync-kärna:
+   - `listSyncedFiles()` → `GET /api/station/1/files` filtrerad på prefix `Synced_music/`.
+   - `uploadTrack(submission)` → laddar ned audio från Supabase Storage (`audio_web_path` föredras, annars `audio_path`) och `POST /api/station/1/files` med base64-body, path `Synced_music/{id}__{slug}.{ext}`, sätter metadata (title, artist, album, ISRC).
+   - `assignToDefaultPlaylist(fileId)` → lägger filen i spellistan `default` (slår upp playlist-id en gång och cachar).
+   - `deleteFile(fileId)` → `DELETE /api/station/1/file/{id}`.
+   - `syncCatalogToAzuracast({ dryRun }) → { uploaded, deleted, skipped, failures }` — den fullständiga diff:en.
 
-## Säkerhetsnoter
+2. **`src/lib/azuracast-sync.functions.ts`** (ny) — `createServerFn` `runAzuracastSync` med admin-guard som kör kärnan; returnerar summary.
 
-- `audio_url` är en stabil proxy-URL; den signerade URL:en bakom genereras per request och har kort livslängd.
-- Endast `approved` submissions kan strömmas via endpointen — samma policy som övriga publika endpoints.
-- `source_url`-restriktionen i `tracks`-tabellen påverkas inte; detta gäller bara den publika `submissions`-projektionen.
+3. **`src/routes/api/public/hooks/sync-azuracast.ts`** (ny) — webhook för `pg_cron` (verifierar `apikey`-header mot anon-nyckeln), kör samma kärna.
 
-## Efter implementation
+4. **Push vid approve** — i den befintliga approve-flödet (submissions-update till `approved`) trigga `uploadTrack` + playlist-koppling direkt, så låten är på AzuraCast inom sekunder. Cron används enbart för catch-up och rensning.
 
-Jag kör en manuell körning av sync-endpointen mot katalogen och verifierar att rader landar i `tracks` och att en låt går att spela på `/musik`.
+5. **`/admin/tracks`** — knapp **"Sync to AzuraCast"** som kör `runAzuracastSync` manuellt och visar summary-toast.
+
+6. **Cron** — `pg_cron`-jobb var 15:e minut som anropar `/api/public/hooks/sync-azuracast`.
+
+7. **DB-fält på `submissions`** (migration):
+   - `azuracast_file_id integer null` — AzuraCast-filens id efter lyckad upload.
+   - `azuracast_synced_at timestamptz null` — senaste lyckade push.
+   - `azuracast_sync_error text null` — senaste felmeddelande för admin-UI.
+   (Inga RLS-ändringar; befintliga policies täcker dessa kolumner.)
+
+## Tekniska noter
+
+- AzuraCast-API: `X-API-Key: AZURACAST_API_KEY` (finns redan som secret). Bas-URL och station-id återanvänds från `azuracast-import.server.ts` (`stream.radiouppsala.se`, station 1).
+- Audio hämtas från privata `audio`-bucketen via `supabaseAdmin.storage.from('audio').createSignedUrl(...)`, sedan streamas in i base64 för AzuraCast-uppladdningen (AzuraCast-API kräver base64 i `POST /files`).
+- Inga ändringar på den befintliga "pull from catalog"-syncen behövs — riktningen som etableras nu är ren push.
+- Allt körs i TanStack server-funktioner / server-routes; inga edge functions.
+
+## Verifiering efter implementation
+
+1. Kör manuell sync via `/admin/tracks` mot ett tomt `Synced_music/` — bekräfta att alla approved music-submissions laddas upp och hamnar i playlistan `default`.
+2. Markera ett submission som `rejected` (eller ta bort) — kör syncen igen och bekräfta att motsvarande fil raderas.
+3. Lägg en manuell jingel i en annan AzuraCast-mapp — bekräfta att den ligger kvar.
+4. Godkänn ett nytt submission och bekräfta att det dyker upp inom sekunder utan att vänta på cron.

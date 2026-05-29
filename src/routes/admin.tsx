@@ -1,13 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ShieldCheck, CheckCircle2, XCircle, Music2, Mic, Loader2, Users, Radio, ImagePlus, FileSpreadsheet, KeyRound } from "lucide-react";
+import { ShieldCheck, CheckCircle2, XCircle, Music2, Mic, Loader2, Users, Radio, ImagePlus, FileSpreadsheet, KeyRound, RefreshCw } from "lucide-react";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
 import { notifySubmissionDecision } from "@/lib/notifications.functions";
 import { runAzuracastImport } from "@/lib/azuracast-import.functions";
+import { runAzuracastSync, pushOneToAzuracast } from "@/lib/azuracast-sync.functions";
 import { runRadioSpinsImport } from "@/lib/radio-spins-import.functions";
 import { AdminAutoArtwork } from "@/components/AdminAutoArtwork";
 import { AdminOwnershipLog } from "@/components/AdminOwnershipLog";
@@ -499,6 +500,10 @@ function AdminPage() {
     "submissions" | "users" | "artists" | "artwork" | "import" | "catalog-import" | "api-keys"
   >("submissions");
   const notify = useServerFn(notifySubmissionDecision);
+  const pushAz = useServerFn(pushOneToAzuracast);
+  const syncAz = useServerFn(runAzuracastSync);
+  const [azBusy, setAzBusy] = useState(false);
+  const [azMsg, setAzMsg] = useState<string | null>(null);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["admin-submissions", filter],
@@ -542,8 +547,38 @@ function AdminPage() {
     } catch (e) {
       console.error("notifySubmissionDecision failed", e);
     }
+    // Vid godkänd musik: pusha direkt till AzuraCast (best-effort).
+    if (status === "approved") {
+      try {
+        await pushAz({ data: { submissionId: id } });
+      } catch (e) {
+        console.error("pushOneToAzuracast failed", e);
+      }
+    }
     await refetch();
     qc.invalidateQueries({ queryKey: ["catalog"] });
+  }
+
+  async function handleAzuracastSync() {
+    setAzBusy(true);
+    setAzMsg(null);
+    try {
+      const r = await syncAz({ data: {} });
+      const parts = [
+        `${r.uploaded.length} uppladdade`,
+        `${r.deleted.length} raderade`,
+        `${r.skipped.length} oförändrade`,
+        r.failures.length ? `${r.failures.length} fel` : null,
+        r.protectionTriggered ? "rensning hoppades över (skyddsspärr)" : null,
+      ]
+        .filter(Boolean)
+        .join(" · ");
+      setAzMsg(`Synk klar: ${parts}`);
+    } catch (e) {
+      setAzMsg(e instanceof Error ? e.message : "Synk misslyckades");
+    } finally {
+      setAzBusy(false);
+    }
   }
 
   return (
@@ -646,6 +681,25 @@ function AdminPage() {
             {s.replace("_", " ")}
           </button>
         ))}
+      </div>
+
+      <div className="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-border bg-card p-3">
+        <div className="flex flex-col">
+          <span className="text-xs font-medium">AzuraCast-spegling</span>
+          <span className="text-[11px] text-muted-foreground">
+            Speglar godkänd musik till mappen Synced_music/ (spellistan default).
+          </span>
+        </div>
+        <button
+          type="button"
+          onClick={handleAzuracastSync}
+          disabled={azBusy}
+          className="ml-auto inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground disabled:opacity-50"
+        >
+          {azBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+          Sync to AzuraCast
+        </button>
+        {azMsg && <span className="basis-full text-[11px] text-muted-foreground">{azMsg}</span>}
       </div>
 
       {isLoading ? (
