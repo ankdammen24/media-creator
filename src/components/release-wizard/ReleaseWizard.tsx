@@ -871,28 +871,73 @@ function StepReleaseDetails({
             <div className="rounded-md border border-border bg-background px-3 py-2 text-sm text-muted-foreground">
               Laddar artister…
             </div>
-          ) : profiles.length === 0 ? (
-            <div className="rounded-md border border-dashed border-border bg-background px-3 py-2 text-sm text-muted-foreground">
-              Skapa en artistprofil först.
-            </div>
           ) : (
-            <select
-              value={state.artistProfileId}
-              onChange={(e) =>
-                dispatch({
-                  type: "patch",
-                  patch: { artistProfileId: e.target.value },
-                })
-              }
-              className={inputCls}
-            >
-              <option value="">Välj artist</option>
-              {profiles.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
+            <div className="space-y-2">
+              {profiles.length > 0 && (
+                <select
+                  value={state.artistProfileId}
+                  onChange={(e) =>
+                    dispatch({
+                      type: "patch",
+                      patch: { artistProfileId: e.target.value },
+                    })
+                  }
+                  className={inputCls}
+                >
+                  <option value="">Välj artist</option>
+                  {profiles.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+              )}
+              {creating ? (
+                <div className="space-y-2 rounded-md border border-border bg-muted/30 p-3">
+                  <input
+                    type="text"
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
+                    placeholder="Artistnamn"
+                    maxLength={120}
+                    className={inputCls}
+                    autoFocus
+                  />
+                  {createError && (
+                    <p className="text-xs text-destructive">{createError}</p>
+                  )}
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={handleCreate}
+                      disabled={createBusy || !newName.trim()}
+                      className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                    >
+                      {createBusy ? "Skapar…" : "Skapa artist"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCreating(false);
+                        setNewName("");
+                        setCreateError(null);
+                      }}
+                      className="inline-flex items-center rounded-md border border-border px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground"
+                    >
+                      Avbryt
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setCreating(true)}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-dashed border-border px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/40"
+                >
+                  + Skapa ny artist
+                </button>
+              )}
+            </div>
           )}
         </Field>
 
