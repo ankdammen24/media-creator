@@ -41,6 +41,7 @@ import { Route as ApiV1StatsSpinsRouteImport } from './routes/api/v1/stats.spins
 import { Route as ApiV1AudioIdRouteImport } from './routes/api/v1/audio.$id'
 import { Route as ApiV1AdminModerationRouteImport } from './routes/api/v1/admin/moderation'
 import { Route as ApiPublicTracksIdRouteImport } from './routes/api/public/tracks.$id'
+import { Route as ApiPublicStreamIdRouteImport } from './routes/api/public/stream.$id'
 import { Route as ApiPublicHooksImportRadioUppsalaRouteImport } from './routes/api/public/hooks/import-radio-uppsala'
 import { Route as ApiPublicHooksAudioProcessedRouteImport } from './routes/api/public/hooks/audio-processed'
 import { Route as ApiPublicEpisodesIdRouteImport } from './routes/api/public/episodes.$id'
@@ -207,6 +208,11 @@ const ApiPublicTracksIdRoute = ApiPublicTracksIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => ApiPublicTracksRoute,
 } as any)
+const ApiPublicStreamIdRoute = ApiPublicStreamIdRouteImport.update({
+  id: '/api/public/stream/$id',
+  path: '/api/public/stream/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicHooksImportRadioUppsalaRoute =
   ApiPublicHooksImportRadioUppsalaRouteImport.update({
     id: '/api/public/hooks/import-radio-uppsala',
@@ -268,6 +274,7 @@ export interface FileRoutesByFullPath {
   '/api/public/episodes/$id': typeof ApiPublicEpisodesIdRoute
   '/api/public/hooks/audio-processed': typeof ApiPublicHooksAudioProcessedRoute
   '/api/public/hooks/import-radio-uppsala': typeof ApiPublicHooksImportRadioUppsalaRoute
+  '/api/public/stream/$id': typeof ApiPublicStreamIdRoute
   '/api/public/tracks/$id': typeof ApiPublicTracksIdRoute
   '/api/v1/admin/moderation': typeof ApiV1AdminModerationRoute
   '/api/v1/audio/$id': typeof ApiV1AudioIdRoute
@@ -307,6 +314,7 @@ export interface FileRoutesByTo {
   '/api/public/episodes/$id': typeof ApiPublicEpisodesIdRoute
   '/api/public/hooks/audio-processed': typeof ApiPublicHooksAudioProcessedRoute
   '/api/public/hooks/import-radio-uppsala': typeof ApiPublicHooksImportRadioUppsalaRoute
+  '/api/public/stream/$id': typeof ApiPublicStreamIdRoute
   '/api/public/tracks/$id': typeof ApiPublicTracksIdRoute
   '/api/v1/admin/moderation': typeof ApiV1AdminModerationRoute
   '/api/v1/audio/$id': typeof ApiV1AudioIdRoute
@@ -347,6 +355,7 @@ export interface FileRoutesById {
   '/api/public/episodes/$id': typeof ApiPublicEpisodesIdRoute
   '/api/public/hooks/audio-processed': typeof ApiPublicHooksAudioProcessedRoute
   '/api/public/hooks/import-radio-uppsala': typeof ApiPublicHooksImportRadioUppsalaRoute
+  '/api/public/stream/$id': typeof ApiPublicStreamIdRoute
   '/api/public/tracks/$id': typeof ApiPublicTracksIdRoute
   '/api/v1/admin/moderation': typeof ApiV1AdminModerationRoute
   '/api/v1/audio/$id': typeof ApiV1AudioIdRoute
@@ -388,6 +397,7 @@ export interface FileRouteTypes {
     | '/api/public/episodes/$id'
     | '/api/public/hooks/audio-processed'
     | '/api/public/hooks/import-radio-uppsala'
+    | '/api/public/stream/$id'
     | '/api/public/tracks/$id'
     | '/api/v1/admin/moderation'
     | '/api/v1/audio/$id'
@@ -427,6 +437,7 @@ export interface FileRouteTypes {
     | '/api/public/episodes/$id'
     | '/api/public/hooks/audio-processed'
     | '/api/public/hooks/import-radio-uppsala'
+    | '/api/public/stream/$id'
     | '/api/public/tracks/$id'
     | '/api/v1/admin/moderation'
     | '/api/v1/audio/$id'
@@ -466,6 +477,7 @@ export interface FileRouteTypes {
     | '/api/public/episodes/$id'
     | '/api/public/hooks/audio-processed'
     | '/api/public/hooks/import-radio-uppsala'
+    | '/api/public/stream/$id'
     | '/api/public/tracks/$id'
     | '/api/v1/admin/moderation'
     | '/api/v1/audio/$id'
@@ -503,6 +515,7 @@ export interface RootRouteChildren {
   ApiPublicEpisodesIdRoute: typeof ApiPublicEpisodesIdRoute
   ApiPublicHooksAudioProcessedRoute: typeof ApiPublicHooksAudioProcessedRoute
   ApiPublicHooksImportRadioUppsalaRoute: typeof ApiPublicHooksImportRadioUppsalaRoute
+  ApiPublicStreamIdRoute: typeof ApiPublicStreamIdRoute
   ApiV1AdminModerationRoute: typeof ApiV1AdminModerationRoute
   ApiV1AudioIdRoute: typeof ApiV1AudioIdRoute
   ApiV1StatsSpinsRoute: typeof ApiV1StatsSpinsRoute
@@ -734,6 +747,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicTracksIdRouteImport
       parentRoute: typeof ApiPublicTracksRoute
     }
+    '/api/public/stream/$id': {
+      id: '/api/public/stream/$id'
+      path: '/api/public/stream/$id'
+      fullPath: '/api/public/stream/$id'
+      preLoaderRoute: typeof ApiPublicStreamIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/import-radio-uppsala': {
       id: '/api/public/hooks/import-radio-uppsala'
       path: '/api/public/hooks/import-radio-uppsala'
@@ -860,6 +880,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicEpisodesIdRoute: ApiPublicEpisodesIdRoute,
   ApiPublicHooksAudioProcessedRoute: ApiPublicHooksAudioProcessedRoute,
   ApiPublicHooksImportRadioUppsalaRoute: ApiPublicHooksImportRadioUppsalaRoute,
+  ApiPublicStreamIdRoute: ApiPublicStreamIdRoute,
   ApiV1AdminModerationRoute: ApiV1AdminModerationRoute,
   ApiV1AudioIdRoute: ApiV1AudioIdRoute,
   ApiV1StatsSpinsRoute: ApiV1StatsSpinsRoute,
@@ -867,3 +888,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
