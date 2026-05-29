@@ -48,7 +48,8 @@
     "admin": "Admin",
     "signIn": "Sign in",
     "signOut": "Sign out",
-    "signedIn": "Signed in"
+    "signedIn": "Signed in",
+    "stats": "Stats"
   },
   "footer": {
     "api": "media-catalog API"
@@ -846,5 +847,21 @@
         "error": "Error"
       }
     }
+  },
+  "stats": {
+    "title": "Statistics",
+    "subtitle": "Plays and listens for your tracks",
+    "kpi30d": "Last 30 days",
+    "kpiTotal": "Total",
+    "plays": "Play clicks",
+    "completed": "30s listens",
+    "radio": "Radio spins",
+    "lastPlayed": "Last played",
+    "title_col": "Track",
+    "album": "Album",
+    "never": "Never",
+    "empty": "No approved tracks yet — stats appear once you have at least one published track.",
+    "error": "Failed to load stats.",
+    "description": "Plays count when someone clicks play. 30s listens count when the track has played for at least 30 seconds. Radio spins are imported weekly from Radio Uppsala."
   }
 }
