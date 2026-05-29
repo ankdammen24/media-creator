@@ -97,7 +97,8 @@ export function ArtistImageManager({
         if (file.size > MAX_BYTES) {
           throw new Error(`För stor fil (max 8 MB): ${file.name}`);
         }
-        const path = `artists/${userId}/${artistId}/${crypto.randomUUID()}.${ext(file.name)}`;
+        // Första mappsegmentet MÅSTE vara auth.uid() (= userId) för att storage-RLS ska tillåta uppladdning.
+        const path = `${userId}/artists/${artistId}/${crypto.randomUUID()}.${ext(file.name)}`;
         const up = await supabase.storage
           .from("artwork")
           .upload(path, file, { upsert: false, contentType: file.type || undefined });

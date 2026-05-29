@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { updateArtistProfile } from "@/lib/catalog-edit.functions";
 import { X, Upload as UploadIcon, Sparkles } from "lucide-react";
 import { AiArtworkDialog } from "@/components/AiArtworkDialog";
+import { useAuth } from "@/lib/auth";
 
 export type EditableArtist = {
   id: string;
@@ -69,6 +70,7 @@ export function ArtistProfileEditor({
   const [error, setError] = useState<string | null>(null);
   const [aiOpen, setAiOpen] = useState(false);
   const updateProfile = useServerFn(updateArtistProfile);
+  const { user } = useAuth();
 
   const invalidUrls = URL_FIELDS.filter((f) => !validUrlOrEmpty(urls[f.key as string]));
 
@@ -87,7 +89,9 @@ export function ArtistProfileEditor({
     try {
       let avatar_path = artist.avatar_path;
       if (avatarFile) {
-        const path = `artists/${artist.user_id}/${artist.id}-${Date.now()}.${ext(avatarFile.name)}`;
+        // Första mappsegmentet MÅSTE vara auth.uid() för att matcha storage-RLS.
+        const uploaderId = user?.id ?? artist.user_id;
+        const path = `${uploaderId}/artists/${artist.id}-${Date.now()}.${ext(avatarFile.name)}`;
         const up = await supabase.storage
           .from("artwork")
           .upload(path, avatarFile, { upsert: false, contentType: avatarFile.type || undefined });
