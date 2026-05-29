@@ -378,7 +378,7 @@ export function ReleaseWizard() {
         dispatch({ type: "markSaved", albumId: albumId!, status: "draft" });
         return albumId;
       } catch (e) {
-        const msg = e instanceof Error ? e.message : "Save failed";
+        const msg = e instanceof Error ? e.message : t("wizard.couldNotSave");
         if (!silent) setSaveError(msg);
         return null;
       } finally {
@@ -410,7 +410,7 @@ export function ReleaseWizard() {
     try {
       // Ensure draft is saved (gives us albumId + cover_path)
       const albumId = await saveDraft(true);
-      if (!albumId) throw new Error("Could not save release");
+      if (!albumId) throw new Error(t("wizard.couldNotSave"));
 
       // Insert submissions (tracks) for any not yet submitted
       // We check existing submissions for this album to avoid dupes
@@ -427,7 +427,7 @@ export function ReleaseWizard() {
         .eq("id", albumId)
         .single();
       const albumArt = alb?.artwork_path;
-      if (!albumArt) throw new Error("Saknar omslag — ladda upp cover först.");
+      if (!albumArt) throw new Error(t("wizard.missingCover"));
 
       let trackNo =
         Math.max(0, ...Array.from(existingNumbers).filter((n): n is number => !!n)) + 1;
@@ -504,7 +504,7 @@ export function ReleaseWizard() {
       dispatch({ type: "markSaved", albumId, status: "under_review" });
       setSubmittedOk(true);
     } catch (e) {
-      setSaveError(e instanceof Error ? e.message : "Submission failed");
+      setSaveError(e instanceof Error ? e.message : t("wizard.submissionFailed"));
     } finally {
       setSubmitting(false);
     }
