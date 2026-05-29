@@ -253,9 +253,9 @@ function reducer(state: ReleaseState, action: Action): ReleaseState {
 // Steps definition
 // ============================================================
 const STEPS = [
-  { id: 1, label: "Release Details", icon: Disc3 },
-  { id: 2, label: "Platforms", icon: Globe },
-  { id: 3, label: "Tracks", icon: FileMusic },
+  { id: 1, label: "Tracks", icon: FileMusic },
+  { id: 2, label: "Release Details", icon: Disc3 },
+  { id: 3, label: "Platforms", icon: Globe },
   { id: 4, label: "Rights", icon: ShieldCheck },
   { id: 5, label: "Review", icon: Check },
 ] as const;
