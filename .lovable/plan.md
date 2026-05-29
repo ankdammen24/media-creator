@@ -1,50 +1,35 @@
-# Spegla musik från catalog → AzuraCast
+# Mål
+Få bort alla Radio Uppsala-default-bilder från katalogen genom att, för varje träffad låt/album, hämta omslag i denna prioritetsordning:
 
-`catalog.crystalpierrecords.org` blir master. Endast musik (godkända submissions) synkas till AzuraCast-mappen `Synced_music/` och läggs i spellistan `default`. Jinglar och andra filer i AzuraCast lämnas orörda.
+1. **iTunes / Apple Music** (verifierad sökning på artist + titel)
+2. **Deezer** (verifierad)
+3. **MusicBrainz / Cover Art Archive** (verifierad)
+4. **AI-genererat** (Lovable AI fallback) – bara om inget öppet hittas
 
-## Trigger
-- **Direkt push** när en submission sätts till `approved` (sker i admin-flödet).
-- **Cron var 15:e min** som catch-up + cleanup (raderar i `Synced_music/` det som inte längre är `approved` i katalogen, fyller på det som saknas).
-- **Manuell knapp** "Sync to AzuraCast" i `/admin/tracks` för full re-sync på begäran.
+Redan AI-genererade omslag och redan korrekta öppna omslag rörs **inte** – sveptet kör bara på rader vars `artwork_path` ligger under `/azuracast/` (Radio Uppsala-defaulten). AI-uppladdade och iTunes/Deezer-hämtade omslag ligger på andra paths och filtreras därför bort automatiskt.
 
-## Komponenter
+# Vad finns redan
+- `bulkRegenerateTrackArtwork` i `src/lib/artwork.functions.ts` gör exakt detta för **låtar** (`submissions` där `artwork_path ilike '%/azuracast/%'`), batch om 100, med iTunes → Deezer → MusicBrainz → AI.
+- Admin-knapp finns redan i `AdminAutoArtwork.tsx` ("Återskapa låt-omslag").
 
-1. **DB-migration** — nya kolumner på `submissions`:
-   - `azuracast_file_id` (text, nullable)
-   - `azuracast_synced_at` (timestamptz, nullable)
-   - `azuracast_sync_error` (text, nullable)
+Det som saknas för att nå målet "bort med alla RU-bilder":
 
-2. **`src/lib/azuracast-sync.server.ts`** (ny) — kärnan:
-   - `listSyncedFiles()` — `GET /station/1/files` filtrerat på `path LIKE 'Synced_music/%'`
-   - `uploadTrack(submission)` — hämtar audio via signed URL från Supabase `audio`-bucket, laddar upp som base64 till `POST /station/1/files` med path `Synced_music/<submission_id>.<ext>`
-   - `assignToDefaultPlaylist(fileId)` — sätter playlist via `POST /station/1/file/{id}`
-   - `deleteFile(fileId)` — `DELETE /station/1/file/{id}`
-   - `syncCatalogToAzuracast()` — diff mellan godkända submissions och `Synced_music/`-innehåll; säkerhetströskel: avbryt om >30% skulle raderas
+# Ändringar
 
-3. **`src/lib/azuracast-sync.functions.ts`** (ny) — `createServerFn`:
-   - `pushSubmissionToAzuracast({ submissionId })` — admin-guard, används både från approve-flödet och knappen
-   - `runAzuracastFullSync()` — admin-guard, anropar `syncCatalogToAzuracast()`
+### 1. Album-sweep för Radio Uppsala-importerade albums
+Lägg till `bulkRegenerateAzuracastAlbumArtwork` i `src/lib/artwork.functions.ts` som speglar `bulkRegenerateTrackArtwork` men mot `albums.artwork_path ilike '%/azuracast/%'`. Använder en låt på albumet för verifierad sökning (samma logik som single-sweepet) och uppdaterar både albumets omslag och länkade tracks.
 
-4. **Approve-flödet** (befintlig server fn för submission-status) — efter `approved`-uppdatering, anropa `pushSubmissionToAzuracast` i bakgrunden (fire-and-forget med felfångst → skriver `azuracast_sync_error`). Misslyckas pushen blockerar det INTE approven; cron fångar upp senare.
+### 2. "Sweep alla" i admin-UI
+I `AdminAutoArtwork.tsx`, lägg en ny sektion **"Ta bort Radio Uppsala-bilder"** med en knapp som loopar `bulkRegenerateTrackArtwork` + det nya album-sveptet tills `scanned === 0` (eller max 20 batchar à 100 = 2000 rader per körning, för att skydda mot runaway). Visar löpande summering: behandlade, per källa (iTunes/Deezer/MusicBrainz/AI), misslyckade.
 
-5. **`src/routes/api/public/hooks/sync-azuracast.ts`** (ny) — POST-endpoint för `pg_cron`, anropar `syncCatalogToAzuracast()`. Skyddad via `apikey`-header (anon key).
+### 3. Liten justering: större default-limit
+Höj default `limit` i `bulkRegenerateTrackArtwork` från 100 → 200 så varje batch är effektivare (request-tiden domineras ändå av externa API-anrop med 200 ms sleep mellan).
 
-6. **pg_cron-jobb** — var 15:e minut, anropar webhooken med stabil URL `project--8df07df4-...lovable.app/api/public/hooks/sync-azuracast`.
+# Vad som INTE ändras
+- AI-fallback-logiken (`generateTrackFallbackImage`) — oförändrad.
+- Filtret `/azuracast/` säkerställer att redan AI-genererade eller iTunes-hämtade omslag inte rörs (de ligger på andra storage-paths).
+- Inga DB-migrations behövs.
 
-7. **`/admin/tracks`** — ny "Sync to AzuraCast"-knapp ovanför listan, toast med summary (uppladdade / borttagna / fel).
-
-## Verifiering
-1. Skapa mappen `Synced_music/` i AzuraCast och verifiera att spellistan heter `default`.
-2. Tryck "Sync to AzuraCast" en gång för full initial spegling.
-3. Approve en ny submission → ska dyka upp i `Synced_music/` inom sekunder och vara med i `default`.
-4. Sätt en submission till `rejected` → filen ska försvinna vid nästa cron-run.
-5. Lägg manuellt en jingle i annan AzuraCast-mapp → ska aldrig röras.
-
-## Tekniska detaljer
-- AzuraCast API: `https://stream.radiouppsala.se/api`, station id `1`, header `X-API-Key: ${AZURACAST_API_KEY}` (secret finns redan).
-- Filuppladdning: base64-kodad body till `POST /station/{id}/files` med `{ path, file }`.
-- Supabase storage: hämtar via signed URL (privat `audio`-bucket) eller direkt via `supabaseAdmin.storage.from('audio').download(...)`.
-- Säkerhetströskel: om diff vill radera mer än 30% av nuvarande `Synced_music/`-innehåll, avbryt med fel och kräv manuell körning.
-- Lovable AI eller andra AI-providers berörs inte.
-
-**Att göra på AzuraCast-sidan innan körning:** skapa mappen `Synced_music/` och bekräfta att spellistan heter exakt `default` (matchas case-insensitive).
+# Filer som rörs
+- `src/lib/artwork.functions.ts` (ny export + limit-justering)
+- `src/components/AdminAutoArtwork.tsx` (ny knapp + sweep-loop)

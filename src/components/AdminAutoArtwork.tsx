@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQueryClient } from "@tanstack/react-query";
-import { ImagePlus, Loader2, Users, Disc3, Sparkles, AlertTriangle, Music, Disc } from "lucide-react";
+import { ImagePlus, Loader2, Users, Disc3, Sparkles, AlertTriangle, Music, Disc, Radio } from "lucide-react";
 import {
   bulkFetchMissingAlbumArtwork,
   bulkFetchMissingArtistArtwork,
   bulkRegenerateArtistArtwork,
   bulkRegenerateTrackArtwork,
   bulkRegenerateSingleArtwork,
+  bulkRegenerateAzuracastAlbumArtwork,
   type BulkResult,
   type RegenerateResult,
 } from "@/lib/artwork.functions";
@@ -16,7 +17,8 @@ type ResultState =
   | { kind: "artists" | "albums"; res: BulkResult }
   | { kind: "regen"; res: RegenerateResult }
   | { kind: "tracks"; res: RegenerateResult }
-  | { kind: "singles"; res: RegenerateResult };
+  | { kind: "singles"; res: RegenerateResult }
+  | { kind: "sweep"; res: RegenerateResult };
 
 function renderSummary(result: ResultState) {
   switch (result.kind) {
@@ -34,7 +36,8 @@ function renderSummary(result: ResultState) {
     }
     case "regen":
     case "tracks":
-    case "singles": {
+    case "singles":
+    case "sweep": {
       const r = result.res;
       return (
         <ul className="space-y-1 text-muted-foreground">
@@ -58,11 +61,13 @@ export function AdminAutoArtwork() {
   const regenerateAll = useServerFn(bulkRegenerateArtistArtwork);
   const regenerateTracks = useServerFn(bulkRegenerateTrackArtwork);
   const regenerateSingles = useServerFn(bulkRegenerateSingleArtwork);
+  const regenerateAzAlbums = useServerFn(bulkRegenerateAzuracastAlbumArtwork);
   const [busy, setBusy] = useState<
-    "artists" | "albums" | "regen" | "tracks" | "singles" | null
+    "artists" | "albums" | "regen" | "tracks" | "singles" | "sweep" | null
   >(null);
   const [result, setResult] = useState<ResultState | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [sweepProgress, setSweepProgress] = useState<string | null>(null);
 
   async function run(kind: "artists" | "albums") {
     setBusy(kind);
@@ -140,6 +145,62 @@ export function AdminAutoArtwork() {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(null);
+    }
+  }
+
+  async function runSweepRadioUppsala() {
+    const ok = window.confirm(
+      "Sveper igenom ALLA Radio Uppsala-importerade omslag (låtar + album) i batchar tills inga är kvar (max 20 batchar). Prioriterar iTunes → Deezer → MusicBrainz, AI som sista utväg. Redan AI-genererade och redan utbytta omslag rörs inte. Kan ta flera minuter. Fortsätt?",
+    );
+    if (!ok) return;
+    setBusy("sweep");
+    setError(null);
+    setResult(null);
+    setSweepProgress(null);
+
+    const totals: RegenerateResult = {
+      scanned: 0,
+      updated: 0,
+      failed: 0,
+      bySource: { itunes: 0, deezer: 0, musicbrainz: 0, ai: 0, failed: 0 },
+      details: [],
+    };
+
+    const accumulate = (r: RegenerateResult) => {
+      totals.scanned += r.scanned;
+      totals.updated += r.updated;
+      totals.failed += r.failed;
+      totals.bySource.itunes += r.bySource.itunes;
+      totals.bySource.deezer += r.bySource.deezer;
+      totals.bySource.musicbrainz += r.bySource.musicbrainz;
+      totals.bySource.ai += r.bySource.ai;
+      totals.bySource.failed += r.bySource.failed;
+      totals.details.push(...r.details);
+    };
+
+    try {
+      const MAX_BATCHES = 20;
+      let batch = 0;
+      while (batch < MAX_BATCHES) {
+        batch++;
+        setSweepProgress(`Batch ${batch}: låtar…`);
+        const t = await regenerateTracks({ data: {} });
+        accumulate(t);
+        setSweepProgress(`Batch ${batch}: album…`);
+        const a = await regenerateAzAlbums({ data: {} });
+        accumulate(a);
+        if (t.scanned === 0 && a.scanned === 0) break;
+      }
+      setResult({ kind: "sweep", res: totals });
+      setSweepProgress(null);
+      qc.invalidateQueries({ queryKey: ["catalog"] });
+      qc.invalidateQueries({ queryKey: ["admin-artists"] });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+      if (totals.scanned > 0) setResult({ kind: "sweep", res: totals });
+    } finally {
+      setBusy(null);
+      setSweepProgress(null);
     }
   }
 
@@ -260,6 +321,33 @@ export function AdminAutoArtwork() {
         </button>
       </div>
 
+      <div className="rounded-xl border border-primary/40 bg-primary/5 p-5">
+        <div className="mb-3 flex items-center gap-2">
+          <Radio className="h-4 w-4 text-primary" />
+          <h2 className="text-base font-semibold">Sveper bort ALLA Radio Uppsala-bilder</h2>
+        </div>
+        <p className="mb-4 text-sm text-muted-foreground">
+          Loopar låt- och album-regenereringen i upp till 20 batchar tills inga AzuraCast-default-omslag
+          finns kvar. Prioritet: iTunes → Deezer → MusicBrainz → AI som sista utväg. Redan AI-genererade
+          eller redan utbytta omslag ligger på andra paths och rörs inte.
+        </p>
+        <button
+          onClick={runSweepRadioUppsala}
+          disabled={busy !== null}
+          className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+        >
+          {busy === "sweep" ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <Radio className="h-3.5 w-3.5" />
+          )}
+          Svep bort Radio Uppsala-bilder
+        </button>
+        {sweepProgress && (
+          <p className="mt-3 text-xs text-muted-foreground">{sweepProgress}</p>
+        )}
+      </div>
+
       {error && (
         <div className="rounded-xl border border-destructive bg-destructive/10 p-4 text-sm text-destructive">
           {error}
@@ -278,7 +366,9 @@ export function AdminAutoArtwork() {
                   ? "låtar"
                   : result.kind === "singles"
                     ? "singlar"
-                    : "regenerering"}
+                    : result.kind === "sweep"
+                      ? "Radio Uppsala-svep"
+                      : "regenerering"}
           </h3>
           {renderSummary(result)}
           {result.res.details.length > 0 && (
