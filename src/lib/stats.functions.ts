@@ -36,7 +36,7 @@ export const logPlaybackEvent = createServerFn({ method: "POST" })
       event_type: data.eventType,
       source: data.source,
       session_id: data.sessionId ?? null,
-    });
+    } as never);
     if (error) throw new Error(`log event: ${error.message}`);
     return { ok: true };
   });
