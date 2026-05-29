@@ -270,9 +270,10 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
         if (oldActive && !oldActive.paused) oldActive.pause();
       }, GAP_FILL_SEC * 1000);
       preloadedRef.current = null;
-      // Reset the "play" + 30s timers for the new active track and start
-      // preloading the one after.
-      onActiveTrackChanged(next);
+      // Reset play + 30s tracking for the new active track and start
+      // preloading whatever is next.
+      armTrackTracking(next);
+      void preloadNextRef.current?.();
     }
 
     for (const el of [a, b]) {
