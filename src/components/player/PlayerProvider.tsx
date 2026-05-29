@@ -196,32 +196,51 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     const onEnded = (e: Event) => {
       if (!isActive(e.target)) return;
       setIsPlaying(false);
-      // Crossfade normally advances before "ended"; this handles the tail
-      // (last track, podcasts, or tracks shorter than the crossfade).
+      // The gap-fill handoff normally advances before "ended"; this handles
+      // the tail (last track, podcasts, or very short tracks).
       const next = queueRef.current[0];
       if (next) {
         const prev = currentRef.current;
         if (prev) setHistory((h) => [...h, prev]);
         setQueue((q) => q.slice(1));
-        void goToTrackRef.current?.(next, { keepQueue: true, useCrossfade: false });
+        void goToTrackRef.current?.(next, { keepQueue: true });
       }
     };
 
-    // When the active track nears its end, begin crossfading to the next
-    // music track in the queue.
+    // When the active track is within GAP_FILL_SEC of its end, start the
+    // preloaded next track on the inactive deck and swap. No volume ramp —
+    // both decks just briefly overlap to cover the silent gap.
     function maybeAutoCrossfade() {
       const el = getActive();
       const cur = currentRef.current;
       if (!el || !cur || cur.mediaType !== "music") return;
       if (!el.duration || !isFinite(el.duration)) return;
-      if (el.duration - el.currentTime > CROSSFADE_SEC) return;
+      if (el.duration - el.currentTime > GAP_FILL_SEC) return;
       const next = queueRef.current[0];
       if (!next || next.mediaType !== "music") return;
-      if (fadeGuardRef.current === cur.id) return;
-      fadeGuardRef.current = cur.id;
+      if (handoffGuardRef.current === cur.id) return;
+      const pre = preloadedRef.current;
+      const inactive = decksRef.current[activeIdxRef.current ^ 1];
+      if (!pre || pre.trackId !== next.id || !inactive) return;
+      handoffGuardRef.current = cur.id;
+      // Swap decks: the preloaded inactive becomes the new active driver.
+      const oldActive = el;
+      activeIdxRef.current = activeIdxRef.current ^ 1;
       setHistory((h) => [...h, cur]);
       setQueue((q) => q.slice(1));
-      void goToTrackRef.current?.(next, { keepQueue: true, useCrossfade: true });
+      setCurrent(next);
+      setProgress(0);
+      setDuration(inactive.duration || 0);
+      inactive.play().catch(() => undefined);
+      // Pause the outgoing deck shortly after to give the listener ~0.8s of
+      // overlap that hides the silent gap at the end of the previous file.
+      window.setTimeout(() => {
+        if (oldActive && !oldActive.paused) oldActive.pause();
+      }, GAP_FILL_SEC * 1000);
+      preloadedRef.current = null;
+      // Reset the "play" + 30s timers for the new active track and start
+      // preloading the one after.
+      onActiveTrackChanged(next);
     }
 
     for (const el of [a, b]) {
@@ -235,7 +254,6 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     }
 
     return () => {
-      if (fadeRafRef.current !== null) cancelAnimationFrame(fadeRafRef.current);
       for (const el of [a, b]) {
         el.pause();
         el.removeEventListener("play", onPlay);
