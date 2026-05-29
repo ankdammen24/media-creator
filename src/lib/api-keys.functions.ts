@@ -81,6 +81,7 @@ const createServiceKeySchema = z.object({
   label: z.string().trim().min(1).max(80),
   scopes: z.array(z.string()).min(1).max(20),
   expiresInDays: z.number().int().min(1).max(3650).nullable().optional(),
+  ownerUserId: z.string().uuid().nullable().optional(),
 });
 
 export const createServiceApiKey = createServerFn({ method: "POST" })
@@ -113,7 +114,7 @@ export const createServiceApiKey = createServerFn({ method: "POST" })
         key_hash: hash,
         key_prefix: prefix,
         type: "service",
-        owner_user_id: null,
+        owner_user_id: data.ownerUserId ?? null,
         label: data.label,
         scopes: requested,
         expires_at: expiresAt,
@@ -139,7 +140,7 @@ export const listServiceApiKeys = createServerFn({ method: "GET" })
     if (!roleRow) throw new Error("Forbidden");
     const { data, error } = await supabaseAdmin
       .from("api_keys")
-      .select("id, label, scopes, key_prefix, last_used_at, expires_at, revoked_at, created_at")
+      .select("id, label, scopes, key_prefix, last_used_at, expires_at, revoked_at, created_at, owner_user_id")
       .eq("type", "service")
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);

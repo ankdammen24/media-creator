@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
+import { ApiKeysSection } from "@/components/ApiKeysSection";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({
@@ -110,6 +111,7 @@ function SettingsPage() {
           </div>
         )}
       </section>
+      <ApiKeysSection />
     </div>
   );
 }

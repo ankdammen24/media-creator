@@ -282,7 +282,9 @@ export function SiteFooter() {
     <footer className="mt-16 border-t border-border bg-background/50">
       <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-2 px-4 py-6 text-xs text-muted-foreground sm:flex-row sm:px-6">
         <span>© {new Date().getFullYear()} Catalogus Musicus · ett Media Rosenqvist-projekt</span>
-        <span>{t("footer.api")}</span>
+        <Link to="/api-docs" className="hover:text-foreground hover:underline">
+          {t("footer.api")}
+        </Link>
       </div>
     </footer>
   );

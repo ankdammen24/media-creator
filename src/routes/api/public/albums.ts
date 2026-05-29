@@ -21,7 +21,7 @@ export const Route = createFileRoute("/api/public/albums")({
             .order("release_date", { ascending: false, nullsFirst: false })
             .range(offset, offset + limit - 1);
           if (artistId) query = query.eq("artist_profile_id", artistId);
-          if (type) query = query.eq("album_type", type);
+          if (type) query = query.eq("album_type", type as "album" | "ep" | "single" | "compilation" | "podcast_show");
           if (q && q.trim().length > 0) query = query.ilike("title", `%${q.trim()}%`);
           const { data, error, count } = await query;
           if (error) return errorResponse(error.message, 500);
