@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as UploadBatchRouteImport } from './routes/upload-batch'
 import { Route as UploadRouteImport } from './routes/upload'
+import { Route as StatsRouteImport } from './routes/stats'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as MySubmissionsRouteImport } from './routes/my-submissions'
@@ -38,6 +39,11 @@ const UploadBatchRoute = UploadBatchRouteImport.update({
 const UploadRoute = UploadRouteImport.update({
   id: '/upload',
   path: '/upload',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StatsRoute = StatsRouteImport.update({
+  id: '/stats',
+  path: '/stats',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsRoute = SettingsRouteImport.update({
@@ -142,6 +148,7 @@ export interface FileRoutesByFullPath {
   '/my-submissions': typeof MySubmissionsRoute
   '/notifications': typeof NotificationsRoute
   '/settings': typeof SettingsRoute
+  '/stats': typeof StatsRoute
   '/upload': typeof UploadRoute
   '/upload-batch': typeof UploadBatchRoute
   '/albums/$albumId': typeof AlbumsAlbumIdRouteWithChildren
@@ -164,6 +171,7 @@ export interface FileRoutesByTo {
   '/my-submissions': typeof MySubmissionsRoute
   '/notifications': typeof NotificationsRoute
   '/settings': typeof SettingsRoute
+  '/stats': typeof StatsRoute
   '/upload': typeof UploadRoute
   '/upload-batch': typeof UploadBatchRoute
   '/albums/$albumId': typeof AlbumsAlbumIdRouteWithChildren
@@ -187,6 +195,7 @@ export interface FileRoutesById {
   '/my-submissions': typeof MySubmissionsRoute
   '/notifications': typeof NotificationsRoute
   '/settings': typeof SettingsRoute
+  '/stats': typeof StatsRoute
   '/upload': typeof UploadRoute
   '/upload-batch': typeof UploadBatchRoute
   '/albums/$albumId': typeof AlbumsAlbumIdRouteWithChildren
@@ -211,6 +220,7 @@ export interface FileRouteTypes {
     | '/my-submissions'
     | '/notifications'
     | '/settings'
+    | '/stats'
     | '/upload'
     | '/upload-batch'
     | '/albums/$albumId'
@@ -233,6 +243,7 @@ export interface FileRouteTypes {
     | '/my-submissions'
     | '/notifications'
     | '/settings'
+    | '/stats'
     | '/upload'
     | '/upload-batch'
     | '/albums/$albumId'
@@ -255,6 +266,7 @@ export interface FileRouteTypes {
     | '/my-submissions'
     | '/notifications'
     | '/settings'
+    | '/stats'
     | '/upload'
     | '/upload-batch'
     | '/albums/$albumId'
@@ -278,6 +290,7 @@ export interface RootRouteChildren {
   MySubmissionsRoute: typeof MySubmissionsRoute
   NotificationsRoute: typeof NotificationsRoute
   SettingsRoute: typeof SettingsRoute
+  StatsRoute: typeof StatsRoute
   UploadRoute: typeof UploadRoute
   UploadBatchRoute: typeof UploadBatchRoute
   AlbumsAlbumIdRoute: typeof AlbumsAlbumIdRouteWithChildren
@@ -305,6 +318,13 @@ declare module '@tanstack/react-router' {
       path: '/upload'
       fullPath: '/upload'
       preLoaderRoute: typeof UploadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/stats': {
+      id: '/stats'
+      path: '/stats'
+      fullPath: '/stats'
+      preLoaderRoute: typeof StatsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings': {
@@ -457,6 +477,7 @@ const rootRouteChildren: RootRouteChildren = {
   MySubmissionsRoute: MySubmissionsRoute,
   NotificationsRoute: NotificationsRoute,
   SettingsRoute: SettingsRoute,
+  StatsRoute: StatsRoute,
   UploadRoute: UploadRoute,
   UploadBatchRoute: UploadBatchRoute,
   AlbumsAlbumIdRoute: AlbumsAlbumIdRouteWithChildren,
@@ -472,3 +493,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
