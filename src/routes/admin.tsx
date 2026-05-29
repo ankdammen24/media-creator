@@ -611,7 +611,10 @@ function AdminPage() {
       {tab === "catalog-import" ? (
         <AdminCatalogImport />
       ) : tab === "import" ? (
-        <RadioUppsalaImport />
+        <div className="space-y-6">
+          <RadioSpinsImport />
+          <RadioUppsalaImport />
+        </div>
       ) : tab === "artwork" ? (
         <AdminAutoArtwork />
       ) : tab === "artists" ? (
