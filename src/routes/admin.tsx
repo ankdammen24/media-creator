@@ -500,6 +500,10 @@ function AdminPage() {
     "submissions" | "users" | "artists" | "artwork" | "import" | "catalog-import" | "api-keys"
   >("submissions");
   const notify = useServerFn(notifySubmissionDecision);
+  const pushAz = useServerFn(pushOneToAzuracast);
+  const syncAz = useServerFn(runAzuracastSync);
+  const [azBusy, setAzBusy] = useState(false);
+  const [azMsg, setAzMsg] = useState<string | null>(null);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["admin-submissions", filter],
@@ -543,8 +547,38 @@ function AdminPage() {
     } catch (e) {
       console.error("notifySubmissionDecision failed", e);
     }
+    // Vid godkänd musik: pusha direkt till AzuraCast (best-effort).
+    if (status === "approved") {
+      try {
+        await pushAz({ data: { submissionId: id } });
+      } catch (e) {
+        console.error("pushOneToAzuracast failed", e);
+      }
+    }
     await refetch();
     qc.invalidateQueries({ queryKey: ["catalog"] });
+  }
+
+  async function handleAzuracastSync() {
+    setAzBusy(true);
+    setAzMsg(null);
+    try {
+      const r = await syncAz({ data: {} });
+      const parts = [
+        `${r.uploaded.length} uppladdade`,
+        `${r.deleted.length} raderade`,
+        `${r.skipped.length} oförändrade`,
+        r.failures.length ? `${r.failures.length} fel` : null,
+        r.protectionTriggered ? "rensning hoppades över (skyddsspärr)" : null,
+      ]
+        .filter(Boolean)
+        .join(" · ");
+      setAzMsg(`Synk klar: ${parts}`);
+    } catch (e) {
+      setAzMsg(e instanceof Error ? e.message : "Synk misslyckades");
+    } finally {
+      setAzBusy(false);
+    }
   }
 
   return (
