@@ -143,62 +143,6 @@ export function AdminAutoArtwork() {
     }
   }
 
-  async function runSweepRadioUppsala() {
-    const ok = window.confirm(
-      "Sveper igenom ALLA Radio Uppsala-importerade omslag (låtar + album) i batchar tills inga är kvar (max 20 batchar). Prioriterar iTunes → Deezer → MusicBrainz, AI som sista utväg. Redan AI-genererade och redan utbytta omslag rörs inte. Kan ta flera minuter. Fortsätt?",
-    );
-    if (!ok) return;
-    setBusy("sweep");
-    setError(null);
-    setResult(null);
-    setSweepProgress(null);
-
-    const totals: RegenerateResult = {
-      scanned: 0,
-      updated: 0,
-      failed: 0,
-      bySource: { itunes: 0, deezer: 0, musicbrainz: 0, ai: 0, failed: 0 },
-      details: [],
-    };
-
-    const accumulate = (r: RegenerateResult) => {
-      totals.scanned += r.scanned;
-      totals.updated += r.updated;
-      totals.failed += r.failed;
-      totals.bySource.itunes += r.bySource.itunes;
-      totals.bySource.deezer += r.bySource.deezer;
-      totals.bySource.musicbrainz += r.bySource.musicbrainz;
-      totals.bySource.ai += r.bySource.ai;
-      totals.bySource.failed += r.bySource.failed;
-      totals.details.push(...r.details);
-    };
-
-    try {
-      const MAX_BATCHES = 20;
-      let batch = 0;
-      while (batch < MAX_BATCHES) {
-        batch++;
-        setSweepProgress(`Batch ${batch}: låtar…`);
-        const t = await regenerateTracks({ data: {} });
-        accumulate(t);
-        setSweepProgress(`Batch ${batch}: album…`);
-        const a = await regenerateAzAlbums({ data: {} });
-        accumulate(a);
-        if (t.scanned === 0 && a.scanned === 0) break;
-      }
-      setResult({ kind: "sweep", res: totals });
-      setSweepProgress(null);
-      qc.invalidateQueries({ queryKey: ["catalog"] });
-      qc.invalidateQueries({ queryKey: ["admin-artists"] });
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-      if (totals.scanned > 0) setResult({ kind: "sweep", res: totals });
-    } finally {
-      setBusy(null);
-      setSweepProgress(null);
-    }
-  }
-
   return (
     <div className="space-y-4">
       <div className="rounded-xl border border-border bg-card p-5">
