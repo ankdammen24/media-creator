@@ -7,7 +7,7 @@ import { V1_CORS, errorResponse, jsonResponse, optionsResponse } from "@/lib/api
 const createSchema = z.object({
   artist_profile_id: z.string().uuid(),
   title: z.string().trim().min(1).max(255),
-  album_type: z.enum(["album", "ep", "single", "compilation", "podcast"]).optional(),
+  album_type: z.enum(["album", "ep", "single", "compilation", "podcast_show"]).optional(),
   release_date: z.string().nullable().optional(),
   upc: z.string().max(32).nullable().optional(),
   genre: z.string().max(80).nullable().optional(),

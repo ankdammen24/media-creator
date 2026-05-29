@@ -15,7 +15,7 @@ export const Route = createFileRoute("/api/public/podcasts")({
             .from("albums")
             .select(PUBLIC_ALBUM_COLUMNS, { count: "exact" })
             .eq("status", "published")
-            .eq("album_type", "podcast")
+            .eq("album_type", "podcast_show")
             .order("release_date", { ascending: false, nullsFirst: false })
             .range(offset, offset + limit - 1);
           if (error) return errorResponse(error.message, 500);
