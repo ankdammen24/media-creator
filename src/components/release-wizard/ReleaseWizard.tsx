@@ -1247,20 +1247,19 @@ function StepPlatforms({
   state: ReleaseState;
   dispatch: React.Dispatch<Action>;
 }) {
+  const { t } = useTranslation();
   return (
     <StepCard
       step={3}
-      title="Plattformar (endast referens)"
-      description="Markera var releasen skulle distribueras. I demo-läget är distributionen inte aktiv."
+      title={t("wizard.platforms.title")}
+      description={t("wizard.platforms.description")}
     >
       <div className="mb-4 flex items-start gap-3 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
         <Info className="mt-0.5 h-4 w-4 shrink-0" />
         <p>
-          Plattformsvalet sparas endast som referens.{" "}
-          <span className="font-semibold">
-            Ingen faktisk distribution till streamingtjänster sker i demo-läget.
-          </span>{" "}
-          Releasen hamnar i katalogen och skickas till Radio Uppsala.
+          {t("wizard.platforms.notice1")}{" "}
+          <span className="font-semibold">{t("wizard.platforms.notice2")}</span>{" "}
+          {t("wizard.platforms.notice3")}
         </p>
       </div>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -1303,8 +1302,7 @@ function StepPlatforms({
         })}
       </div>
       <p className="mt-4 text-xs text-muted-foreground">
-        Tip: pick all of them — du betalar inget extra och varje plattform når
-        olika lyssnare.
+        {t("wizard.platforms.tip")}
       </p>
       <div className="mt-3 flex gap-2 text-xs">
         <button
@@ -1316,13 +1314,13 @@ function StepPlatforms({
           }
           className="rounded-md border border-border px-3 py-1.5 hover:bg-secondary"
         >
-          Select all
+          {t("wizard.platforms.selectAll")}
         </button>
         <button
           onClick={() => dispatch({ type: "patch", patch: { platforms: [] } })}
           className="rounded-md border border-border px-3 py-1.5 hover:bg-secondary"
         >
-          Clear
+          {t("wizard.platforms.clear")}
         </button>
       </div>
     </StepCard>
