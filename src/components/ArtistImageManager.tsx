@@ -9,6 +9,7 @@ import {
 } from "@/lib/catalog-edit.functions";
 import { Upload as UploadIcon, Trash2, Star, Eye, EyeOff, ImagePlus, Sparkles, Wand2 } from "lucide-react";
 import { AiImageGenerator } from "@/components/AiImageGenerator";
+import { StorageErrorAlert } from "@/components/StorageErrorAlert";
 
 export type ArtistImage = {
   id: string;
@@ -231,11 +232,7 @@ export function ArtistImageManager({
         </button>
       </div>
 
-      {error && (
-        <p className="rounded-md border border-destructive/30 bg-destructive/10 p-2 text-xs text-destructive">
-          {error}
-        </p>
-      )}
+      {error && <StorageErrorAlert message={error} />}
 
       {loading ? (
         <p className="text-sm text-muted-foreground">Laddar bilder…</p>
