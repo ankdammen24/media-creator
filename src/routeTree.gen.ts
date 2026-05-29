@@ -27,11 +27,17 @@ import { Route as ApiGenerateArtworkRouteImport } from './routes/api/generate-ar
 import { Route as ApiGenerateArtistImageRouteImport } from './routes/api/generate-artist-image'
 import { Route as AlbumsNewRouteImport } from './routes/albums.new'
 import { Route as AlbumsAlbumIdRouteImport } from './routes/albums.$albumId'
+import { Route as ApiV1SubmissionsRouteImport } from './routes/api/v1/submissions'
+import { Route as ApiV1AlbumsRouteImport } from './routes/api/v1/albums'
 import { Route as ApiPublicTracksRouteImport } from './routes/api/public/tracks'
 import { Route as ApiPublicPodcastsRouteImport } from './routes/api/public/podcasts'
 import { Route as ApiPublicArtistsRouteImport } from './routes/api/public/artists'
 import { Route as ApiPublicAlbumsRouteImport } from './routes/api/public/albums'
 import { Route as AlbumsAlbumIdEditRouteImport } from './routes/albums.$albumId.edit'
+import { Route as ApiV1SubmissionsIdRouteImport } from './routes/api/v1/submissions.$id'
+import { Route as ApiV1StatsSpinsRouteImport } from './routes/api/v1/stats.spins'
+import { Route as ApiV1AudioIdRouteImport } from './routes/api/v1/audio.$id'
+import { Route as ApiV1AdminModerationRouteImport } from './routes/api/v1/admin/moderation'
 import { Route as ApiPublicTracksIdRouteImport } from './routes/api/public/tracks.$id'
 import { Route as ApiPublicHooksImportRadioUppsalaRouteImport } from './routes/api/public/hooks/import-radio-uppsala'
 import { Route as ApiPublicHooksAudioProcessedRouteImport } from './routes/api/public/hooks/audio-processed'
@@ -129,6 +135,16 @@ const AlbumsAlbumIdRoute = AlbumsAlbumIdRouteImport.update({
   path: '/albums/$albumId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1SubmissionsRoute = ApiV1SubmissionsRouteImport.update({
+  id: '/api/v1/submissions',
+  path: '/api/v1/submissions',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1AlbumsRoute = ApiV1AlbumsRouteImport.update({
+  id: '/api/v1/albums',
+  path: '/api/v1/albums',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicTracksRoute = ApiPublicTracksRouteImport.update({
   id: '/api/public/tracks',
   path: '/api/public/tracks',
@@ -153,6 +169,26 @@ const AlbumsAlbumIdEditRoute = AlbumsAlbumIdEditRouteImport.update({
   id: '/edit',
   path: '/edit',
   getParentRoute: () => AlbumsAlbumIdRoute,
+} as any)
+const ApiV1SubmissionsIdRoute = ApiV1SubmissionsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => ApiV1SubmissionsRoute,
+} as any)
+const ApiV1StatsSpinsRoute = ApiV1StatsSpinsRouteImport.update({
+  id: '/api/v1/stats/spins',
+  path: '/api/v1/stats/spins',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1AudioIdRoute = ApiV1AudioIdRouteImport.update({
+  id: '/api/v1/audio/$id',
+  path: '/api/v1/audio/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1AdminModerationRoute = ApiV1AdminModerationRouteImport.update({
+  id: '/api/v1/admin/moderation',
+  path: '/api/v1/admin/moderation',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicTracksIdRoute = ApiPublicTracksIdRouteImport.update({
   id: '/$id',
@@ -211,12 +247,18 @@ export interface FileRoutesByFullPath {
   '/api/public/artists': typeof ApiPublicArtistsRouteWithChildren
   '/api/public/podcasts': typeof ApiPublicPodcastsRoute
   '/api/public/tracks': typeof ApiPublicTracksRouteWithChildren
+  '/api/v1/albums': typeof ApiV1AlbumsRoute
+  '/api/v1/submissions': typeof ApiV1SubmissionsRouteWithChildren
   '/api/public/albums/$id': typeof ApiPublicAlbumsIdRoute
   '/api/public/artists/$id': typeof ApiPublicArtistsIdRoute
   '/api/public/episodes/$id': typeof ApiPublicEpisodesIdRoute
   '/api/public/hooks/audio-processed': typeof ApiPublicHooksAudioProcessedRoute
   '/api/public/hooks/import-radio-uppsala': typeof ApiPublicHooksImportRadioUppsalaRoute
   '/api/public/tracks/$id': typeof ApiPublicTracksIdRoute
+  '/api/v1/admin/moderation': typeof ApiV1AdminModerationRoute
+  '/api/v1/audio/$id': typeof ApiV1AudioIdRoute
+  '/api/v1/stats/spins': typeof ApiV1StatsSpinsRoute
+  '/api/v1/submissions/$id': typeof ApiV1SubmissionsIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -242,12 +284,18 @@ export interface FileRoutesByTo {
   '/api/public/artists': typeof ApiPublicArtistsRouteWithChildren
   '/api/public/podcasts': typeof ApiPublicPodcastsRoute
   '/api/public/tracks': typeof ApiPublicTracksRouteWithChildren
+  '/api/v1/albums': typeof ApiV1AlbumsRoute
+  '/api/v1/submissions': typeof ApiV1SubmissionsRouteWithChildren
   '/api/public/albums/$id': typeof ApiPublicAlbumsIdRoute
   '/api/public/artists/$id': typeof ApiPublicArtistsIdRoute
   '/api/public/episodes/$id': typeof ApiPublicEpisodesIdRoute
   '/api/public/hooks/audio-processed': typeof ApiPublicHooksAudioProcessedRoute
   '/api/public/hooks/import-radio-uppsala': typeof ApiPublicHooksImportRadioUppsalaRoute
   '/api/public/tracks/$id': typeof ApiPublicTracksIdRoute
+  '/api/v1/admin/moderation': typeof ApiV1AdminModerationRoute
+  '/api/v1/audio/$id': typeof ApiV1AudioIdRoute
+  '/api/v1/stats/spins': typeof ApiV1StatsSpinsRoute
+  '/api/v1/submissions/$id': typeof ApiV1SubmissionsIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -274,12 +322,18 @@ export interface FileRoutesById {
   '/api/public/artists': typeof ApiPublicArtistsRouteWithChildren
   '/api/public/podcasts': typeof ApiPublicPodcastsRoute
   '/api/public/tracks': typeof ApiPublicTracksRouteWithChildren
+  '/api/v1/albums': typeof ApiV1AlbumsRoute
+  '/api/v1/submissions': typeof ApiV1SubmissionsRouteWithChildren
   '/api/public/albums/$id': typeof ApiPublicAlbumsIdRoute
   '/api/public/artists/$id': typeof ApiPublicArtistsIdRoute
   '/api/public/episodes/$id': typeof ApiPublicEpisodesIdRoute
   '/api/public/hooks/audio-processed': typeof ApiPublicHooksAudioProcessedRoute
   '/api/public/hooks/import-radio-uppsala': typeof ApiPublicHooksImportRadioUppsalaRoute
   '/api/public/tracks/$id': typeof ApiPublicTracksIdRoute
+  '/api/v1/admin/moderation': typeof ApiV1AdminModerationRoute
+  '/api/v1/audio/$id': typeof ApiV1AudioIdRoute
+  '/api/v1/stats/spins': typeof ApiV1StatsSpinsRoute
+  '/api/v1/submissions/$id': typeof ApiV1SubmissionsIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -307,12 +361,18 @@ export interface FileRouteTypes {
     | '/api/public/artists'
     | '/api/public/podcasts'
     | '/api/public/tracks'
+    | '/api/v1/albums'
+    | '/api/v1/submissions'
     | '/api/public/albums/$id'
     | '/api/public/artists/$id'
     | '/api/public/episodes/$id'
     | '/api/public/hooks/audio-processed'
     | '/api/public/hooks/import-radio-uppsala'
     | '/api/public/tracks/$id'
+    | '/api/v1/admin/moderation'
+    | '/api/v1/audio/$id'
+    | '/api/v1/stats/spins'
+    | '/api/v1/submissions/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -338,12 +398,18 @@ export interface FileRouteTypes {
     | '/api/public/artists'
     | '/api/public/podcasts'
     | '/api/public/tracks'
+    | '/api/v1/albums'
+    | '/api/v1/submissions'
     | '/api/public/albums/$id'
     | '/api/public/artists/$id'
     | '/api/public/episodes/$id'
     | '/api/public/hooks/audio-processed'
     | '/api/public/hooks/import-radio-uppsala'
     | '/api/public/tracks/$id'
+    | '/api/v1/admin/moderation'
+    | '/api/v1/audio/$id'
+    | '/api/v1/stats/spins'
+    | '/api/v1/submissions/$id'
   id:
     | '__root__'
     | '/'
@@ -369,12 +435,18 @@ export interface FileRouteTypes {
     | '/api/public/artists'
     | '/api/public/podcasts'
     | '/api/public/tracks'
+    | '/api/v1/albums'
+    | '/api/v1/submissions'
     | '/api/public/albums/$id'
     | '/api/public/artists/$id'
     | '/api/public/episodes/$id'
     | '/api/public/hooks/audio-processed'
     | '/api/public/hooks/import-radio-uppsala'
     | '/api/public/tracks/$id'
+    | '/api/v1/admin/moderation'
+    | '/api/v1/audio/$id'
+    | '/api/v1/stats/spins'
+    | '/api/v1/submissions/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -400,9 +472,14 @@ export interface RootRouteChildren {
   ApiPublicArtistsRoute: typeof ApiPublicArtistsRouteWithChildren
   ApiPublicPodcastsRoute: typeof ApiPublicPodcastsRoute
   ApiPublicTracksRoute: typeof ApiPublicTracksRouteWithChildren
+  ApiV1AlbumsRoute: typeof ApiV1AlbumsRoute
+  ApiV1SubmissionsRoute: typeof ApiV1SubmissionsRouteWithChildren
   ApiPublicEpisodesIdRoute: typeof ApiPublicEpisodesIdRoute
   ApiPublicHooksAudioProcessedRoute: typeof ApiPublicHooksAudioProcessedRoute
   ApiPublicHooksImportRadioUppsalaRoute: typeof ApiPublicHooksImportRadioUppsalaRoute
+  ApiV1AdminModerationRoute: typeof ApiV1AdminModerationRoute
+  ApiV1AudioIdRoute: typeof ApiV1AudioIdRoute
+  ApiV1StatsSpinsRoute: typeof ApiV1StatsSpinsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -533,6 +610,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AlbumsAlbumIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/submissions': {
+      id: '/api/v1/submissions'
+      path: '/api/v1/submissions'
+      fullPath: '/api/v1/submissions'
+      preLoaderRoute: typeof ApiV1SubmissionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/albums': {
+      id: '/api/v1/albums'
+      path: '/api/v1/albums'
+      fullPath: '/api/v1/albums'
+      preLoaderRoute: typeof ApiV1AlbumsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/tracks': {
       id: '/api/public/tracks'
       path: '/api/public/tracks'
@@ -567,6 +658,34 @@ declare module '@tanstack/react-router' {
       fullPath: '/albums/$albumId/edit'
       preLoaderRoute: typeof AlbumsAlbumIdEditRouteImport
       parentRoute: typeof AlbumsAlbumIdRoute
+    }
+    '/api/v1/submissions/$id': {
+      id: '/api/v1/submissions/$id'
+      path: '/$id'
+      fullPath: '/api/v1/submissions/$id'
+      preLoaderRoute: typeof ApiV1SubmissionsIdRouteImport
+      parentRoute: typeof ApiV1SubmissionsRoute
+    }
+    '/api/v1/stats/spins': {
+      id: '/api/v1/stats/spins'
+      path: '/api/v1/stats/spins'
+      fullPath: '/api/v1/stats/spins'
+      preLoaderRoute: typeof ApiV1StatsSpinsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/audio/$id': {
+      id: '/api/v1/audio/$id'
+      path: '/api/v1/audio/$id'
+      fullPath: '/api/v1/audio/$id'
+      preLoaderRoute: typeof ApiV1AudioIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/admin/moderation': {
+      id: '/api/v1/admin/moderation'
+      path: '/api/v1/admin/moderation'
+      fullPath: '/api/v1/admin/moderation'
+      preLoaderRoute: typeof ApiV1AdminModerationRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/public/tracks/$id': {
       id: '/api/public/tracks/$id'
@@ -660,6 +779,17 @@ const ApiPublicTracksRouteWithChildren = ApiPublicTracksRoute._addFileChildren(
   ApiPublicTracksRouteChildren,
 )
 
+interface ApiV1SubmissionsRouteChildren {
+  ApiV1SubmissionsIdRoute: typeof ApiV1SubmissionsIdRoute
+}
+
+const ApiV1SubmissionsRouteChildren: ApiV1SubmissionsRouteChildren = {
+  ApiV1SubmissionsIdRoute: ApiV1SubmissionsIdRoute,
+}
+
+const ApiV1SubmissionsRouteWithChildren =
+  ApiV1SubmissionsRoute._addFileChildren(ApiV1SubmissionsRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
@@ -683,9 +813,14 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicArtistsRoute: ApiPublicArtistsRouteWithChildren,
   ApiPublicPodcastsRoute: ApiPublicPodcastsRoute,
   ApiPublicTracksRoute: ApiPublicTracksRouteWithChildren,
+  ApiV1AlbumsRoute: ApiV1AlbumsRoute,
+  ApiV1SubmissionsRoute: ApiV1SubmissionsRouteWithChildren,
   ApiPublicEpisodesIdRoute: ApiPublicEpisodesIdRoute,
   ApiPublicHooksAudioProcessedRoute: ApiPublicHooksAudioProcessedRoute,
   ApiPublicHooksImportRadioUppsalaRoute: ApiPublicHooksImportRadioUppsalaRoute,
+  ApiV1AdminModerationRoute: ApiV1AdminModerationRoute,
+  ApiV1AudioIdRoute: ApiV1AudioIdRoute,
+  ApiV1StatsSpinsRoute: ApiV1StatsSpinsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
