@@ -376,7 +376,7 @@
     "subtitleEditor": "All artists you can edit.",
     "subtitleUser": "Your artists. Select one to manage albums and tracks.",
     "demoTitle": "Demo mode.",
-    "demoBody": "Submitted music is saved to the Media Rosenqvist Catalog and sent to Radio Uppsala for review. Distribution to Spotify, Apple Music etc. is not active.",
+    "demoBody": "Submitted music is saved to the Catalogus Musicus and sent to Radio Uppsala for review. Distribution to Spotify, Apple Music etc. is not active.",
     "loading": "Loading…",
     "createFirst": "Create your first artist",
     "albumsLabel_one": "{{count}} album",
@@ -439,7 +439,7 @@
     },
     "stepsLabel": {
       "tracksDescription": "Add all tracks for the release. Drag-and-drop or pick files.",
-      "detailsDescription": "The basics of your release. Everything is saved to the Media Rosenqvist Catalog and is editable later.",
+      "detailsDescription": "The basics of your release. Everything is saved to the Catalogus Musicus and is editable later.",
       "platformsTitle": "Platforms (reference only)",
       "platformsDescription": "Pick where the release would be distributed. In demo mode distribution is not active.",
       "rightsTitle": "Rights & ownership",
@@ -529,14 +529,14 @@
     },
     "submitted": {
       "title": "Release submitted for review",
-      "body": "The release has been saved to the Media Rosenqvist Catalog and sent to Radio Uppsala for review. You can follow status under \"Mine\".",
+      "body": "The release has been saved to the Catalogus Musicus and sent to Radio Uppsala for review. You can follow status under \"Mine\".",
       "demo": "Note: distribution to Spotify, Apple Music and other streaming services is not active — this is a demo submission.",
       "seeMine": "See my releases",
       "goHome": "Back home"
     },
     "details": {
       "title": "Release Details",
-      "description": "The basics of your release. Everything is saved to the Media Rosenqvist Catalog and is editable later.",
+      "description": "The basics of your release. Everything is saved to the Catalogus Musicus and is editable later.",
       "releaseTitle": "Release title",
       "releaseTitlePlaceholder": "e.g. Northern Lights",
       "artist": "Artist",
@@ -640,7 +640,7 @@
     },
     "demoNotice": {
       "label": "Demo mode.",
-      "body": "Your release is saved to the Media Rosenqvist Catalog and sent to Radio Uppsala for review. Distribution to Spotify, Apple Music and other streaming services is",
+      "body": "Your release is saved to the Catalogus Musicus and sent to Radio Uppsala for review. Distribution to Spotify, Apple Music and other streaming services is",
       "notActive": "not active",
       "tail": " — i.e. the tracks are not published to those platforms."
     },
@@ -702,10 +702,10 @@
     "welcomeName": ", {{name}}",
     "intro": "Choose a profile, pick or create a show, add episode details, upload the audio and submit for review.",
     "demoLabel": "Demo mode.",
-    "demoBody": "The episode you upload is saved to the Media Rosenqvist Catalog and sent to Radio Uppsala. Distribution to Spotify, Apple Podcasts etc. is not active.",
+    "demoBody": "The episode you upload is saved to the Catalogus Musicus and sent to Radio Uppsala. Distribution to Spotify, Apple Podcasts etc. is not active.",
     "success": {
       "title": "Your episode has been sent for review.",
-      "body": "Thanks! Your episode is saved to the Media Rosenqvist Catalog and sent to Radio Uppsala for review. We'll be in touch when it's published.",
+      "body": "Thanks! Your episode is saved to the Catalogus Musicus and sent to Radio Uppsala for review. We'll be in touch when it's published.",
       "demo": "Note: distribution to Spotify, Apple Podcasts etc. is not active — this is a demo submission.",
       "submitAnother": "Submit another",
       "backToCatalog": "Back to catalog"
@@ -779,7 +779,7 @@
     "title": "Batch upload",
     "intro": "Upload multiple audio files at once, fill in metadata for each, then submit the ones you're ready with.",
     "demoLabel": "Demo mode.",
-    "demoBody": "What you upload is saved to the Media Rosenqvist Catalog and sent to Radio Uppsala. Distribution to Spotify, Apple Music etc. is not active.",
+    "demoBody": "What you upload is saved to the Catalogus Musicus and sent to Radio Uppsala. Distribution to Spotify, Apple Music etc. is not active.",
     "tabs": {
       "single": "Single upload",
       "batch": "Batch upload"

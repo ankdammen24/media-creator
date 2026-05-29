@@ -376,7 +376,7 @@
     "subtitleEditor": "Alla artister du kan redigera.",
     "subtitleUser": "Dina artister. Välj en för att hantera album och låtar.",
     "demoTitle": "Demo-läge.",
-    "demoBody": "Inskickad musik sparas i Media Rosenqvist Catalog och skickas till Radio Uppsala för granskning. Distribution till Spotify, Apple Music m.fl. är inte aktiv.",
+    "demoBody": "Inskickad musik sparas i Catalogus Musicus och skickas till Radio Uppsala för granskning. Distribution till Spotify, Apple Music m.fl. är inte aktiv.",
     "loading": "Laddar…",
     "createFirst": "Skapa din första artist",
     "albumsLabel_one": "{{count}} album",
@@ -439,7 +439,7 @@
     },
     "stepsLabel": {
       "tracksDescription": "Lägg till alla låtar för releasen. Drag-and-drop eller välj filer.",
-      "detailsDescription": "Grunduppgifterna om din release. Allt sparas i Media Rosenqvist Catalog och går att redigera senare.",
+      "detailsDescription": "Grunduppgifterna om din release. Allt sparas i Catalogus Musicus och går att redigera senare.",
       "platformsTitle": "Plattformar (endast referens)",
       "platformsDescription": "Markera var releasen skulle distribueras. I demo-läget är distributionen inte aktiv.",
       "rightsTitle": "Rättigheter & ägarskap",
@@ -529,14 +529,14 @@
     },
     "submitted": {
       "title": "Releasen skickad för granskning",
-      "body": "Releasen har sparats i Media Rosenqvist Catalog och skickats till Radio Uppsala för granskning. Du kan följa statusen under \"Mitt\".",
+      "body": "Releasen har sparats i Catalogus Musicus och skickats till Radio Uppsala för granskning. Du kan följa statusen under \"Mitt\".",
       "demo": "Obs: distribution till Spotify, Apple Music och andra streamingtjänster är inte aktiv — detta är en demo-inskickning.",
       "seeMine": "Se mina releaser",
       "goHome": "Till startsidan"
     },
     "details": {
       "title": "Releasens detaljer",
-      "description": "Grunduppgifterna om din release. Allt sparas i Media Rosenqvist Catalog och går att redigera senare.",
+      "description": "Grunduppgifterna om din release. Allt sparas i Catalogus Musicus och går att redigera senare.",
       "releaseTitle": "Release-titel",
       "releaseTitlePlaceholder": "Ex. Northern Lights",
       "artist": "Artist",
@@ -640,7 +640,7 @@
     },
     "demoNotice": {
       "label": "Demo-läge.",
-      "body": "Din release sparas i Media Rosenqvist Catalog och skickas till Radio Uppsala för granskning. Distribution till Spotify, Apple Music och andra streamingtjänster är",
+      "body": "Din release sparas i Catalogus Musicus och skickas till Radio Uppsala för granskning. Distribution till Spotify, Apple Music och andra streamingtjänster är",
       "notActive": "inte aktiv",
       "tail": " — låtarna publiceras alltså inte på dessa plattformar."
     },
@@ -702,10 +702,10 @@
     "welcomeName": ", {{name}}",
     "intro": "Välj en profil, välj eller skapa en show, lägg till avsnittsdetaljer, ladda upp ljudet och skicka för granskning.",
     "demoLabel": "Demo-läge.",
-    "demoBody": "Avsnittet du laddar upp sparas i Media Rosenqvist Catalog och skickas till Radio Uppsala. Distribution till Spotify, Apple Podcasts m.fl. är inte aktiv.",
+    "demoBody": "Avsnittet du laddar upp sparas i Catalogus Musicus och skickas till Radio Uppsala. Distribution till Spotify, Apple Podcasts m.fl. är inte aktiv.",
     "success": {
       "title": "Ditt avsnitt har skickats för granskning.",
-      "body": "Tack! Ditt avsnitt sparas i Media Rosenqvist Catalog och skickas till Radio Uppsala för granskning. Vi hör av oss när det är publicerat.",
+      "body": "Tack! Ditt avsnitt sparas i Catalogus Musicus och skickas till Radio Uppsala för granskning. Vi hör av oss när det är publicerat.",
       "demo": "Obs: distribution till Spotify, Apple Podcasts m.fl. är inte aktiv — detta är en demo-inskickning.",
       "submitAnother": "Skicka in ett till",
       "backToCatalog": "Tillbaka till katalogen"
@@ -779,7 +779,7 @@
     "title": "Massuppladdning",
     "intro": "Ladda upp flera ljudfiler samtidigt, fyll i metadata för varje och skicka in de du är klar med.",
     "demoLabel": "Demo-läge.",
-    "demoBody": "Det du laddar upp sparas i Media Rosenqvist Catalog och skickas till Radio Uppsala. Distribution till Spotify, Apple Music m.fl. är inte aktiv.",
+    "demoBody": "Det du laddar upp sparas i Catalogus Musicus och skickas till Radio Uppsala. Distribution till Spotify, Apple Music m.fl. är inte aktiv.",
     "tabs": {
       "single": "Enstaka uppladdning",
       "batch": "Massuppladdning"
