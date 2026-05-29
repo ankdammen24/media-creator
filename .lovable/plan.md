@@ -1,79 +1,68 @@
+
 ## Mål
-Översätt hela appen till svenska och engelska. Svenska som standard om browserns språk inte är `en*`. Användaren kan byta i headern; valet sparas på profilen för inloggade.
 
-## Bibliotek
-`react-i18next` + `i18next` + `i18next-browser-languagedetector`. Stabilt, react-native-vänligt, ingen build-magi. Inga server-renderingsproblem (klient-only init räcker — appen är CSR i praktiken).
+Ge artister en egen statistiksida med antal play-klick, antal "riktiga" lyssningar (≥30 sek) och antal spelningar i Radio Uppsalas etersändning per låt/episod. Radio Uppsala-datan hämtas automatiskt en gång i veckan.
 
-## Arkitektur
+## 1. Databas
 
+Ny tabell `playback_events` (rå händelselogg):
+- `submission_id` (uuid, FK till submissions)
+- `event_type` ('play' | 'completed_30s' | 'radio_spin')
+- `user_id` (uuid, nullable — null = anonym besökare)
+- `session_id` (text, anonym browser-session, för dedupe)
+- `source` ('catalog' | 'album_page' | 'artist_page' | 'radio_uppsala')
+- `occurred_at` (timestamptz)
+
+Ny vy/materialiserad vy `submission_stats` som aggregerar per `submission_id`:
+- `play_count`, `completed_count`, `radio_spin_count`, `last_played_at`
+
+RLS:
+- `playback_events`: INSERT öppet för anon+authenticated (med rate-limit i serverfn), SELECT endast för admin och ägaren av submission (via join).
+- `submission_stats`: SELECT för admin + ägare.
+
+Service-role används för radio-importen.
+
+## 2. Loggning av klick (frontend → server)
+
+- Ny serverfn `logPlaybackEvent({ submissionId, eventType, source })` som validerar input och skriver via `supabaseAdmin` (eftersom anon ska kunna logga utan att vi öppnar tabellen helt).
+- `PlayButton` / `PlayerProvider`:
+  - Skicka `play` direkt när uppspelning startar.
+  - Sätt en 30-sekunders timer; om låten fortfarande spelas (ej pausad/bytt) skicka `completed_30s`. En händelse per (session, submission) per dygn för att undvika spam.
+- Source härleds från sidan (`catalog`, `album_page`, `artist_page`).
+
+## 3. Radio Uppsala-import (veckovis)
+
+- Ny serverfn `importRadioUppsalaPlays` som:
+  1. Hämtar AzuraCast play-historik (`/api/station/1/history?start=...&end=...`) för senaste 7 dygnen — paginerar tills tomt.
+  2. Matchar varje uppspelad fil mot `submissions` via `azuracast_unique_id` (finns redan), fallback ISRC/UPC.
+  3. Skriver en `radio_spin`-rad per spelning till `playback_events`.
+  4. Idempotent: använd en hash av (azuracast_song_id + played_at) som unique key, eller spara `last_imported_at` i en liten `radio_import_runs`-tabell och importera bara nyare poster.
+- Publik route `src/routes/api/public/hooks/import-radio-uppsala.ts` som anropar funktionen, skyddad via `apikey`-header (Supabase anon key).
+- pg_cron-jobb varje måndag 04:00 (`0 4 * * 1`) som pingar route via `pg_net.http_post`.
+
+## 4. Artist-UI
+
+- Ny route `/_authenticated/stats` (svensk titel "Statistik") som listar artistens submissions med kolumner: titel, play-klick, 30s-lyssningar, radiospelningar, senaste spelning.
+- Sortering/filter per artistprofil om användaren har flera artister.
+- Liten KPI-rad överst: totalt antal klick / 30s / radio senaste 30 dagarna.
+- Länk i `SiteHeader` för inloggade artister.
+- Översätt allt via befintliga i18n-filer (`stats`-namespace, sv/en).
+
+## 5. Säkerhet
+
+- Rate-limit i `logPlaybackEvent` per session_id (max ~5 events/sekund).
+- Validera att `submissionId` finns och har status `approved` innan radskrivning.
+- Radio-importen endast nåbar via cron-secreten (anon-key + pg_cron).
+
+## Teknik (kort)
+
+```text
+playback_events ──┐
+                  ├─► submission_stats (vy)
+radio_import_runs ┘
+                          ▲
+   Frontend Play/30s ─────┤  (serverFn logPlaybackEvent)
+   pg_cron → /api/public/hooks/import-radio-uppsala ──► AzuraCast history → playback_events
 ```
-src/i18n/
-  index.ts              -- initierar i18next, exporterar `i18n`
-  detector.ts           -- liten wrapper som först kollar profiles.preferred_language, sedan localStorage, sedan navigator.language
-  locales/
-    sv.json
-    en.json
-```
 
-- En enda flat-key-fil per språk (ex. `"header.submitMusic": "Skicka in musik"`). Lättare än namespaces för en app av den här storleken.
-- `<html lang>` uppdateras via `useEffect` på språkändring i `__root.tsx`.
-
-## Språkväljare
-
-- **Header (`SiteHeader.tsx`)**: liten segmented toggle `SV | EN` bredvid profile/notifications. Synlig även för utloggade.
-- **Settings**: behåller dropdown — ändrar `i18n.changeLanguage()` OCH skriver `profiles.preferred_language`.
-- Vid inloggning hämtas `profiles.preferred_language` och `i18n.changeLanguage()` körs. Vid utloggning fallback till detector-värdet.
-
-## Persistens
-
-- Inloggad: `profiles.preferred_language` är sanningen → skriver vid byte.
-- Utloggad: `localStorage.i18nextLng` cachar valet.
-- Initial detection: `navigator.language.startsWith("en")` → `en`, annars `sv`.
-
-## SEO / `head()`
-Route-titlar i `head()` körs utan tillgång till React-context. För nu lämnar vi `head().meta.title` på engelska (som idag) och översätter all **synlig sidkopia**. När i18n är på plats kan vi i nästa steg läsa språk från cookie i en `beforeLoad` och returnera översatt titel — utanför detta scope.
-
-`<html lang>` uppdateras dock dynamiskt så skärmläsare och Chrome translate beter sig rätt.
-
-## Översättningsarbete (allt på en gång)
-
-Filer som har synlig text (jag går igenom var och en, extraherar strängar till `sv.json` + `en.json`, och byter ut hårdkodad text mot `t("…")`):
-
-**Routes** (18 st)
-`index.tsx`, `about.tsx`, `catalog.tsx`, `login.tsx`, `settings.tsx`, `notifications.tsx`, `my-submissions.tsx`, `upload.tsx`, `upload-batch.tsx`, `releases.new.tsx`, `albums.new.tsx`, `albums.$albumId.tsx`, `albums.$albumId.edit.tsx`, `artists.new.tsx`, `artists.$artistId.tsx`, `admin.tsx`, `__root.tsx`.
-
-**Komponenter med UI-text**
-`SiteHeader`, `ProtectedRoute`, `ArtistAccountGate`, `ShowPicker`, `AlbumPicker`, `AlbumForm`, `ArtistImageManager`, `ArtistProfileEditor`, `SubmissionActions`, `TrackCard`, `EditorCardMeta`, `GlobalSearch`, `StateViews`, `SourceBadge`, `EditAlbumDialog`, `AiArtworkDialog`, `AiImageGenerator`, `Admin*`-komponenter, `NowPlaying`, `PreviewPlayer`, `player/MiniPlayer`, `player/PlayButton`, `release-wizard/*` (wizardens fem steg + `ReleaseStatusBadge`, `AdminReleaseActions`).
-
-**Hjälp-libs med användarsynlig text**
-`podcast-helpers.ts` (kategori-labels), `release-platforms.ts` (plattformsnamn — egennamn behålls), `album-helpers.ts`, `notification-content.ts` (e-postmallar — se nedan).
-
-**Toast/alert-meddelanden**: `window.alert(...)`, `setError(...)`, `throw new Error("...")`-strängar som visas i UI byts till `t("errors.…")`. Server-thrown errors översätts inte (de visas redan via `error.message`).
-
-## E-post (`notification-content.ts`)
-Funktionen tar redan emot `language: "sv" | "en"`. Säkerställer att alla typer har båda språk-blocken och att `notifications.functions.ts` skickar med rätt språk baserat på `profiles.preferred_language`. Redan delvis byggt — granskar och fyller luckor.
-
-## Strängar som INTE översätts
-- Egennamn: "Media Rosenqvist Catalog", "Spotify", "Apple Music", "Crystal Pier Records", "Submit Music"-knappen får behålla "Submit Music" om vi vill, eller översättas till "Skicka in musik". **Default: översätt allt utom egennamn på företag/plattformar.**
-- Data från databasen (titlar, beskrivningar) — det är användarinnehåll, inte UI.
-- Konsolen / loggar.
-
-## Genomförande i ordning
-1. Installera `i18next react-i18next i18next-browser-languagedetector`.
-2. Skapa `src/i18n/` med init, detector och tomma locale-filer.
-3. Initiera i `src/router.tsx` (importera så det körs före React mountar) och uppdatera `<html lang>` i `__root.tsx`.
-4. Lägg språkväljare i `SiteHeader` + koppla `auth.tsx` så `preferred_language` hydratas vid sign-in.
-5. Översätt route-för-route och commit-bart sätt — börjar med `SiteHeader`, `__root`, `index`, `login`, `catalog`, sedan resten.
-6. Gå igenom alla komponenter i ordning ovan.
-7. Verifiera genom att växla SV↔EN i headern på varje större sida (jag tar screenshots med browsertools på key routes).
-
-## Edge-cases
-- `nextEpisodeNumber`-meddelanden och liknande formatterar med interpolation — använder i18next `{{count}}`-syntax.
-- Datumformat: `toLocaleDateString(lang === "sv" ? "sv-SE" : "en-GB")` på platser där vi formaterar.
-- Plural: i18next har `_one/_other`-stöd; använder där det behövs (ex. "1 track" / "5 tracks").
-- Lazy-byte under skrivning av formulär: state behålls, bara labels byts.
-
-## Inte i detta steg (uppmärksamma användaren)
-- Översätta `head().meta.title` per route (kräver context-läsning i loaders) — kan göras separat efteråt.
-- Översätta innehåll skapat av användare (artistbio, låttitlar etc.).
-- Lokaliserade URL:er (`/about` vs `/om-oss`) — behåller engelska routes.
+Allt i18n-översatt (sv/en). Inga ändringar i befintliga upload-/release-flöden.
