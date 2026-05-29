@@ -66,7 +66,7 @@ export function ShareButton({
   };
 
   const onTriggerClick = async (e: React.MouseEvent) => {
-    if (typeof navigator !== "undefined" && navigator.share) {
+    if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
       e.preventDefault();
       const ok = await handleNative();
       if (!ok) setOpen(true);
