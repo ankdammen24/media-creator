@@ -848,6 +848,7 @@ function StepReleaseDetails({
   onArtistCreated: (p: ArtistProfile) => void;
 }) {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState("");
   const [createBusy, setCreateBusy] = useState(false);
@@ -868,7 +869,7 @@ function StepReleaseDetails({
       setNewName("");
       setCreating(false);
     } catch (e) {
-      setCreateError(e instanceof Error ? e.message : "Kunde inte skapa artist");
+      setCreateError(e instanceof Error ? e.message : t("wizard.details.couldNotCreateArtist"));
     } finally {
       setCreateBusy(false);
     }
@@ -877,11 +878,11 @@ function StepReleaseDetails({
   return (
     <StepCard
       step={2}
-      title="Release Details"
-      description="Grunduppgifterna om din release. Allt sparas i Media Rosenqvist Catalog och går att redigera senare."
+      title={t("wizard.details.title")}
+      description={t("wizard.details.description")}
     >
       <div className="grid gap-5 md:grid-cols-2">
-        <Field label="Release title" required>
+        <Field label={t("wizard.details.releaseTitle")} required>
           <input
             type="text"
             value={state.title}
@@ -889,15 +890,15 @@ function StepReleaseDetails({
               dispatch({ type: "patch", patch: { title: e.target.value } })
             }
             maxLength={200}
-            placeholder="Ex. Northern Lights"
+            placeholder={t("wizard.details.releaseTitlePlaceholder")}
             className={inputCls}
           />
         </Field>
 
-        <Field label="Artist" required>
+        <Field label={t("wizard.details.artist")} required>
           {profilesLoading ? (
             <div className="rounded-md border border-border bg-background px-3 py-2 text-sm text-muted-foreground">
-              Laddar artister…
+              {t("wizard.details.loadingArtists")}
             </div>
           ) : (
             <div className="space-y-2">
@@ -912,7 +913,7 @@ function StepReleaseDetails({
                   }
                   className={inputCls}
                 >
-                  <option value="">Välj artist</option>
+                  <option value="">{t("wizard.details.selectArtist")}</option>
                   {profiles.map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.name}
@@ -926,7 +927,7 @@ function StepReleaseDetails({
                     type="text"
                     value={newName}
                     onChange={(e) => setNewName(e.target.value)}
-                    placeholder="Artistnamn"
+                    placeholder={t("wizard.details.newArtistName")}
                     maxLength={120}
                     className={inputCls}
                     autoFocus
@@ -941,7 +942,7 @@ function StepReleaseDetails({
                       disabled={createBusy || !newName.trim()}
                       className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
                     >
-                      {createBusy ? "Skapar…" : "Skapa artist"}
+                      {createBusy ? t("wizard.details.creating") : t("wizard.details.createArtist")}
                     </button>
                     <button
                       type="button"
@@ -952,7 +953,7 @@ function StepReleaseDetails({
                       }}
                       className="inline-flex items-center rounded-md border border-border px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground"
                     >
-                      Avbryt
+                      {t("wizard.details.cancel")}
                     </button>
                   </div>
                 </div>
@@ -962,14 +963,14 @@ function StepReleaseDetails({
                   onClick={() => setCreating(true)}
                   className="inline-flex items-center gap-1.5 rounded-md border border-dashed border-border px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/40"
                 >
-                  + Skapa ny artist
+                  {t("wizard.details.createNewArtist")}
                 </button>
               )}
             </div>
           )}
         </Field>
 
-        <Field label="Label">
+        <Field label={t("wizard.details.label")}>
           <input
             type="text"
             value={state.label}
@@ -981,7 +982,7 @@ function StepReleaseDetails({
           />
         </Field>
 
-        <Field label="Release date" required>
+        <Field label={t("wizard.details.releaseDate")} required>
           <input
             type="date"
             value={state.releaseDate}
@@ -992,7 +993,7 @@ function StepReleaseDetails({
           />
         </Field>
 
-        <Field label="Primary genre" required>
+        <Field label={t("wizard.details.primaryGenre")} required>
           <select
             value={state.primaryGenre}
             onChange={(e) =>
@@ -1000,7 +1001,7 @@ function StepReleaseDetails({
             }
             className={inputCls}
           >
-            <option value="">Välj genre</option>
+            <option value="">{t("wizard.details.selectGenre")}</option>
             {GENRES.map((g) => (
               <option key={g} value={g}>
                 {g}
@@ -1009,7 +1010,7 @@ function StepReleaseDetails({
           </select>
         </Field>
 
-        <Field label="Secondary genre">
+        <Field label={t("wizard.details.secondaryGenre")}>
           <select
             value={state.secondaryGenre}
             onChange={(e) =>
@@ -1020,7 +1021,7 @@ function StepReleaseDetails({
             }
             className={inputCls}
           >
-            <option value="">Ingen</option>
+            <option value="">{t("wizard.details.none")}</option>
             {GENRES.filter((g) => g !== state.primaryGenre).map((g) => (
               <option key={g} value={g}>
                 {g}
@@ -1029,7 +1030,7 @@ function StepReleaseDetails({
           </select>
         </Field>
 
-        <Field label="Language">
+        <Field label={t("wizard.details.language")}>
           <select
             value={state.language}
             onChange={(e) =>
@@ -1045,7 +1046,7 @@ function StepReleaseDetails({
           </select>
         </Field>
 
-        <Field label="Previously released?">
+        <Field label={t("wizard.details.previouslyReleased")}>
           <div className="flex gap-2">
             <PillToggle
               active={!state.previouslyReleased}
@@ -1056,7 +1057,7 @@ function StepReleaseDetails({
                 })
               }
             >
-              No, brand new
+              {t("wizard.details.brandNew")}
             </PillToggle>
             <PillToggle
               active={state.previouslyReleased}
@@ -1067,14 +1068,14 @@ function StepReleaseDetails({
                 })
               }
             >
-              Yes, re-release
+              {t("wizard.details.reRelease")}
             </PillToggle>
           </div>
         </Field>
       </div>
 
       <div className="mt-8">
-        <h3 className="mb-3 text-sm font-medium">Cover artwork</h3>
+        <h3 className="mb-3 text-sm font-medium">{t("wizard.details.coverArtwork")}</h3>
         <CoverDropzone
           file={state.cover}
           error={state.coverError}
