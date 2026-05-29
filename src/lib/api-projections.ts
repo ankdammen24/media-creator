@@ -7,6 +7,13 @@ export function artworkUrl(path: string | null | undefined): string | null {
   return `${SUPABASE_URL}/storage/v1/object/public/artwork/${path}`;
 }
 
+const PUBLIC_SITE_URL =
+  process.env.PUBLIC_SITE_URL ?? "https://catalog.crystalpierrecords.org";
+
+export function streamUrl(id: string): string {
+  return `${PUBLIC_SITE_URL.replace(/\/$/, "")}/api/public/stream/${id}`;
+}
+
 export type PublicTrack = {
   id: string;
   title: string;
@@ -20,10 +27,12 @@ export type PublicTrack = {
   season_number: number | null;
   episode_number: number | null;
   artwork_url: string | null;
+  audio_url: string | null;
   approved_at: string | null;
 };
 
 export function projectTrack(row: Record<string, unknown>): PublicTrack {
+  const hasAudio = Boolean(row.audio_web_path || row.audio_path);
   return {
     id: row.id as string,
     title: row.title as string,
@@ -37,6 +46,7 @@ export function projectTrack(row: Record<string, unknown>): PublicTrack {
     season_number: (row.season_number as number | null) ?? null,
     episode_number: (row.episode_number as number | null) ?? null,
     artwork_url: artworkUrl(row.artwork_path as string | null),
+    audio_url: hasAudio ? streamUrl(row.id as string) : null,
     approved_at: (row.approved_at as string | null) ?? null,
   };
 }
@@ -108,7 +118,7 @@ export function projectAlbum(row: Record<string, unknown>): PublicAlbum {
 }
 
 export const PUBLIC_TRACK_COLUMNS =
-  "id, title, artist_profile_id, album_id, isrc, duration_seconds, explicit, media_type, track_number, season_number, episode_number, artwork_path, approved_at";
+  "id, title, artist_profile_id, album_id, isrc, duration_seconds, explicit, media_type, track_number, season_number, episode_number, artwork_path, audio_web_path, audio_path, approved_at";
 
 export const PUBLIC_ARTIST_COLUMNS =
   "id, name, bio, avatar_path, website_url, spotify_url, apple_music_url, amazon_music_url, facebook_url, instagram_url, x_url, created_at";
