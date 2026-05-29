@@ -592,6 +592,10 @@ export function ReleaseWizard() {
                   profiles={profiles}
                   profilesLoading={profilesLoading}
                   dispatch={dispatch}
+                  onArtistCreated={(p) => {
+                    setProfiles((cur) => (cur.some((x) => x.id === p.id) ? cur : [...cur, p]));
+                    dispatch({ type: "patch", patch: { artistProfileId: p.id } });
+                  }}
                 />
               )}
               {step === 2 && (
