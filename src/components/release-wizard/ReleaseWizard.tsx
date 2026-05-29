@@ -10,6 +10,8 @@ import {
   type ReactNode,
 } from "react";
 import { useNavigate } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import {
   Check,
   ChevronLeft,
@@ -62,7 +64,7 @@ const LANGUAGES = [
   { code: "fr", label: "Français" },
   { code: "es", label: "Español" },
   { code: "instrumental", label: "Instrumental" },
-  { code: "other", label: "Annat" },
+  { code: "other", label: "Other" },
 ];
 
 const ISRC_RE = /^[A-Z]{2}[A-Z0-9]{3}\d{7}$/;
@@ -267,6 +269,7 @@ type StepId = (typeof STEPS)[number]["id"];
 // ============================================================
 export function ReleaseWizard() {
   const { user } = useAuth();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const [state, dispatch] = useReducer(reducer, undefined, initialState);
   const [step, setStep] = useState<StepId>(1);
@@ -305,7 +308,11 @@ export function ReleaseWizard() {
   }, [user]);
 
   // Validation per step
-  const errors = useMemo(() => validate(state), [state]);
+  const errors = useMemo(
+    () => validate(state, t),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [state, t, i18n.language],
+  );
   const canGoNext = errors[step].length === 0;
 
   // Save draft (manual + autosave)
@@ -371,7 +378,7 @@ export function ReleaseWizard() {
         dispatch({ type: "markSaved", albumId: albumId!, status: "draft" });
         return albumId;
       } catch (e) {
-        const msg = e instanceof Error ? e.message : "Save failed";
+        const msg = e instanceof Error ? e.message : t("wizard.couldNotSave");
         if (!silent) setSaveError(msg);
         return null;
       } finally {
@@ -403,7 +410,7 @@ export function ReleaseWizard() {
     try {
       // Ensure draft is saved (gives us albumId + cover_path)
       const albumId = await saveDraft(true);
-      if (!albumId) throw new Error("Could not save release");
+      if (!albumId) throw new Error(t("wizard.couldNotSave"));
 
       // Insert submissions (tracks) for any not yet submitted
       // We check existing submissions for this album to avoid dupes
@@ -420,7 +427,7 @@ export function ReleaseWizard() {
         .eq("id", albumId)
         .single();
       const albumArt = alb?.artwork_path;
-      if (!albumArt) throw new Error("Saknar omslag — ladda upp cover först.");
+      if (!albumArt) throw new Error(t("wizard.missingCover"));
 
       let trackNo =
         Math.max(0, ...Array.from(existingNumbers).filter((n): n is number => !!n)) + 1;
@@ -497,7 +504,7 @@ export function ReleaseWizard() {
       dispatch({ type: "markSaved", albumId, status: "under_review" });
       setSubmittedOk(true);
     } catch (e) {
-      setSaveError(e instanceof Error ? e.message : "Submission failed");
+      setSaveError(e instanceof Error ? e.message : t("wizard.submissionFailed"));
     } finally {
       setSubmitting(false);
     }
@@ -510,28 +517,26 @@ export function ReleaseWizard() {
           <Check className="h-10 w-10 text-primary" />
         </div>
         <h1 className="font-display text-3xl font-semibold tracking-tight">
-          Release submitted for review
+          {t("wizard.submitted.title")}
         </h1>
         <p className="mx-auto mt-3 max-w-md text-sm text-muted-foreground">
-          Releasen har sparats i Media Rosenqvist Catalog och skickats till Radio
-          Uppsala för granskning. Du kan följa statusen under "Mine".
+          {t("wizard.submitted.body")}
         </p>
         <p className="mx-auto mt-3 max-w-md text-xs text-amber-700 dark:text-amber-300">
-          Obs: distribution till Spotify, Apple Music och andra streamingtjänster
-          är inte aktiv — detta är en demo-inskickning.
+          {t("wizard.submitted.demo")}
         </p>
         <div className="mt-8 flex justify-center gap-3">
           <button
             onClick={() => navigate({ to: "/my-submissions" })}
             className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
           >
-            See my releases
+            {t("wizard.submitted.seeMine")}
           </button>
           <button
             onClick={() => navigate({ to: "/" })}
             className="rounded-md border border-border px-4 py-2 text-sm hover:bg-secondary"
           >
-            Back home
+            {t("wizard.submitted.goHome")}
           </button>
         </div>
       </div>
@@ -551,10 +556,10 @@ export function ReleaseWizard() {
         <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="text-xs uppercase tracking-widest text-muted-foreground">
-              Crystal Pier Records · New Release
+              {t("wizard.header")}
             </p>
             <h1 className="font-display mt-1 text-3xl font-semibold tracking-tight sm:text-4xl">
-              {state.title || "Untitled Release"}
+              {state.title || t("wizard.untitled")}
             </h1>
           </div>
           <ReleaseStatusBadge status={state.status} size="md" />
@@ -624,7 +629,7 @@ export function ReleaseWizard() {
                 disabled={step === 1}
                 className="inline-flex items-center gap-1.5 rounded-md border border-border px-4 py-2 text-sm hover:bg-secondary disabled:opacity-40"
               >
-                <ChevronLeft className="h-4 w-4" /> Back
+                <ChevronLeft className="h-4 w-4" /> {t("wizard.back")}
               </button>
               <div className="flex items-center gap-2">
                 {step < 5 ? (
@@ -633,7 +638,7 @@ export function ReleaseWizard() {
                     disabled={!canGoNext}
                     className="inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    Next <ChevronRight className="h-4 w-4" />
+                    {t("wizard.next")} <ChevronRight className="h-4 w-4" />
                   </button>
                 ) : (
                   <button
@@ -646,7 +651,7 @@ export function ReleaseWizard() {
                     ) : (
                       <Send className="h-4 w-4" />
                     )}
-                    Submit for Review
+                    {submitting ? t("wizard.submitting") : t("wizard.submitForReview")}
                   </button>
                 )}
               </div>
@@ -684,34 +689,37 @@ export function ReleaseWizard() {
 // ============================================================
 // Validation
 // ============================================================
-function validate(s: ReleaseState): Record<StepId, string[]> {
+function validate(s: ReleaseState, t: TFunction): Record<StepId, string[]> {
   const e: Record<StepId, string[]> = { 1: [], 2: [], 3: [], 4: [], 5: [] };
 
   // Step 1 — Tracks
-  if (s.tracks.length === 0) e[1].push("Add at least one track.");
+  if (s.tracks.length === 0) e[1].push(t("wizard.errorsList.addAtLeastOne"));
   const notReady = s.tracks.filter((t) => t.status !== "ready");
   if (notReady.length > 0)
-    e[1].push(`${notReady.length} track(s) still uploading or in error.`);
-  for (const t of s.tracks) {
-    if (!t.title.trim()) e[1].push(`Track "${t.file.name}" needs a title.`);
-    if (t.isrc.trim() && !ISRC_RE.test(t.isrc.trim().toUpperCase()))
-      e[1].push(`ISRC for "${t.title || t.file.name}" looks invalid.`);
+    e[1].push(t("wizard.errorsList.stillUploading", { count: notReady.length }));
+  for (const tr of s.tracks) {
+    if (!tr.title.trim())
+      e[1].push(t("wizard.errorsList.trackNeedsTitle", { file: tr.file.name }));
+    if (tr.isrc.trim() && !ISRC_RE.test(tr.isrc.trim().toUpperCase()))
+      e[1].push(
+        t("wizard.errorsList.isrcInvalid", { title: tr.title || tr.file.name }),
+      );
   }
 
   // Step 2 — Release Details
-  if (!s.title.trim()) e[2].push("Release title is required.");
-  if (!s.artistProfileId) e[2].push("Pick an artist profile.");
-  if (!s.primaryGenre) e[2].push("Primary genre is required.");
-  if (!s.releaseDate) e[2].push("Release date is required.");
-  if (!s.cover && !s.albumId) e[2].push("Upload cover artwork.");
+  if (!s.title.trim()) e[2].push(t("wizard.errorsList.releaseTitleRequired"));
+  if (!s.artistProfileId) e[2].push(t("wizard.errorsList.pickArtist"));
+  if (!s.primaryGenre) e[2].push(t("wizard.errorsList.primaryGenreRequired"));
+  if (!s.releaseDate) e[2].push(t("wizard.errorsList.releaseDateRequired"));
+  if (!s.cover && !s.albumId) e[2].push(t("wizard.errorsList.uploadCover"));
 
   // Step 3 — Platforms
-  if (s.platforms.length === 0) e[3].push("Pick at least one platform.");
+  if (s.platforms.length === 0) e[3].push(t("wizard.errorsList.pickAtLeastOnePlatform"));
 
   // Step 4
   const r = s.rights;
   if (!(r.owns && r.permission && r.policies && r.noManipulation && r.terms))
-    e[4].push("All rights & ownership boxes must be checked.");
+    e[4].push(t("wizard.errorsList.rightsAll"));
 
   return e;
 }
@@ -737,6 +745,16 @@ function StepSidebar({
   errors: Record<StepId, string[]>;
   onSelect: (id: StepId) => void;
 }) {
+  const { t } = useTranslation();
+  const labelFor = (id: StepId) => {
+    switch (id) {
+      case 1: return t("wizard.stepsLong.tracks");
+      case 2: return t("wizard.stepsLong.details");
+      case 3: return t("wizard.stepsLong.platforms");
+      case 4: return t("wizard.stepsLong.rights");
+      case 5: return t("wizard.stepsLong.review");
+    }
+  };
   return (
     <nav className="rounded-2xl border border-border bg-card/60 p-3 backdrop-blur">
       <ol className="space-y-1">
@@ -765,9 +783,9 @@ function StepSidebar({
                 </span>
                 <span className="flex-1">
                   <span className="block text-xs uppercase tracking-wider text-muted-foreground">
-                    Step {s.id}
+                    {t("wizard.step")} {s.id}
                   </span>
-                  <span className="block font-medium">{s.label}</span>
+                  <span className="block font-medium">{labelFor(s.id)}</span>
                 </span>
                 {hasErr && !active && (
                   <span className="h-1.5 w-1.5 rounded-full bg-destructive" />
@@ -782,14 +800,24 @@ function StepSidebar({
 }
 
 function MobileProgress({ step }: { step: StepId }) {
+  const { t } = useTranslation();
   const pct = (step / STEPS.length) * 100;
+  const labelFor = (id: StepId) => {
+    switch (id) {
+      case 1: return t("wizard.stepsLong.tracks");
+      case 2: return t("wizard.stepsLong.details");
+      case 3: return t("wizard.stepsLong.platforms");
+      case 4: return t("wizard.stepsLong.rights");
+      case 5: return t("wizard.stepsLong.review");
+    }
+  };
   return (
     <div className="mb-6 rounded-xl border border-border bg-card/60 p-4 backdrop-blur">
       <div className="mb-2 flex items-center justify-between text-xs">
         <span className="text-muted-foreground">
-          Step {step} of {STEPS.length}
+          {t("wizard.stepOf", { current: step, total: STEPS.length })}
         </span>
-        <span className="font-medium">{STEPS[step - 1].label}</span>
+        <span className="font-medium">{labelFor(step)}</span>
       </div>
       <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
         <div
@@ -820,6 +848,7 @@ function StepReleaseDetails({
   onArtistCreated: (p: ArtistProfile) => void;
 }) {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState("");
   const [createBusy, setCreateBusy] = useState(false);
@@ -840,7 +869,7 @@ function StepReleaseDetails({
       setNewName("");
       setCreating(false);
     } catch (e) {
-      setCreateError(e instanceof Error ? e.message : "Kunde inte skapa artist");
+      setCreateError(e instanceof Error ? e.message : t("wizard.details.couldNotCreateArtist"));
     } finally {
       setCreateBusy(false);
     }
@@ -849,11 +878,11 @@ function StepReleaseDetails({
   return (
     <StepCard
       step={2}
-      title="Release Details"
-      description="Grunduppgifterna om din release. Allt sparas i Media Rosenqvist Catalog och går att redigera senare."
+      title={t("wizard.details.title")}
+      description={t("wizard.details.description")}
     >
       <div className="grid gap-5 md:grid-cols-2">
-        <Field label="Release title" required>
+        <Field label={t("wizard.details.releaseTitle")} required>
           <input
             type="text"
             value={state.title}
@@ -861,15 +890,15 @@ function StepReleaseDetails({
               dispatch({ type: "patch", patch: { title: e.target.value } })
             }
             maxLength={200}
-            placeholder="Ex. Northern Lights"
+            placeholder={t("wizard.details.releaseTitlePlaceholder")}
             className={inputCls}
           />
         </Field>
 
-        <Field label="Artist" required>
+        <Field label={t("wizard.details.artist")} required>
           {profilesLoading ? (
             <div className="rounded-md border border-border bg-background px-3 py-2 text-sm text-muted-foreground">
-              Laddar artister…
+              {t("wizard.details.loadingArtists")}
             </div>
           ) : (
             <div className="space-y-2">
@@ -884,7 +913,7 @@ function StepReleaseDetails({
                   }
                   className={inputCls}
                 >
-                  <option value="">Välj artist</option>
+                  <option value="">{t("wizard.details.selectArtist")}</option>
                   {profiles.map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.name}
@@ -898,7 +927,7 @@ function StepReleaseDetails({
                     type="text"
                     value={newName}
                     onChange={(e) => setNewName(e.target.value)}
-                    placeholder="Artistnamn"
+                    placeholder={t("wizard.details.newArtistName")}
                     maxLength={120}
                     className={inputCls}
                     autoFocus
@@ -913,7 +942,7 @@ function StepReleaseDetails({
                       disabled={createBusy || !newName.trim()}
                       className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
                     >
-                      {createBusy ? "Skapar…" : "Skapa artist"}
+                      {createBusy ? t("wizard.details.creating") : t("wizard.details.createArtist")}
                     </button>
                     <button
                       type="button"
@@ -924,7 +953,7 @@ function StepReleaseDetails({
                       }}
                       className="inline-flex items-center rounded-md border border-border px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground"
                     >
-                      Avbryt
+                      {t("wizard.details.cancel")}
                     </button>
                   </div>
                 </div>
@@ -934,14 +963,14 @@ function StepReleaseDetails({
                   onClick={() => setCreating(true)}
                   className="inline-flex items-center gap-1.5 rounded-md border border-dashed border-border px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/40"
                 >
-                  + Skapa ny artist
+                  {t("wizard.details.createNewArtist")}
                 </button>
               )}
             </div>
           )}
         </Field>
 
-        <Field label="Label">
+        <Field label={t("wizard.details.label")}>
           <input
             type="text"
             value={state.label}
@@ -953,7 +982,7 @@ function StepReleaseDetails({
           />
         </Field>
 
-        <Field label="Release date" required>
+        <Field label={t("wizard.details.releaseDate")} required>
           <input
             type="date"
             value={state.releaseDate}
@@ -964,7 +993,7 @@ function StepReleaseDetails({
           />
         </Field>
 
-        <Field label="Primary genre" required>
+        <Field label={t("wizard.details.primaryGenre")} required>
           <select
             value={state.primaryGenre}
             onChange={(e) =>
@@ -972,7 +1001,7 @@ function StepReleaseDetails({
             }
             className={inputCls}
           >
-            <option value="">Välj genre</option>
+            <option value="">{t("wizard.details.selectGenre")}</option>
             {GENRES.map((g) => (
               <option key={g} value={g}>
                 {g}
@@ -981,7 +1010,7 @@ function StepReleaseDetails({
           </select>
         </Field>
 
-        <Field label="Secondary genre">
+        <Field label={t("wizard.details.secondaryGenre")}>
           <select
             value={state.secondaryGenre}
             onChange={(e) =>
@@ -992,7 +1021,7 @@ function StepReleaseDetails({
             }
             className={inputCls}
           >
-            <option value="">Ingen</option>
+            <option value="">{t("wizard.details.none")}</option>
             {GENRES.filter((g) => g !== state.primaryGenre).map((g) => (
               <option key={g} value={g}>
                 {g}
@@ -1001,7 +1030,7 @@ function StepReleaseDetails({
           </select>
         </Field>
 
-        <Field label="Language">
+        <Field label={t("wizard.details.language")}>
           <select
             value={state.language}
             onChange={(e) =>
@@ -1017,7 +1046,7 @@ function StepReleaseDetails({
           </select>
         </Field>
 
-        <Field label="Previously released?">
+        <Field label={t("wizard.details.previouslyReleased")}>
           <div className="flex gap-2">
             <PillToggle
               active={!state.previouslyReleased}
@@ -1028,7 +1057,7 @@ function StepReleaseDetails({
                 })
               }
             >
-              No, brand new
+              {t("wizard.details.brandNew")}
             </PillToggle>
             <PillToggle
               active={state.previouslyReleased}
@@ -1039,14 +1068,14 @@ function StepReleaseDetails({
                 })
               }
             >
-              Yes, re-release
+              {t("wizard.details.reRelease")}
             </PillToggle>
           </div>
         </Field>
       </div>
 
       <div className="mt-8">
-        <h3 className="mb-3 text-sm font-medium">Cover artwork</h3>
+        <h3 className="mb-3 text-sm font-medium">{t("wizard.details.coverArtwork")}</h3>
         <CoverDropzone
           file={state.cover}
           error={state.coverError}
@@ -1081,6 +1110,7 @@ function CoverDropzone({
   title: string;
   onChange: (f: File | null, err: string | null) => void;
 }) {
+  const { t } = useTranslation();
   const [preview, setPreview] = useState<string | null>(null);
   const [drag, setDrag] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
@@ -1097,11 +1127,11 @@ function CoverDropzone({
 
   function accept(f: File) {
     if (!IMAGE_EXTS.includes(extOf(f.name))) {
-      onChange(null, "Filformat stöds inte. Tillåtet: JPG, PNG, WEBP.");
+      onChange(null, t("wizard.cover.unsupportedFormat"));
       return;
     }
     if (f.size > MAX_IMAGE_BYTES) {
-      onChange(null, `För stor (${formatBytes(f.size)}).`);
+      onChange(null, t("wizard.cover.tooLarge", { size: formatBytes(f.size) }));
       return;
     }
     onChange(f, null);
@@ -1138,17 +1168,16 @@ function CoverDropzone({
             />
             <div className="absolute inset-0 flex items-end justify-end bg-gradient-to-t from-black/60 via-black/0 to-transparent p-3 opacity-0 transition group-hover:opacity-100">
               <span className="rounded-md bg-background/80 px-2 py-1 text-xs">
-                Click to replace
+                {t("wizard.cover.clickToReplace")}
               </span>
             </div>
           </>
         ) : (
           <div className="flex flex-col items-center gap-2 p-6 text-center">
             <ImageIcon className="h-10 w-10 text-muted-foreground" />
-            <p className="text-sm font-medium">Drop cover here</p>
+            <p className="text-sm font-medium">{t("wizard.cover.dropHere")}</p>
             <p className="text-xs text-muted-foreground">
-              JPG, PNG eller WEBP · 1:1 rekommenderat · max{" "}
-              {formatBytes(MAX_IMAGE_BYTES)}
+              {t("wizard.cover.formatsHint", { max: formatBytes(MAX_IMAGE_BYTES) })}
             </p>
           </div>
         )}
@@ -1182,21 +1211,22 @@ function CoverDropzone({
           className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background/80 px-3 py-2 text-xs font-medium hover:bg-secondary"
         >
           <Sparkles className="h-3.5 w-3.5 text-primary" />
-          Skapa omslag med AI
+          {t("wizard.cover.aiButton")}
         </button>
         <p className="text-xs text-muted-foreground">
-          Tips: konstnärligt, abstrakt motiv håller bättre över tid än trender.
+          {t("wizard.cover.tip")}
         </p>
       </div>
 
       <AiArtworkDialog
         open={aiOpen}
         aspect="1:1"
-        title="Skapa omslag med AI"
+        title={t("wizard.cover.aiDialogTitle")}
         filenameHint={`release-${title || "untitled"}`}
-        defaultPrompt={`Abstrakt albumomslag för "${title || "släppet"}"${
-          artistName ? ` av ${artistName}` : ""
-        }, cinematic Scandinavian, ingen text, inga ansikten`}
+        defaultPrompt={t("wizard.cover.aiPrompt", {
+          title: title || t("wizard.cover.fallbackTitle"),
+          artistPart: artistName ? t("wizard.cover.ofArtist", { name: artistName }) : "",
+        })}
         onClose={() => setAiOpen(false)}
         onGenerated={(f) => {
           onChange(f, null);
@@ -1217,20 +1247,19 @@ function StepPlatforms({
   state: ReleaseState;
   dispatch: React.Dispatch<Action>;
 }) {
+  const { t } = useTranslation();
   return (
     <StepCard
       step={3}
-      title="Plattformar (endast referens)"
-      description="Markera var releasen skulle distribueras. I demo-läget är distributionen inte aktiv."
+      title={t("wizard.platforms.title")}
+      description={t("wizard.platforms.description")}
     >
       <div className="mb-4 flex items-start gap-3 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
         <Info className="mt-0.5 h-4 w-4 shrink-0" />
         <p>
-          Plattformsvalet sparas endast som referens.{" "}
-          <span className="font-semibold">
-            Ingen faktisk distribution till streamingtjänster sker i demo-läget.
-          </span>{" "}
-          Releasen hamnar i katalogen och skickas till Radio Uppsala.
+          {t("wizard.platforms.notice1")}{" "}
+          <span className="font-semibold">{t("wizard.platforms.notice2")}</span>{" "}
+          {t("wizard.platforms.notice3")}
         </p>
       </div>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -1273,8 +1302,7 @@ function StepPlatforms({
         })}
       </div>
       <p className="mt-4 text-xs text-muted-foreground">
-        Tip: pick all of them — du betalar inget extra och varje plattform når
-        olika lyssnare.
+        {t("wizard.platforms.tip")}
       </p>
       <div className="mt-3 flex gap-2 text-xs">
         <button
@@ -1286,13 +1314,13 @@ function StepPlatforms({
           }
           className="rounded-md border border-border px-3 py-1.5 hover:bg-secondary"
         >
-          Select all
+          {t("wizard.platforms.selectAll")}
         </button>
         <button
           onClick={() => dispatch({ type: "patch", patch: { platforms: [] } })}
           className="rounded-md border border-border px-3 py-1.5 hover:bg-secondary"
         >
-          Clear
+          {t("wizard.platforms.clear")}
         </button>
       </div>
     </StepCard>
@@ -1310,6 +1338,7 @@ function StepTracks({
   dispatch: React.Dispatch<Action>;
 }) {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [drag, setDrag] = useState(false);
 
   async function handleFiles(files: File[]) {
@@ -1325,8 +1354,8 @@ function StepTracks({
         errorMsg: ok
           ? null
           : f.size > MAX_AUDIO_BYTES
-            ? `För stor (${formatBytes(f.size)})`
-            : "Ogiltigt format",
+            ? t("wizard.tracks.tooLarge", { size: formatBytes(f.size) })
+            : t("wizard.tracks.invalidFormat"),
         title: baseName(f.name),
         version: "",
         featuredArtists: "",
@@ -1380,7 +1409,7 @@ function StepTracks({
         patch: { status: "ready", uploadPct: 100, audioPath: path },
       });
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Upload failed";
+      const msg = e instanceof Error ? e.message : t("wizard.tracks.uploadFailed");
       dispatch({
         type: "updateTrack",
         id: d.id,
@@ -1392,8 +1421,8 @@ function StepTracks({
   return (
     <StepCard
       step={1}
-      title="Tracks"
-      description="Lägg till alla låtar för releasen. Drag-and-drop eller välj filer."
+      title={t("wizard.tracks.title")}
+      description={t("wizard.tracks.description")}
     >
       <label
         onDragOver={(e) => {
@@ -1416,12 +1445,14 @@ function StepTracks({
         <UploadIcon className="h-8 w-8 text-muted-foreground" />
         <p className="mt-3 text-sm font-medium">
           {state.tracks.length === 0
-            ? "Drop audio files here"
-            : "Add more tracks"}
+            ? t("wizard.tracks.dropHere")
+            : t("wizard.tracks.addMore")}
         </p>
         <p className="mt-1 text-xs text-muted-foreground">
-          {AUDIO_EXTS.join(", ").toUpperCase()} · up to{" "}
-          {formatBytes(MAX_AUDIO_BYTES)} each
+          {t("wizard.tracks.hint", {
+            formats: AUDIO_EXTS.join(", ").toUpperCase(),
+            max: formatBytes(MAX_AUDIO_BYTES),
+          })}
         </p>
         <input
           type="file"
@@ -1439,9 +1470,9 @@ function StepTracks({
       {state.tracks.length === 0 ? (
         <div className="mt-6 rounded-lg border border-dashed border-border bg-background/30 px-4 py-8 text-center">
           <Music2 className="mx-auto h-8 w-8 text-muted-foreground" />
-          <p className="mt-3 text-sm font-medium">No tracks yet</p>
+          <p className="mt-3 text-sm font-medium">{t("wizard.tracks.noneYet")}</p>
           <p className="mt-1 text-xs text-muted-foreground">
-            Lägg till minst en låt för att fortsätta.
+            {t("wizard.tracks.addAtLeastOne")}
           </p>
         </div>
       ) : (
@@ -1504,6 +1535,7 @@ function TrackMetadataCard({
   onRemove: () => void;
   onRetry: () => void;
 }) {
+  const { t } = useTranslation();
   const isrcInvalid =
     track.isrc.trim() && !ISRC_RE.test(track.isrc.trim().toUpperCase());
 
@@ -1532,13 +1564,13 @@ function TrackMetadataCard({
               onClick={onRetry}
               className="rounded-md border border-border px-2 py-1 text-xs hover:bg-secondary"
             >
-              Retry
+              {t("wizard.tracks.card.retry")}
             </button>
           )}
           <button
             onClick={onRemove}
             className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border hover:bg-secondary"
-            aria-label="Remove track"
+            aria-label={t("wizard.tracks.card.removeAria")}
           >
             <Trash2 className="h-4 w-4" />
           </button>
@@ -1557,7 +1589,7 @@ function TrackMetadataCard({
 
       {/* Body */}
       <div className="grid gap-4 p-4 md:grid-cols-2">
-        <Field label="Track title" required>
+        <Field label={t("wizard.tracks.card.trackTitle")} required>
           <input
             type="text"
             value={track.title}
@@ -1565,7 +1597,7 @@ function TrackMetadataCard({
             className={inputCls}
           />
         </Field>
-        <Field label="Version" hint="Ex. Radio Edit, Acoustic">
+        <Field label={t("wizard.tracks.card.version")} hint={t("wizard.tracks.card.versionHint")}>
           <input
             type="text"
             value={track.version}
@@ -1573,7 +1605,7 @@ function TrackMetadataCard({
             className={inputCls}
           />
         </Field>
-        <Field label="Featured artists" hint="Komma-separerat">
+        <Field label={t("wizard.tracks.card.featured")} hint={t("wizard.tracks.card.commaSeparated")}>
           <input
             type="text"
             value={track.featuredArtists}
@@ -1582,9 +1614,9 @@ function TrackMetadataCard({
           />
         </Field>
         <Field
-          label="ISRC"
-          hint="12 tecken, ex. SE-ABC-25-12345"
-          error={isrcInvalid ? "Format ser ogiltigt ut" : undefined}
+          label={t("wizard.tracks.card.isrc")}
+          hint={t("wizard.tracks.card.isrcHint")}
+          error={isrcInvalid ? t("wizard.tracks.card.isrcInvalid") : undefined}
         >
           <input
             type="text"
@@ -1594,7 +1626,7 @@ function TrackMetadataCard({
             className={inputCls}
           />
         </Field>
-        <Field label="Songwriters" hint="Komma-separerat">
+        <Field label={t("wizard.tracks.card.songwriters")} hint={t("wizard.tracks.card.commaSeparated")}>
           <input
             type="text"
             value={track.songwriters}
@@ -1602,7 +1634,7 @@ function TrackMetadataCard({
             className={inputCls}
           />
         </Field>
-        <Field label="Producer credits" hint="Komma-separerat">
+        <Field label={t("wizard.tracks.card.producers")} hint={t("wizard.tracks.card.commaSeparated")}>
           <input
             type="text"
             value={track.producers}
@@ -1610,7 +1642,7 @@ function TrackMetadataCard({
             className={inputCls}
           />
         </Field>
-        <Field label="Preview clip start (sec)">
+        <Field label={t("wizard.tracks.card.previewStart")}>
           <input
             type="number"
             min={0}
@@ -1621,7 +1653,7 @@ function TrackMetadataCard({
             className={inputCls}
           />
         </Field>
-        <Field label="Loudness (LUFS)" hint="Auto-detekteras vid review">
+        <Field label={t("wizard.tracks.card.loudness")} hint={t("wizard.tracks.card.loudnessHint")}>
           <input
             disabled
             placeholder="—"
@@ -1632,22 +1664,22 @@ function TrackMetadataCard({
         <div className="md:col-span-2">
           <div className="flex flex-wrap gap-2">
             <Toggle
-              label="Explicit lyrics"
+              label={t("wizard.tracks.card.explicit")}
               active={track.explicit}
               onClick={() => onChange({ explicit: !track.explicit })}
             />
             <Toggle
-              label="Instrumental"
+              label={t("wizard.tracks.card.instrumental")}
               active={track.instrumental}
               onClick={() => onChange({ instrumental: !track.instrumental })}
             />
             <Toggle
-              label="AI-generated content"
+              label={t("wizard.tracks.card.aiGenerated")}
               active={track.aiGenerated}
               onClick={() => onChange({ aiGenerated: !track.aiGenerated })}
             />
             <Toggle
-              label="Dolby Atmos available"
+              label={t("wizard.tracks.card.atmos")}
               active={track.atmosAvailable}
               onClick={() =>
                 onChange({ atmosAvailable: !track.atmosAvailable })
@@ -1658,7 +1690,7 @@ function TrackMetadataCard({
 
         {track.atmosAvailable && (
           <div className="md:col-span-2">
-            <Field label="Upload Atmos mix">
+            <Field label={t("wizard.tracks.card.uploadAtmos")}>
               {track.atmosFile ? (
                 <div className="flex items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-xs">
                   <span className="truncate flex-1">{track.atmosFile.name}</span>
@@ -1672,7 +1704,7 @@ function TrackMetadataCard({
               ) : (
                 <label className="flex h-14 cursor-pointer items-center justify-center rounded-md border border-dashed border-border text-xs hover:bg-secondary/40">
                   <UploadIcon className="mr-2 h-4 w-4 text-muted-foreground" />
-                  Select Atmos file
+                  {t("wizard.tracks.card.selectAtmos")}
                   <input
                     type="file"
                     accept={AUDIO_ACCEPT}
@@ -1692,20 +1724,21 @@ function TrackMetadataCard({
 }
 
 function TrackStatusLabel({ track }: { track: TrackDraft }) {
+  const { t } = useTranslation();
   switch (track.status) {
     case "queued":
-      return <span className="text-muted-foreground">Queued</span>;
+      return <span className="text-muted-foreground">{t("wizard.tracks.status.queued")}</span>;
     case "uploading":
       return (
         <span className="inline-flex items-center gap-1 text-primary">
           <Loader2 className="h-3 w-3 animate-spin" />
-          Uploading {track.uploadPct}%
+          {t("wizard.tracks.status.uploading", { pct: track.uploadPct })}
         </span>
       );
     case "ready":
-      return <span className="text-emerald-400">Uploaded</span>;
+      return <span className="text-emerald-400">{t("wizard.tracks.status.ready")}</span>;
     case "error":
-      return <span className="text-destructive">{track.errorMsg ?? "Error"}</span>;
+      return <span className="text-destructive">{track.errorMsg ?? t("wizard.tracks.status.error")}</span>;
   }
 }
 
@@ -1719,18 +1752,19 @@ function StepRights({
   state: ReleaseState;
   dispatch: React.Dispatch<Action>;
 }) {
+  const { t } = useTranslation();
   const items: Array<{ key: keyof ReleaseState["rights"]; label: string }> = [
-    { key: "owns", label: "I own or control the rights to this music" },
-    { key: "permission", label: "I have permission to distribute this content" },
-    { key: "policies", label: "I understand this is a demo catalog submission, not streaming distribution" },
-    { key: "noManipulation", label: "No artificial stream manipulation" },
-    { key: "terms", label: "I agree to the catalog submission terms" },
+    { key: "owns", label: t("wizard.rights.owns") },
+    { key: "permission", label: t("wizard.rights.permission") },
+    { key: "policies", label: t("wizard.rights.policies") },
+    { key: "noManipulation", label: t("wizard.rights.noManipulation") },
+    { key: "terms", label: t("wizard.rights.terms") },
   ];
   return (
     <StepCard
       step={4}
-      title="Rights & Ownership"
-      description="Bekräfta att du har rätt att distribuera musiken."
+      title={t("wizard.rights.title")}
+      description={t("wizard.rights.description")}
     >
       <ul className="space-y-3">
         {items.map((it) => {
@@ -1779,6 +1813,7 @@ function StepReview({
   errors: Record<StepId, string[]>;
   onJump: (id: StepId) => void;
 }) {
+  const { t } = useTranslation();
   const [cover, setCover] = useState<string | null>(null);
   useEffect(() => {
     if (!state.cover) {
@@ -1798,8 +1833,8 @@ function StepReview({
   return (
     <StepCard
       step={5}
-      title="Review & Submit"
-      description="Sista koll innan vi skickar releasen för granskning."
+      title={t("wizard.review.title")}
+      description={t("wizard.review.description")}
     >
       <div className="overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-card to-background">
         <div className="grid gap-6 p-6 sm:grid-cols-[180px_1fr]">
@@ -1817,35 +1852,31 @@ function StepReview({
               {state.label || "—"}
             </p>
             <h3 className="font-display mt-1 text-2xl font-semibold">
-              {state.title || "Untitled"}
+              {state.title || t("wizard.review.untitled")}
             </h3>
             <p className="text-sm text-muted-foreground">{artist}</p>
             <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
-              <Meta k="Release date" v={state.releaseDate || "—"} />
-              <Meta k="Primary genre" v={state.primaryGenre || "—"} />
-              <Meta k="Secondary genre" v={state.secondaryGenre || "—"} />
-              <Meta k="Language" v={state.language} />
+              <Meta k={t("wizard.review.releaseDate")} v={state.releaseDate || "—"} />
+              <Meta k={t("wizard.review.primaryGenre")} v={state.primaryGenre || "—"} />
+              <Meta k={t("wizard.review.secondaryGenre")} v={state.secondaryGenre || "—"} />
+              <Meta k={t("wizard.review.language")} v={state.language} />
+              <Meta k={t("wizard.review.tracks")} v={String(state.tracks.length)} />
               <Meta
-                k="Tracks"
-                v={String(state.tracks.length)}
-              />
-              <Meta
-                k="Previously released"
-                v={state.previouslyReleased ? "Yes" : "No"}
+                k={t("wizard.review.previouslyReleased")}
+                v={state.previouslyReleased ? t("wizard.details.reRelease") : t("wizard.details.brandNew")}
               />
             </dl>
           </div>
         </div>
 
         <div className="border-t border-border p-6">
-          <h4 className="mb-3 text-sm font-semibold">Distribution</h4>
+          <h4 className="mb-3 text-sm font-semibold">{t("wizard.review.distribution")}</h4>
           <p className="mb-3 text-xs text-amber-700 dark:text-amber-300">
-            Endast referens — ingen faktisk distribution till streamingtjänster
-            sker i demo-läget. Releasen skickas till katalogen och Radio Uppsala.
+            {t("wizard.review.distributionNote")}
           </p>
           <div className="flex flex-wrap gap-1.5">
             {state.platforms.length === 0 ? (
-              <span className="text-xs text-muted-foreground">None selected</span>
+              <span className="text-xs text-muted-foreground">{t("wizard.review.noneSelected")}</span>
             ) : (
               state.platforms.map((code) => {
                 const p = PLATFORMS.find((x) => x.code === code);
@@ -1866,9 +1897,9 @@ function StepReview({
         </div>
 
         <div className="border-t border-border p-6">
-          <h4 className="mb-3 text-sm font-semibold">Tracks</h4>
+          <h4 className="mb-3 text-sm font-semibold">{t("wizard.review.tracksHeading")}</h4>
           {state.tracks.length === 0 ? (
-            <p className="text-xs text-muted-foreground">No tracks added.</p>
+            <p className="text-xs text-muted-foreground">{t("wizard.review.noTracksAdded")}</p>
           ) : (
             <ol className="space-y-2">
               {state.tracks.map((t, i) => (
@@ -1905,7 +1936,7 @@ function StepReview({
       {allErrors.length > 0 && (
         <div className="mt-4 rounded-lg border border-destructive/30 bg-destructive/10 p-4">
           <p className="mb-2 text-sm font-medium text-destructive">
-            Fix dessa innan submit:
+            {t("wizard.review.fixBeforeSubmit")}
           </p>
           <ul className="space-y-1 text-xs">
             {allErrors.map((e, i) => (
@@ -1915,7 +1946,7 @@ function StepReview({
                   onClick={() => onJump(e.step)}
                   className="rounded border border-destructive/30 px-2 py-0.5 text-[10px] text-destructive hover:bg-destructive/10"
                 >
-                  Go to step {e.step}
+                  {t("wizard.review.goToStep", { n: e.step })}
                 </button>
               </li>
             ))}
@@ -1939,17 +1970,17 @@ function Meta({ k, v }: { k: string; v: string }) {
 // Demo notice
 // ============================================================
 function DemoNotice({ className = "" }: { className?: string }) {
+  const { t } = useTranslation();
   return (
     <div
       className={`flex items-start gap-3 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-300 ${className}`}
     >
       <Info className="mt-0.5 h-4 w-4 shrink-0" />
       <p>
-        <span className="font-semibold">Demo-läge.</span> Din release sparas i
-        Media Rosenqvist Catalog och skickas till Radio Uppsala för granskning.
-        Distribution till Spotify, Apple Music och andra streamingtjänster är{" "}
-        <span className="font-semibold">inte aktiv</span> — låtarna publiceras
-        alltså inte på dessa plattformar.
+        <span className="font-semibold">{t("wizard.demoNotice.label")}</span>{" "}
+        {t("wizard.demoNotice.body")}{" "}
+        <span className="font-semibold">{t("wizard.demoNotice.notActive")}</span>
+        {t("wizard.demoNotice.tail")}
       </p>
     </div>
   );
@@ -1973,25 +2004,28 @@ function FloatingSaveBar({
   canSave: boolean;
   onSave: () => void;
 }) {
+  const { t } = useTranslation();
   let status: ReactNode;
   if (saving) {
     status = (
       <span className="inline-flex items-center gap-1.5 text-primary">
-        <Loader2 className="h-3 w-3 animate-spin" /> Sparar…
+        <Loader2 className="h-3 w-3 animate-spin" /> {t("wizard.saving")}
       </span>
     );
   } else if (error) {
     status = <span className="text-destructive">{error}</span>;
   } else if (dirty) {
-    status = <span className="text-muted-foreground">Osparade ändringar</span>;
+    status = <span className="text-muted-foreground">{t("wizard.unsavedChanges")}</span>;
   } else if (savedAt) {
     status = (
       <span className="text-muted-foreground">
-        Sparat {savedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+        {t("wizard.savedAt", {
+          time: savedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        })}
       </span>
     );
   } else {
-    status = <span className="text-muted-foreground">Inget sparat ännu</span>;
+    status = <span className="text-muted-foreground">{t("wizard.notSavedYet")}</span>;
   }
 
   return (
@@ -2004,7 +2038,7 @@ function FloatingSaveBar({
           className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
         >
           <Save className="h-3 w-3" />
-          Save Draft
+          {t("wizard.saveDraft")}
         </button>
       </div>
     </div>
@@ -2028,11 +2062,12 @@ function StepCard({
   description: string;
   children: ReactNode;
 }) {
+  const { t } = useTranslation();
   return (
     <section className="rounded-2xl border border-border bg-card/60 p-6 backdrop-blur-sm shadow-sm sm:p-8">
       <header className="mb-6">
         <p className="text-xs uppercase tracking-widest text-muted-foreground">
-          Step {step}
+          {t("wizard.step")} {step}
         </p>
         <h2 className="font-display mt-1 text-2xl font-semibold tracking-tight">
           {title}
