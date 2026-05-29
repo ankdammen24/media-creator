@@ -8,7 +8,7 @@ import {
   listServiceApiKeys,
   revokeServiceApiKey,
 } from "@/lib/api-keys.functions";
-import { ALL_SCOPES } from "@/lib/api-auth.server";
+import { ALL_SCOPES } from "@/lib/api-scopes";
 
 export function AdminApiKeys() {
   const qc = useQueryClient();

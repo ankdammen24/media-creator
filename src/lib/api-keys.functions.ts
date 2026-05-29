@@ -2,12 +2,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import {
-  generateApiKey,
-  USER_ALLOWED_SCOPES,
-  ALL_SCOPES,
-  type ApiScope,
-} from "./api-auth.server";
+import { generateApiKey } from "./api-auth.server";
+import { USER_ALLOWED_SCOPES, ALL_SCOPES, type ApiScope } from "./api-scopes";
 
 const createUserKeySchema = z.object({
   label: z.string().trim().min(1).max(80),

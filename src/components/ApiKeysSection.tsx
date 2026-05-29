@@ -7,7 +7,7 @@ import {
   listMyApiKeys,
   revokeApiKey,
 } from "@/lib/api-keys.functions";
-import { USER_ALLOWED_SCOPES } from "@/lib/api-auth.server";
+import { USER_ALLOWED_SCOPES } from "@/lib/api-scopes";
 
 const SCOPE_LABELS: Record<string, string> = {
   "read:catalog": "Läs katalog (egen och publik)",
