@@ -13,16 +13,16 @@ import { effectiveArtworkPath } from "@/lib/album-helpers";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Media Rosenqvist — Music catalog & podcasts" },
+      { title: "Catalogus Musicus — Music catalog & podcasts" },
       {
         name: "description",
         content:
-          "Browse the Media Rosenqvist catalog, powered by Media Rosenqvist.",
+          "Browse the Catalogus Musicus catalog, by Media Rosenqvist.",
       },
-      { property: "og:title", content: "Media Rosenqvist" },
+      { property: "og:title", content: "Catalogus Musicus" },
       {
         property: "og:description",
-        content: "Music catalog and live radio for Media Rosenqvist.",
+        content: "Music catalog and live radio — Catalogus Musicus by Media Rosenqvist.",
       },
     ],
   }),

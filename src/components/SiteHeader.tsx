@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { GlobalSearch } from "@/components/GlobalSearch";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import logoMR from "@/assets/logo-mr-128.png";
+import logoCM from "@/assets/logo-cm.png";
 
 export function SiteHeader() {
   const { user, logout } = useAuth();
@@ -32,8 +32,8 @@ export function SiteHeader() {
     <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-md">
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-2 px-3 sm:gap-4 sm:px-6">
         <Link to="/" className="flex min-w-0 items-center gap-2 text-sm font-bold tracking-tight">
-          <img src={logoMR} alt="Media Rosenqvist logo" width={28} height={28} className="h-7 w-7 flex-shrink-0 object-contain" />
-          <span className="truncate">Media Rosenqvist</span>
+          <img src={logoCM} alt="Catalogus Musicus logo" width={28} height={28} className="h-7 w-7 flex-shrink-0 object-contain" />
+          <span className="truncate">Catalogus Musicus</span>
         </Link>
         <div className="flex flex-1 justify-center px-1 sm:px-2">
           <GlobalSearch />
@@ -281,7 +281,7 @@ export function SiteFooter() {
   return (
     <footer className="mt-16 border-t border-border bg-background/50">
       <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-2 px-4 py-6 text-xs text-muted-foreground sm:flex-row sm:px-6">
-        <span>© {new Date().getFullYear()} Media Rosenqvist</span>
+        <span>© {new Date().getFullYear()} Catalogus Musicus · ett Media Rosenqvist-projekt</span>
         <span>{t("footer.api")}</span>
       </div>
     </footer>

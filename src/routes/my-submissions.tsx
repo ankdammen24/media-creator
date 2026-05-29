@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 export const Route = createFileRoute("/my-submissions")({
   head: () => ({
     meta: [
-      { title: "Mine — Media Rosenqvist" },
+      { title: "Mine — Catalogus Musicus" },
       { name: "robots", content: "noindex" },
     ],
   }),

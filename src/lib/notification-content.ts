@@ -12,12 +12,12 @@ export function buildNotification(
     if (lang === "sv") {
       return {
         subject: "Din uppladdning har blivit godkänd",
-        body: `Hej!\n\nDin uppladdning "${t}" har blivit godkänd och finns nu publicerad på catalog.mediarosenqvist.com.\n\nTack för ditt bidrag till Media Rosenqvist.`,
+        body: `Hej!\n\nDin uppladdning "${t}" har blivit godkänd och finns nu publicerad på catalog.mediarosenqvist.com.\n\nTack för ditt bidrag till Catalogus Musicus.`,
       };
     }
     return {
       subject: "Your submission has been approved",
-      body: `Hello!\n\nYour submission "${t}" has been approved and is now published on catalog.mediarosenqvist.com.\n\nThank you for contributing to Media Rosenqvist.`,
+      body: `Hello!\n\nYour submission "${t}" has been approved and is now published on catalog.mediarosenqvist.com.\n\nThank you for contributing to Catalogus Musicus.`,
     };
   }
   const c = (comment ?? "").trim();

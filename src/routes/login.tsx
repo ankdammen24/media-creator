@@ -7,8 +7,8 @@ import { useAuth } from "@/lib/auth";
 export const Route = createFileRoute("/login")({
   head: () => ({
     meta: [
-      { title: "Sign in — Media Rosenqvist" },
-      { name: "description", content: "Sign in to Media Rosenqvist." },
+      { title: "Sign in — Catalogus Musicus" },
+      { name: "description", content: "Sign in to Catalogus Musicus." },
       { name: "robots", content: "noindex" },
     ],
   }),
@@ -62,7 +62,7 @@ function LoginPage() {
           </span>
           <div>
             <h1 className="text-lg font-semibold">{mode === "signin" ? t("auth.signInTitle") : t("auth.signUpTitle")}</h1>
-            <p className="text-xs text-muted-foreground">Media Rosenqvist</p>
+            <p className="text-xs text-muted-foreground">Catalogus Musicus</p>
           </div>
         </div>
 

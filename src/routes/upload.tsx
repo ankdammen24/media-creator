@@ -29,7 +29,7 @@ type ArtistProfile = {
 export const Route = createFileRoute("/upload")({
   head: () => ({
     meta: [
-      { title: "Upload podcast — Media Rosenqvist Catalog" },
+      { title: "Upload podcast — Catalogus Musicus" },
       { name: "robots", content: "noindex" },
     ],
   }),

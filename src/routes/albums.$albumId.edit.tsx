@@ -10,7 +10,7 @@ import type { Album } from "@/lib/album-helpers";
 export const Route = createFileRoute("/albums/$albumId/edit")({
   head: () => ({
     meta: [
-      { title: "Edit album — Media Rosenqvist" },
+      { title: "Edit album — Catalogus Musicus" },
       { name: "robots", content: "noindex" },
     ],
   }),

@@ -75,7 +75,7 @@ type Draft = {
 export const Route = createFileRoute("/upload-batch")({
   head: () => ({
     meta: [
-      { title: "Batch upload — Media Rosenqvist Catalog" },
+      { title: "Batch upload — Catalogus Musicus" },
       { name: "robots", content: "noindex" },
     ],
   }),

@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 export const Route = createFileRoute("/artists/new")({
   head: () => ({
     meta: [
-      { title: "Ansök om artistkonto — Media Rosenqvist" },
+      { title: "Ansök om artistkonto — Catalogus Musicus" },
       { name: "robots", content: "noindex" },
     ],
   }),

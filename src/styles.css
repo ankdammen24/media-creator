@@ -63,7 +63,7 @@
 
 :root {
   --radius: 0.625rem;
-  /* Media Rosenqvist — dark-first music palette */
+  /* Catalogus Musicus — dark-first music palette */
   --background: oklch(0.16 0.012 270);
   --foreground: oklch(0.97 0.005 270);
   --card: oklch(0.205 0.014 270);
