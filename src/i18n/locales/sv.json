@@ -727,6 +727,7 @@
     "createProfileBtn": "Skapa profil",
     "couldNotLoadProfiles": "Kunde inte ladda profiler",
     "couldNotCreateProfile": "Kunde inte skapa profil",
+    "duplicateArtist": "En artist med namnet \"{{name}}\" finns redan. Kontakta admin om det är ditt artistnamn.",
     "primary": "Primär",
     "setPrimary": "Sätt som primär",
     "multiProfileHint": "Välj flera profiler för samarbeten. Den första räknas som huvudprofil.",
