@@ -269,6 +269,7 @@ type StepId = (typeof STEPS)[number]["id"];
 // ============================================================
 export function ReleaseWizard() {
   const { user } = useAuth();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const [state, dispatch] = useReducer(reducer, undefined, initialState);
   const [step, setStep] = useState<StepId>(1);
@@ -307,7 +308,11 @@ export function ReleaseWizard() {
   }, [user]);
 
   // Validation per step
-  const errors = useMemo(() => validate(state), [state]);
+  const errors = useMemo(
+    () => validate(state, t),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [state, t, i18n.language],
+  );
   const canGoNext = errors[step].length === 0;
 
   // Save draft (manual + autosave)
