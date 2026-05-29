@@ -48,7 +48,8 @@
     "admin": "Admin",
     "signIn": "Logga in",
     "signOut": "Logga ut",
-    "signedIn": "Inloggad"
+    "signedIn": "Inloggad",
+    "stats": "Statistik"
   },
   "footer": {
     "api": "media-catalog API"
@@ -846,5 +847,21 @@
         "error": "Fel"
       }
     }
+  },
+  "stats": {
+    "title": "Statistik",
+    "subtitle": "Antal klick och spelningar för dina låtar",
+    "kpi30d": "Senaste 30 dagarna",
+    "kpiTotal": "Totalt",
+    "plays": "Play-klick",
+    "completed": "30s-lyssningar",
+    "radio": "Radiospelningar",
+    "lastPlayed": "Senast spelad",
+    "title_col": "Låt",
+    "album": "Album",
+    "never": "Aldrig",
+    "empty": "Inga godkända låtar än — statistik visas när du har minst en publicerad låt.",
+    "error": "Kunde inte hämta statistik.",
+    "description": "Klick räknas när någon trycker på play. 30s-lyssningar räknas när låten spelats minst 30 sekunder. Radiospelningar hämtas en gång i veckan från Radio Uppsala."
   }
 }

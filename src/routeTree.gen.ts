@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as UploadBatchRouteImport } from './routes/upload-batch'
 import { Route as UploadRouteImport } from './routes/upload'
+import { Route as StatsRouteImport } from './routes/stats'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as MySubmissionsRouteImport } from './routes/my-submissions'
@@ -27,6 +28,7 @@ import { Route as ApiGenerateArtistImageRouteImport } from './routes/api/generat
 import { Route as AlbumsNewRouteImport } from './routes/albums.new'
 import { Route as AlbumsAlbumIdRouteImport } from './routes/albums.$albumId'
 import { Route as AlbumsAlbumIdEditRouteImport } from './routes/albums.$albumId.edit'
+import { Route as ApiPublicHooksImportRadioUppsalaRouteImport } from './routes/api/public/hooks/import-radio-uppsala'
 import { Route as ApiPublicHooksAudioProcessedRouteImport } from './routes/api/public/hooks/audio-processed'
 
 const UploadBatchRoute = UploadBatchRouteImport.update({
@@ -37,6 +39,11 @@ const UploadBatchRoute = UploadBatchRouteImport.update({
 const UploadRoute = UploadRouteImport.update({
   id: '/upload',
   path: '/upload',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StatsRoute = StatsRouteImport.update({
+  id: '/stats',
+  path: '/stats',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsRoute = SettingsRouteImport.update({
@@ -119,6 +126,12 @@ const AlbumsAlbumIdEditRoute = AlbumsAlbumIdEditRouteImport.update({
   path: '/edit',
   getParentRoute: () => AlbumsAlbumIdRoute,
 } as any)
+const ApiPublicHooksImportRadioUppsalaRoute =
+  ApiPublicHooksImportRadioUppsalaRouteImport.update({
+    id: '/api/public/hooks/import-radio-uppsala',
+    path: '/api/public/hooks/import-radio-uppsala',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksAudioProcessedRoute =
   ApiPublicHooksAudioProcessedRouteImport.update({
     id: '/api/public/hooks/audio-processed',
@@ -135,6 +148,7 @@ export interface FileRoutesByFullPath {
   '/my-submissions': typeof MySubmissionsRoute
   '/notifications': typeof NotificationsRoute
   '/settings': typeof SettingsRoute
+  '/stats': typeof StatsRoute
   '/upload': typeof UploadRoute
   '/upload-batch': typeof UploadBatchRoute
   '/albums/$albumId': typeof AlbumsAlbumIdRouteWithChildren
@@ -146,6 +160,7 @@ export interface FileRoutesByFullPath {
   '/releases/new': typeof ReleasesNewRoute
   '/albums/$albumId/edit': typeof AlbumsAlbumIdEditRoute
   '/api/public/hooks/audio-processed': typeof ApiPublicHooksAudioProcessedRoute
+  '/api/public/hooks/import-radio-uppsala': typeof ApiPublicHooksImportRadioUppsalaRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -156,6 +171,7 @@ export interface FileRoutesByTo {
   '/my-submissions': typeof MySubmissionsRoute
   '/notifications': typeof NotificationsRoute
   '/settings': typeof SettingsRoute
+  '/stats': typeof StatsRoute
   '/upload': typeof UploadRoute
   '/upload-batch': typeof UploadBatchRoute
   '/albums/$albumId': typeof AlbumsAlbumIdRouteWithChildren
@@ -167,6 +183,7 @@ export interface FileRoutesByTo {
   '/releases/new': typeof ReleasesNewRoute
   '/albums/$albumId/edit': typeof AlbumsAlbumIdEditRoute
   '/api/public/hooks/audio-processed': typeof ApiPublicHooksAudioProcessedRoute
+  '/api/public/hooks/import-radio-uppsala': typeof ApiPublicHooksImportRadioUppsalaRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -178,6 +195,7 @@ export interface FileRoutesById {
   '/my-submissions': typeof MySubmissionsRoute
   '/notifications': typeof NotificationsRoute
   '/settings': typeof SettingsRoute
+  '/stats': typeof StatsRoute
   '/upload': typeof UploadRoute
   '/upload-batch': typeof UploadBatchRoute
   '/albums/$albumId': typeof AlbumsAlbumIdRouteWithChildren
@@ -189,6 +207,7 @@ export interface FileRoutesById {
   '/releases/new': typeof ReleasesNewRoute
   '/albums/$albumId/edit': typeof AlbumsAlbumIdEditRoute
   '/api/public/hooks/audio-processed': typeof ApiPublicHooksAudioProcessedRoute
+  '/api/public/hooks/import-radio-uppsala': typeof ApiPublicHooksImportRadioUppsalaRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -201,6 +220,7 @@ export interface FileRouteTypes {
     | '/my-submissions'
     | '/notifications'
     | '/settings'
+    | '/stats'
     | '/upload'
     | '/upload-batch'
     | '/albums/$albumId'
@@ -212,6 +232,7 @@ export interface FileRouteTypes {
     | '/releases/new'
     | '/albums/$albumId/edit'
     | '/api/public/hooks/audio-processed'
+    | '/api/public/hooks/import-radio-uppsala'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -222,6 +243,7 @@ export interface FileRouteTypes {
     | '/my-submissions'
     | '/notifications'
     | '/settings'
+    | '/stats'
     | '/upload'
     | '/upload-batch'
     | '/albums/$albumId'
@@ -233,6 +255,7 @@ export interface FileRouteTypes {
     | '/releases/new'
     | '/albums/$albumId/edit'
     | '/api/public/hooks/audio-processed'
+    | '/api/public/hooks/import-radio-uppsala'
   id:
     | '__root__'
     | '/'
@@ -243,6 +266,7 @@ export interface FileRouteTypes {
     | '/my-submissions'
     | '/notifications'
     | '/settings'
+    | '/stats'
     | '/upload'
     | '/upload-batch'
     | '/albums/$albumId'
@@ -254,6 +278,7 @@ export interface FileRouteTypes {
     | '/releases/new'
     | '/albums/$albumId/edit'
     | '/api/public/hooks/audio-processed'
+    | '/api/public/hooks/import-radio-uppsala'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -265,6 +290,7 @@ export interface RootRouteChildren {
   MySubmissionsRoute: typeof MySubmissionsRoute
   NotificationsRoute: typeof NotificationsRoute
   SettingsRoute: typeof SettingsRoute
+  StatsRoute: typeof StatsRoute
   UploadRoute: typeof UploadRoute
   UploadBatchRoute: typeof UploadBatchRoute
   AlbumsAlbumIdRoute: typeof AlbumsAlbumIdRouteWithChildren
@@ -275,6 +301,7 @@ export interface RootRouteChildren {
   ArtistsNewRoute: typeof ArtistsNewRoute
   ReleasesNewRoute: typeof ReleasesNewRoute
   ApiPublicHooksAudioProcessedRoute: typeof ApiPublicHooksAudioProcessedRoute
+  ApiPublicHooksImportRadioUppsalaRoute: typeof ApiPublicHooksImportRadioUppsalaRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -291,6 +318,13 @@ declare module '@tanstack/react-router' {
       path: '/upload'
       fullPath: '/upload'
       preLoaderRoute: typeof UploadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/stats': {
+      id: '/stats'
+      path: '/stats'
+      fullPath: '/stats'
+      preLoaderRoute: typeof StatsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings': {
@@ -405,6 +439,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AlbumsAlbumIdEditRouteImport
       parentRoute: typeof AlbumsAlbumIdRoute
     }
+    '/api/public/hooks/import-radio-uppsala': {
+      id: '/api/public/hooks/import-radio-uppsala'
+      path: '/api/public/hooks/import-radio-uppsala'
+      fullPath: '/api/public/hooks/import-radio-uppsala'
+      preLoaderRoute: typeof ApiPublicHooksImportRadioUppsalaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/audio-processed': {
       id: '/api/public/hooks/audio-processed'
       path: '/api/public/hooks/audio-processed'
@@ -436,6 +477,7 @@ const rootRouteChildren: RootRouteChildren = {
   MySubmissionsRoute: MySubmissionsRoute,
   NotificationsRoute: NotificationsRoute,
   SettingsRoute: SettingsRoute,
+  StatsRoute: StatsRoute,
   UploadRoute: UploadRoute,
   UploadBatchRoute: UploadBatchRoute,
   AlbumsAlbumIdRoute: AlbumsAlbumIdRouteWithChildren,
@@ -446,6 +488,7 @@ const rootRouteChildren: RootRouteChildren = {
   ArtistsNewRoute: ArtistsNewRoute,
   ReleasesNewRoute: ReleasesNewRoute,
   ApiPublicHooksAudioProcessedRoute: ApiPublicHooksAudioProcessedRoute,
+  ApiPublicHooksImportRadioUppsalaRoute: ApiPublicHooksImportRadioUppsalaRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

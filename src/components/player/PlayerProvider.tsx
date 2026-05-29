@@ -9,6 +9,7 @@ import {
 } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { logPlaybackEvent } from "@/lib/stats.functions";
 
 export type PlayerTrack = {
   id: string;
@@ -75,6 +76,15 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const userRef = useRef(user);
   // Cache signed URLs per trackId so we don't re-sign the same file unnecessarily.
   const signedUrlCacheRef = useRef<Map<string, { signedUrl: string; expiresAt: number }>>(new Map());
+  // Anonymous browser session id, used to dedupe and rate-limit events.
+  const sessionIdRef = useRef<string>("");
+  // Pending 30s "completed" timer + tracked submission id.
+  const completedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const completedTrackIdRef = useRef<string | null>(null);
+  // Submissions for which we already counted a completed_30s today (session).
+  const completedSentRef = useRef<Set<string>>(new Set());
+  // Submissions for which we already counted a "play" this session.
+  const playSentRef = useRef<Set<string>>(new Set());
   useEffect(() => {
     queueRef.current = queue;
   }, [queue]);
@@ -87,6 +97,40 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     userRef.current = user;
   }, [user]);
+
+  // Initialize a stable per-browser session id (used as anonymous dedupe key).
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const KEY = "mr-playback-session";
+    let id = window.sessionStorage.getItem(KEY);
+    if (!id) {
+      id = (typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2)}`);
+      try { window.sessionStorage.setItem(KEY, id); } catch { /* ignore */ }
+    }
+    sessionIdRef.current = id;
+  }, []);
+
+  // Fire-and-forget event log. Failures are silent — analytics must never
+  // block playback or surface errors to the listener.
+  const fireEvent = useCallback(
+    (submissionId: string, eventType: "play" | "completed_30s") => {
+      const sessionId = sessionIdRef.current || undefined;
+      void logPlaybackEvent({
+        data: { submissionId, eventType, source: "player", sessionId },
+      }).catch(() => undefined);
+    },
+    [],
+  );
+
+  const clearCompletedTimer = useCallback(() => {
+    if (completedTimerRef.current) {
+      clearTimeout(completedTimerRef.current);
+      completedTimerRef.current = null;
+    }
+    completedTrackIdRef.current = null;
+  }, []);
 
   // The element currently driving playback + UI.
   const getActive = useCallback(
@@ -333,6 +377,31 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       setProgress(0);
       setDuration(0);
       fadeGuardRef.current = null;
+
+      // New track is starting — reset the 30s completion timer. Log a "play"
+      // event the first time this submission is played in this session.
+      clearCompletedTimer();
+      if (!playSentRef.current.has(track.id)) {
+        playSentRef.current.add(track.id);
+        fireEvent(track.id, "play");
+      }
+      // Arm a 30-second timer; if the same track is still active and
+      // playing when it fires, count one "completed_30s".
+      const targetId = track.id;
+      completedTrackIdRef.current = targetId;
+      completedTimerRef.current = setTimeout(() => {
+        const el = decksRef.current[activeIdxRef.current];
+        if (
+          completedTrackIdRef.current === targetId &&
+          currentRef.current?.id === targetId &&
+          el &&
+          !el.paused &&
+          !completedSentRef.current.has(targetId)
+        ) {
+          completedSentRef.current.add(targetId);
+          fireEvent(targetId, "completed_30s");
+        }
+      }, 30_000);
 
       if (!crossfade) {
         // Hard switch on the active deck; stop the other deck + any fade.
