@@ -1,68 +1,49 @@
-
 ## Mål
 
-Ge artister en egen statistiksida med antal play-klick, antal "riktiga" lyssningar (≥30 sek) och antal spelningar i Radio Uppsalas etersändning per låt/episod. Radio Uppsala-datan hämtas automatiskt en gång i veckan.
+Ta bort 2,5-sekunders volym-crossfaden. I stället förladdas nästa låt i kö så snart en låt börjar spela, och nästa låt startas automatiskt **0,8 sekunder innan** den pågående tar slut — utan volym-ramp, bara för att täcka det lilla gapet mellan låtar.
 
-## 1. Databas
+## Beteende
 
-Ny tabell `playback_events` (rå händelselogg):
-- `submission_id` (uuid, FK till submissions)
-- `event_type` ('play' | 'completed_30s' | 'radio_spin')
-- `user_id` (uuid, nullable — null = anonym besökare)
-- `session_id` (text, anonym browser-session, för dedupe)
-- `source` ('catalog' | 'album_page' | 'artist_page' | 'radio_uppsala')
-- `occurred_at` (timestamptz)
+- Tryck Play → låt A börjar spela.
+- Direkt vid start: nästa låt i kön får sin signed URL hämtad och laddas in på den inaktiva audio-decken (`preload="auto"`, ej `play()`).
+- När A når `duration − 0.8s`: den förladdade decken börjar spela på full volym, blir aktiv deck, A pausas direkt.
+- Inget volym-ramp åt något håll.
+- Skip Next / Skip Prev / Play på ny låt = hård switch (som idag, ingen fade).
+- Podcasts och sista låten i kön = ingen pre-load, spelar ut till slut och stoppar.
 
-Ny vy/materialiserad vy `submission_stats` som aggregerar per `submission_id`:
-- `play_count`, `completed_count`, `radio_spin_count`, `last_played_at`
+## Tekniska ändringar (`src/components/player/PlayerProvider.tsx`)
 
-RLS:
-- `playback_events`: INSERT öppet för anon+authenticated (med rate-limit i serverfn), SELECT endast för admin och ägaren av submission (via join).
-- `submission_stats`: SELECT för admin + ägare.
+1. **Konstanter**
+   - Ta bort `CROSSFADE_SEC` / `CROSSFADE_MS`.
+   - Lägg till `GAP_FILL_SEC = 0.8`.
 
-Service-role används för radio-importen.
+2. **Ta bort fade-rampen**
+   - Radera `startFade`, `cancelFade`, `fadeRafRef`, `fadingOutElRef` och alla volume-mutationer (decks står alltid på `volume = 1`).
+   - Ta bort `useCrossfade`-flaggan från `goToTrack` och alla anrop.
 
-## 2. Loggning av klick (frontend → server)
+3. **Förladdning av nästa låt**
+   - Ny ref `preloadedRef: { trackId, url } | null`.
+   - I `goToTrack` (efter att aktiv deck börjat spela): titta på `queueRef.current[0]`. Om den finns och är `music`, hämta signed URL via `signedUrlFor`, sätt `inactiveDeck.src = url`, `inactiveDeck.preload = "auto"`, `inactiveDeck.load()`, spara i `preloadedRef`. Gör inget om nästa redan är förladdad.
+   - Om kön ändras (skip, ny play, queue-rebuild) → invalidera `preloadedRef` och rensa inaktiv decks `src` när den inte matchar nytt nästa.
 
-- Ny serverfn `logPlaybackEvent({ submissionId, eventType, source })` som validerar input och skriver via `supabaseAdmin` (eftersom anon ska kunna logga utan att vi öppnar tabellen helt).
-- `PlayButton` / `PlayerProvider`:
-  - Skicka `play` direkt när uppspelning startar.
-  - Sätt en 30-sekunders timer; om låten fortfarande spelas (ej pausad/bytt) skicka `completed_30s`. En händelse per (session, submission) per dygn för att undvika spam.
-- Source härleds från sidan (`catalog`, `album_page`, `artist_page`).
+4. **Auto-start vid duration − 0,8s**
+   - Ersätt `maybeAutoCrossfade` med `maybeStartNextEarly`: när `el.duration − el.currentTime ≤ GAP_FILL_SEC`, `currentRef.current.mediaType === "music"`, kö-första är `music` och matchar `preloadedRef.trackId`, och `fadeGuardRef`-motsvarigheten inte redan triggat för denna låt:
+     - Markera triggad (samma guard-mönster).
+     - Flytta `current → history`, `queue.shift()`.
+     - Byt `activeIdxRef` till inaktiv deck, `setCurrent(next)`, kör `inactiveDeck.play()`.
+     - Pausa den nu inaktiva (gamla) decken direkt efter att den nya kommit igång (samma tick) — det ger ~0,8s overlap där båda spelar utan volymjustering.
+     - Rensa `preloadedRef` och starta ny förladdning av nästkommande låt.
 
-## 3. Radio Uppsala-import (veckovis)
+5. **`onEnded`** behåller nuvarande beteende som fallback (för fall där nästa-låten inte hann laddas / podcasts / kort spår). Hård switch utan fade.
 
-- Ny serverfn `importRadioUppsalaPlays` som:
-  1. Hämtar AzuraCast play-historik (`/api/station/1/history?start=...&end=...`) för senaste 7 dygnen — paginerar tills tomt.
-  2. Matchar varje uppspelad fil mot `submissions` via `azuracast_unique_id` (finns redan), fallback ISRC/UPC.
-  3. Skriver en `radio_spin`-rad per spelning till `playback_events`.
-  4. Idempotent: använd en hash av (azuracast_song_id + played_at) som unique key, eller spara `last_imported_at` i en liten `radio_import_runs`-tabell och importera bara nyare poster.
-- Publik route `src/routes/api/public/hooks/import-radio-uppsala.ts` som anropar funktionen, skyddad via `apikey`-header (Supabase anon key).
-- pg_cron-jobb varje måndag 04:00 (`0 4 * * 1`) som pingar route via `pg_net.http_post`.
+6. **`skipNext` / `skipPrev`** = `goToTrack(next, { keepQueue: true })` utan crossfade-argument; invalidera förladdning och starta om för nya nästa.
 
-## 4. Artist-UI
+## Filer
 
-- Ny route `/_authenticated/stats` (svensk titel "Statistik") som listar artistens submissions med kolumner: titel, play-klick, 30s-lyssningar, radiospelningar, senaste spelning.
-- Sortering/filter per artistprofil om användaren har flera artister.
-- Liten KPI-rad överst: totalt antal klick / 30s / radio senaste 30 dagarna.
-- Länk i `SiteHeader` för inloggade artister.
-- Översätt allt via befintliga i18n-filer (`stats`-namespace, sv/en).
+- `src/components/player/PlayerProvider.tsx` (enda filen som behöver ändras).
 
-## 5. Säkerhet
+## Risker / kantfall
 
-- Rate-limit i `logPlaybackEvent` per session_id (max ~5 events/sekund).
-- Validera att `submissionId` finns och har status `approved` innan radskrivning.
-- Radio-importen endast nåbar via cron-secreten (anon-key + pg_cron).
-
-## Teknik (kort)
-
-```text
-playback_events ──┐
-                  ├─► submission_stats (vy)
-radio_import_runs ┘
-                          ▲
-   Frontend Play/30s ─────┤  (serverFn logPlaybackEvent)
-   pg_cron → /api/public/hooks/import-radio-uppsala ──► AzuraCast history → playback_events
-```
-
-Allt i18n-översatt (sv/en). Inga ändringar i befintliga upload-/release-flöden.
+- Spår kortare än 0,8s: villkoret triggar aldrig, `onEnded` tar hand om övergången.
+- Signed URL-cache används redan → ingen extra Supabase-trafik vid själva övergången.
+- `inactiveDeck.play()` är användarinitierad (vi är i en kedja efter ursprungligt Play-klick), så autoplay-policyn blockerar inte.
