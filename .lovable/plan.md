@@ -1,37 +1,32 @@
-# Auto-grant Artist-roll i Skicka in musik
+## Mål
 
-Idag måste en användare som ansöker via `ArtistAccountGate` vänta på admin-godkännande (`approval_status = 'pending'`). Användarens önskemål: när man går genom Skicka in musik och skapar ett nytt artistkonto (eller har ett existerande), ska kontot direkt få status **approved** och användaren få rollen **artist**. Admin kan fortfarande granska och rensa i efterhand.
+`/api/public/tracks` och `/api/public/tracks/:id` ska returnera ett `audio_url`-fält så att katalog-syncen (och andra konsumenter) får en spelbar URL. Audio-bucketen är privat, så vi exponerar en stabil proxy-URL istället för rå storage-path.
 
-## Förändringar
+## Vad som ändras
 
-### 1. Ny serverfunktion `selfApproveArtistAccount` (server-only, admin-klient)
-Fil: `src/lib/artist-self-approve.functions.ts`
+1. **Ny endpoint `src/routes/api/public/stream.$id.ts`** (`/api/public/stream/:id`)
+   - Slår upp submission via `supabaseAdmin` med `status = 'approved'`.
+   - Väljer `audio_web_path` om finns, annars `audio_path`.
+   - Skapar en signerad URL (kort TTL) mot `audio`-bucketen och svarar med `302`-redirect dit.
+   - Vidarebefordrar `Range`-headern är inte nödvändigt eftersom redirect:en låter klienten prata direkt med Supabase Storage (som stödjer range).
+   - Returnerar 404 om submission saknas/inte är approved eller saknar audio-path.
+   - CORS via `PUBLIC_CORS` + `OPTIONS`-handler.
 
-- Skyddad med `requireSupabaseAuth` (kör som inloggad användare, hämtar `userId`).
-- Indata (zod-validerad): antingen `{ mode: "create", name, bio?, website? }` eller `{ mode: "approveExisting", artistProfileId }`.
-- Använder `supabaseAdmin` för att kringgå `enforce_artist_approval`-triggern.
-- För `create`:
-  - Dubblettkontroll mot alla `artist_profiles.name` (samma regel som vid uppladdning) — admin behöver inte denna kontroll, vanliga användare blockeras.
-  - Infogar rad med `user_id = userId`, `approval_status = 'approved'`, `reviewed_by = userId`, `reviewed_at = now()`.
-- För `approveExisting`:
-  - Verifierar att profilen ägs av `userId` och har status `pending` eller `rejected`, sätter den till `approved` med samma stämplar.
-- I båda fallen: upsert i `user_roles` av `{ user_id: userId, role: 'artist' }` (ignorera unique-violation).
-- Returnerar `{ id, name }`.
+2. **`src/lib/api-projections.ts`**
+   - Lägg till `audio_url: string | null` i `PublicTrack`.
+   - Ny helper `streamUrl(id)` som returnerar absolut URL till `/api/public/stream/:id`. Base URL läses från `process.env.PUBLIC_SITE_URL` med fallback till `https://catalog.crystalpierrecords.org`.
+   - `projectTrack` sätter `audio_url = streamUrl(row.id)` när `audio_web_path` eller `audio_path` finns, annars `null`.
+   - Utöka `PUBLIC_TRACK_COLUMNS` med `audio_web_path, audio_path` så projektionen kan avgöra om audio finns (fälten själva läcker inte ut — de används bara för null-check).
 
-### 2. `ArtistAccountGate` använder den nya serverfunktionen
-Fil: `src/components/ArtistAccountGate.tsx`
+3. **Sync-anpassning** (säkerhetscheck)
+   - Bekräfta att `catalog-sync-core.server.ts` läser `audio_url` (inget kodbyte krävs om så är fallet — användaren har redan beskrivit att fältet plockas upp automatiskt).
 
-- `ApplicationForm.onSubmit` anropar `selfApproveArtistAccount({ mode: "create", ... })` istället för direkt `supabase.from("artist_profiles").insert(...)`.
-- Vid lyckat svar invalideras `["my-artist-accounts", user.id]` och `["editor-role", user.id]` så gaten släpper igenom användaren direkt till `ReleaseWizard` — ingen "Application sent"-skärm behövs längre.
-- Om användaren redan har en `pending`/`rejected` profil visas en knapp "Aktivera mitt artistkonto" som anropar `selfApproveArtistAccount({ mode: "approveExisting", artistProfileId })`. Tar bort dagens väntelägesvy för det här flödet (admin kan fortfarande nedgradera senare).
+## Säkerhetsnoter
 
-### 3. Översättningar
-- `src/i18n/locales/sv.json` + `en.json`: nya nycklar för knapparna ("Aktivera artistkontot" / "Activate artist account") och ev. felmeddelande för dubblettnamn (återanvänd `duplicateArtist` om möjligt).
+- `audio_url` är en stabil proxy-URL; den signerade URL:en bakom genereras per request och har kort livslängd.
+- Endast `approved` submissions kan strömmas via endpointen — samma policy som övriga publika endpoints.
+- `source_url`-restriktionen i `tracks`-tabellen påverkas inte; detta gäller bara den publika `submissions`-projektionen.
 
-## Det här rör vi inte
-- RLS-policyn `Users create own artist profiles` och triggern `enforce_artist_approval` ligger kvar — vanlig direktinsert från klient fortsätter att hamna på `pending`. Endast self-approve-flödet via serverfunktionen ger automatisk approve, vilket gör att admin behåller kontroll utanför Skicka in musik.
-- Inga ändringar i admin-vyer; befintliga verktyg räcker för att städa/återkalla roller eller sätta `approval_status = 'rejected'`.
+## Efter implementation
 
-## Tekniska noter
-- Server-fn-filen följer mönstret i `src/lib/admin-users.functions.ts` (tunn fil, bara serverfunktioner som importerar `supabaseAdmin`).
-- Inga DB-migrationer behövs.
+Jag kör en manuell körning av sync-endpointen mot katalogen och verifierar att rader landar i `tracks` och att en låt går att spela på `/musik`.
