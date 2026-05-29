@@ -755,6 +755,65 @@ function SubmissionRow({
 }
 
 function RadioUppsalaImport() {
+  void 0;
+  return <RadioUppsalaImportInner />;
+}
+
+function RadioSpinsImport() {
+  const runImport = useServerFn(runRadioSpinsImport);
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<Awaited<ReturnType<typeof runRadioSpinsImport>> | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function run() {
+    setBusy(true);
+    setError(null);
+    setResult(null);
+    try {
+      const res = await runImport();
+      setResult(res);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="rounded-xl border border-border bg-card p-5">
+      <h2 className="mb-1 text-base font-semibold">Importera spelhistorik (radio-spins)</h2>
+      <p className="mb-4 text-sm text-muted-foreground">
+        Hämtar spelhistorik från Radio Uppsala för senaste perioden och kopplar varje spelning
+        till matchande låt i katalogen (via AzuraCast-ID). Körs annars automatiskt varje måndag.
+      </p>
+      <button
+        onClick={run}
+        disabled={busy}
+        className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+      >
+        {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Radio className="h-3.5 w-3.5" />}
+        Kör spelhistorik-import nu
+      </button>
+      {error && (
+        <p className="mt-3 rounded-md border border-destructive/30 bg-destructive/10 p-2 text-xs text-destructive">
+          {error}
+        </p>
+      )}
+      {result && (
+        <ul className="mt-3 space-y-1 text-xs text-muted-foreground">
+          <li>Tidsfönster: {new Date(result.windowStart).toLocaleString()} → {new Date(result.windowEnd).toLocaleString()}</li>
+          <li>Spelningar hämtade: {result.fetched}</li>
+          <li>Matchade mot låtar: {result.matched}</li>
+          <li>Nyinsatta: <span className="font-medium text-foreground">{result.inserted}</span></li>
+          <li>Redan importerade: {result.skippedExisting}</li>
+          <li>Omatchade (saknar i katalog): {result.unmatched}</li>
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function RadioUppsalaImportInner() {
   const runImport = useServerFn(runAzuracastImport);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<Awaited<ReturnType<typeof runAzuracastImport>> | null>(null);
