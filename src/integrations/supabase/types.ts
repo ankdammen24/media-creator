@@ -106,6 +106,51 @@ export type Database = {
           },
         ]
       }
+      api_keys: {
+        Row: {
+          created_at: string
+          created_by: string
+          expires_at: string | null
+          id: string
+          key_hash: string
+          key_prefix: string
+          label: string
+          last_used_at: string | null
+          owner_user_id: string | null
+          revoked_at: string | null
+          scopes: string[]
+          type: Database["public"]["Enums"]["api_key_type"]
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          expires_at?: string | null
+          id?: string
+          key_hash: string
+          key_prefix: string
+          label: string
+          last_used_at?: string | null
+          owner_user_id?: string | null
+          revoked_at?: string | null
+          scopes?: string[]
+          type: Database["public"]["Enums"]["api_key_type"]
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          expires_at?: string | null
+          id?: string
+          key_hash?: string
+          key_prefix?: string
+          label?: string
+          last_used_at?: string | null
+          owner_user_id?: string | null
+          revoked_at?: string | null
+          scopes?: string[]
+          type?: Database["public"]["Enums"]["api_key_type"]
+        }
+        Relationships: []
+      }
       artist_images: {
         Row: {
           artist_profile_id: string
@@ -807,6 +852,7 @@ export type Database = {
     }
     Enums: {
       album_type: "album" | "ep" | "single" | "compilation" | "podcast_show"
+      api_key_type: "user" | "service"
       app_language: "sv" | "en"
       app_role: "admin" | "moderator" | "user" | "artist"
       artist_approval_status: "pending" | "approved" | "rejected"
@@ -957,6 +1003,7 @@ export const Constants = {
   public: {
     Enums: {
       album_type: ["album", "ep", "single", "compilation", "podcast_show"],
+      api_key_type: ["user", "service"],
       app_language: ["sv", "en"],
       app_role: ["admin", "moderator", "user", "artist"],
       artist_approval_status: ["pending", "approved", "rejected"],
