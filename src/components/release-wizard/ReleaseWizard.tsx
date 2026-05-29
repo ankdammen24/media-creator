@@ -1535,6 +1535,7 @@ function TrackMetadataCard({
   onRemove: () => void;
   onRetry: () => void;
 }) {
+  const { t } = useTranslation();
   const isrcInvalid =
     track.isrc.trim() && !ISRC_RE.test(track.isrc.trim().toUpperCase());
 
@@ -1563,13 +1564,13 @@ function TrackMetadataCard({
               onClick={onRetry}
               className="rounded-md border border-border px-2 py-1 text-xs hover:bg-secondary"
             >
-              Retry
+              {t("wizard.tracks.card.retry")}
             </button>
           )}
           <button
             onClick={onRemove}
             className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border hover:bg-secondary"
-            aria-label="Remove track"
+            aria-label={t("wizard.tracks.card.removeAria")}
           >
             <Trash2 className="h-4 w-4" />
           </button>
@@ -1588,7 +1589,7 @@ function TrackMetadataCard({
 
       {/* Body */}
       <div className="grid gap-4 p-4 md:grid-cols-2">
-        <Field label="Track title" required>
+        <Field label={t("wizard.tracks.card.trackTitle")} required>
           <input
             type="text"
             value={track.title}
@@ -1596,7 +1597,7 @@ function TrackMetadataCard({
             className={inputCls}
           />
         </Field>
-        <Field label="Version" hint="Ex. Radio Edit, Acoustic">
+        <Field label={t("wizard.tracks.card.version")} hint={t("wizard.tracks.card.versionHint")}>
           <input
             type="text"
             value={track.version}
@@ -1604,7 +1605,7 @@ function TrackMetadataCard({
             className={inputCls}
           />
         </Field>
-        <Field label="Featured artists" hint="Komma-separerat">
+        <Field label={t("wizard.tracks.card.featured")} hint={t("wizard.tracks.card.commaSeparated")}>
           <input
             type="text"
             value={track.featuredArtists}
@@ -1613,9 +1614,9 @@ function TrackMetadataCard({
           />
         </Field>
         <Field
-          label="ISRC"
-          hint="12 tecken, ex. SE-ABC-25-12345"
-          error={isrcInvalid ? "Format ser ogiltigt ut" : undefined}
+          label={t("wizard.tracks.card.isrc")}
+          hint={t("wizard.tracks.card.isrcHint")}
+          error={isrcInvalid ? t("wizard.tracks.card.isrcInvalid") : undefined}
         >
           <input
             type="text"
@@ -1625,7 +1626,7 @@ function TrackMetadataCard({
             className={inputCls}
           />
         </Field>
-        <Field label="Songwriters" hint="Komma-separerat">
+        <Field label={t("wizard.tracks.card.songwriters")} hint={t("wizard.tracks.card.commaSeparated")}>
           <input
             type="text"
             value={track.songwriters}
@@ -1633,7 +1634,7 @@ function TrackMetadataCard({
             className={inputCls}
           />
         </Field>
-        <Field label="Producer credits" hint="Komma-separerat">
+        <Field label={t("wizard.tracks.card.producers")} hint={t("wizard.tracks.card.commaSeparated")}>
           <input
             type="text"
             value={track.producers}
@@ -1641,7 +1642,7 @@ function TrackMetadataCard({
             className={inputCls}
           />
         </Field>
-        <Field label="Preview clip start (sec)">
+        <Field label={t("wizard.tracks.card.previewStart")}>
           <input
             type="number"
             min={0}
@@ -1652,7 +1653,7 @@ function TrackMetadataCard({
             className={inputCls}
           />
         </Field>
-        <Field label="Loudness (LUFS)" hint="Auto-detekteras vid review">
+        <Field label={t("wizard.tracks.card.loudness")} hint={t("wizard.tracks.card.loudnessHint")}>
           <input
             disabled
             placeholder="—"
@@ -1663,22 +1664,22 @@ function TrackMetadataCard({
         <div className="md:col-span-2">
           <div className="flex flex-wrap gap-2">
             <Toggle
-              label="Explicit lyrics"
+              label={t("wizard.tracks.card.explicit")}
               active={track.explicit}
               onClick={() => onChange({ explicit: !track.explicit })}
             />
             <Toggle
-              label="Instrumental"
+              label={t("wizard.tracks.card.instrumental")}
               active={track.instrumental}
               onClick={() => onChange({ instrumental: !track.instrumental })}
             />
             <Toggle
-              label="AI-generated content"
+              label={t("wizard.tracks.card.aiGenerated")}
               active={track.aiGenerated}
               onClick={() => onChange({ aiGenerated: !track.aiGenerated })}
             />
             <Toggle
-              label="Dolby Atmos available"
+              label={t("wizard.tracks.card.atmos")}
               active={track.atmosAvailable}
               onClick={() =>
                 onChange({ atmosAvailable: !track.atmosAvailable })
@@ -1689,7 +1690,7 @@ function TrackMetadataCard({
 
         {track.atmosAvailable && (
           <div className="md:col-span-2">
-            <Field label="Upload Atmos mix">
+            <Field label={t("wizard.tracks.card.uploadAtmos")}>
               {track.atmosFile ? (
                 <div className="flex items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-xs">
                   <span className="truncate flex-1">{track.atmosFile.name}</span>
@@ -1703,7 +1704,7 @@ function TrackMetadataCard({
               ) : (
                 <label className="flex h-14 cursor-pointer items-center justify-center rounded-md border border-dashed border-border text-xs hover:bg-secondary/40">
                   <UploadIcon className="mr-2 h-4 w-4 text-muted-foreground" />
-                  Select Atmos file
+                  {t("wizard.tracks.card.selectAtmos")}
                   <input
                     type="file"
                     accept={AUDIO_ACCEPT}
@@ -1723,20 +1724,21 @@ function TrackMetadataCard({
 }
 
 function TrackStatusLabel({ track }: { track: TrackDraft }) {
+  const { t } = useTranslation();
   switch (track.status) {
     case "queued":
-      return <span className="text-muted-foreground">Queued</span>;
+      return <span className="text-muted-foreground">{t("wizard.tracks.status.queued")}</span>;
     case "uploading":
       return (
         <span className="inline-flex items-center gap-1 text-primary">
           <Loader2 className="h-3 w-3 animate-spin" />
-          Uploading {track.uploadPct}%
+          {t("wizard.tracks.status.uploading", { pct: track.uploadPct })}
         </span>
       );
     case "ready":
-      return <span className="text-emerald-400">Uploaded</span>;
+      return <span className="text-emerald-400">{t("wizard.tracks.status.ready")}</span>;
     case "error":
-      return <span className="text-destructive">{track.errorMsg ?? "Error"}</span>;
+      return <span className="text-destructive">{track.errorMsg ?? t("wizard.tracks.status.error")}</span>;
   }
 }
 
