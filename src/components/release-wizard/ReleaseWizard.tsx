@@ -1970,17 +1970,17 @@ function Meta({ k, v }: { k: string; v: string }) {
 // Demo notice
 // ============================================================
 function DemoNotice({ className = "" }: { className?: string }) {
+  const { t } = useTranslation();
   return (
     <div
       className={`flex items-start gap-3 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-300 ${className}`}
     >
       <Info className="mt-0.5 h-4 w-4 shrink-0" />
       <p>
-        <span className="font-semibold">Demo-läge.</span> Din release sparas i
-        Media Rosenqvist Catalog och skickas till Radio Uppsala för granskning.
-        Distribution till Spotify, Apple Music och andra streamingtjänster är{" "}
-        <span className="font-semibold">inte aktiv</span> — låtarna publiceras
-        alltså inte på dessa plattformar.
+        <span className="font-semibold">{t("wizard.demoNotice.label")}</span>{" "}
+        {t("wizard.demoNotice.body")}{" "}
+        <span className="font-semibold">{t("wizard.demoNotice.notActive")}</span>
+        {t("wizard.demoNotice.tail")}
       </p>
     </div>
   );
@@ -2004,25 +2004,28 @@ function FloatingSaveBar({
   canSave: boolean;
   onSave: () => void;
 }) {
+  const { t } = useTranslation();
   let status: ReactNode;
   if (saving) {
     status = (
       <span className="inline-flex items-center gap-1.5 text-primary">
-        <Loader2 className="h-3 w-3 animate-spin" /> Sparar…
+        <Loader2 className="h-3 w-3 animate-spin" /> {t("wizard.saving")}
       </span>
     );
   } else if (error) {
     status = <span className="text-destructive">{error}</span>;
   } else if (dirty) {
-    status = <span className="text-muted-foreground">Osparade ändringar</span>;
+    status = <span className="text-muted-foreground">{t("wizard.unsavedChanges")}</span>;
   } else if (savedAt) {
     status = (
       <span className="text-muted-foreground">
-        Sparat {savedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+        {t("wizard.savedAt", {
+          time: savedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        })}
       </span>
     );
   } else {
-    status = <span className="text-muted-foreground">Inget sparat ännu</span>;
+    status = <span className="text-muted-foreground">{t("wizard.notSavedYet")}</span>;
   }
 
   return (
@@ -2035,7 +2038,7 @@ function FloatingSaveBar({
           className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
         >
           <Save className="h-3 w-3" />
-          Save Draft
+          {t("wizard.saveDraft")}
         </button>
       </div>
     </div>
