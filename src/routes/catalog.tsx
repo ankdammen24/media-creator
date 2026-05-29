@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { useState, useMemo, useEffect, useRef } from "react";
-import { Search, Music2, Mic, User } from "lucide-react";
+import { Search, Music2, Mic, User, Disc3 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { EmptyState, ErrorState } from "@/components/StateViews";
@@ -11,7 +12,9 @@ import { z } from "zod";
 import { effectiveArtworkPath } from "@/lib/album-helpers";
 import { PlayButton } from "@/components/player/PlayButton";
 import type { PlayerTrack } from "@/components/player/PlayerProvider";
-import { EditorTrackMeta, EditorArtistMeta } from "@/components/EditorCardMeta";
+import { EditorTrackMeta, EditorArtistMeta, EditorAlbumMeta } from "@/components/EditorCardMeta";
+import { getAllAlbums, type PublicAlbum } from "@/lib/albums.functions";
+import { ALBUM_TYPE_LABELS } from "@/lib/album-helpers";
 
 const catalogSearchSchema = z.object({
   focus: fallback(z.string(), "").optional(),
