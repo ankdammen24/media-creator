@@ -810,13 +810,42 @@ function StepReleaseDetails({
   profiles,
   profilesLoading,
   dispatch,
+  onArtistCreated,
 }: {
   state: ReleaseState;
   errors: string[];
   profiles: ArtistProfile[];
   profilesLoading: boolean;
   dispatch: React.Dispatch<Action>;
+  onArtistCreated: (p: ArtistProfile) => void;
 }) {
+  const { user } = useAuth();
+  const [creating, setCreating] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [createBusy, setCreateBusy] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+
+  async function handleCreate() {
+    if (!user || !newName.trim()) return;
+    setCreateBusy(true);
+    setCreateError(null);
+    try {
+      const { data, error } = await supabase
+        .from("artist_profiles")
+        .insert({ user_id: user.id, name: newName.trim() })
+        .select("id, name")
+        .single();
+      if (error) throw error;
+      onArtistCreated(data as ArtistProfile);
+      setNewName("");
+      setCreating(false);
+    } catch (e) {
+      setCreateError(e instanceof Error ? e.message : "Kunde inte skapa artist");
+    } finally {
+      setCreateBusy(false);
+    }
+  }
+
   return (
     <StepCard
       step={1}
