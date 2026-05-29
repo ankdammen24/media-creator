@@ -683,6 +683,25 @@ function AdminPage() {
         ))}
       </div>
 
+      <div className="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-border bg-card p-3">
+        <div className="flex flex-col">
+          <span className="text-xs font-medium">AzuraCast-spegling</span>
+          <span className="text-[11px] text-muted-foreground">
+            Speglar godkänd musik till mappen Synced_music/ (spellistan default).
+          </span>
+        </div>
+        <button
+          type="button"
+          onClick={handleAzuracastSync}
+          disabled={azBusy}
+          className="ml-auto inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground disabled:opacity-50"
+        >
+          {azBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+          Sync to AzuraCast
+        </button>
+        {azMsg && <span className="basis-full text-[11px] text-muted-foreground">{azMsg}</span>}
+      </div>
+
       {isLoading ? (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" /> Loading…
