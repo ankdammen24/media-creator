@@ -5,6 +5,7 @@ import { updateArtistProfile } from "@/lib/catalog-edit.functions";
 import { X, Upload as UploadIcon, Sparkles } from "lucide-react";
 import { AiArtworkDialog } from "@/components/AiArtworkDialog";
 import { useAuth } from "@/lib/auth";
+import { StorageErrorAlert } from "@/components/StorageErrorAlert";
 
 export type EditableArtist = {
   id: string;
@@ -205,11 +206,7 @@ export function ArtistProfileEditor({
         ))}
       </div>
 
-      {error && (
-        <p className="rounded-md border border-destructive/30 bg-destructive/10 p-2 text-xs text-destructive">
-          {error}
-        </p>
-      )}
+      {error && <StorageErrorAlert message={error} />}
 
       <div className="flex justify-end gap-2">
         <button
