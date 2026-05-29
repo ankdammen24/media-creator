@@ -586,9 +586,12 @@ export function ReleaseWizard() {
               className="animate-in fade-in slide-in-from-bottom-2 duration-300"
             >
               {step === 1 && (
+                <StepTracks state={state} dispatch={dispatch} />
+              )}
+              {step === 2 && (
                 <StepReleaseDetails
                   state={state}
-                  errors={errors[1]}
+                  errors={errors[2]}
                   profiles={profiles}
                   profilesLoading={profilesLoading}
                   dispatch={dispatch}
@@ -598,11 +601,8 @@ export function ReleaseWizard() {
                   }}
                 />
               )}
-              {step === 2 && (
-                <StepPlatforms state={state} dispatch={dispatch} />
-              )}
               {step === 3 && (
-                <StepTracks state={state} dispatch={dispatch} />
+                <StepPlatforms state={state} dispatch={dispatch} />
               )}
               {step === 4 && (
                 <StepRights state={state} dispatch={dispatch} />
