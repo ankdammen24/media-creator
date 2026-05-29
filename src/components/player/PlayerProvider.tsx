@@ -396,30 +396,8 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       // previous "next" is now stale.
       clearPreload();
 
-      // New track is starting — reset the 30s completion timer. Log a "play"
-      // event the first time this submission is played in this session.
-      clearCompletedTimer();
-      if (!playSentRef.current.has(track.id)) {
-        playSentRef.current.add(track.id);
-        fireEvent(track.id, "play");
-      }
-      // Arm a 30-second timer; if the same track is still active and
-      // playing when it fires, count one "completed_30s".
-      const targetId = track.id;
-      completedTrackIdRef.current = targetId;
-      completedTimerRef.current = setTimeout(() => {
-        const el = decksRef.current[activeIdxRef.current];
-        if (
-          completedTrackIdRef.current === targetId &&
-          currentRef.current?.id === targetId &&
-          el &&
-          !el.paused &&
-          !completedSentRef.current.has(targetId)
-        ) {
-          completedSentRef.current.add(targetId);
-          fireEvent(targetId, "completed_30s");
-        }
-      }, 30_000);
+      // Reset the 30s completion timer for the new active track.
+      armTrackTracking(track);
 
       // Hard switch on the active deck; stop the other deck.
       toEl.pause();
@@ -437,7 +415,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       // Kick off preloading of whatever is currently next in the queue.
       void preloadNextRef.current?.();
     },
-    [buildRandomQueue, signedUrlFor, clearPreload, clearCompletedTimer, fireEvent],
+    [buildRandomQueue, signedUrlFor, clearPreload, armTrackTracking],
   );
 
   useEffect(() => {
@@ -462,7 +440,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
         }
         return;
       }
-      await goToTrack(track, { keepQueue: opts?.keepQueue, useCrossfade: false });
+      await goToTrack(track, { keepQueue: opts?.keepQueue });
     },
     [getActive, goToTrack],
   );
