@@ -687,26 +687,26 @@ export function ReleaseWizard() {
 function validate(s: ReleaseState): Record<StepId, string[]> {
   const e: Record<StepId, string[]> = { 1: [], 2: [], 3: [], 4: [], 5: [] };
 
-  // Step 1
-  if (!s.title.trim()) e[1].push("Release title is required.");
-  if (!s.artistProfileId) e[1].push("Pick an artist profile.");
-  if (!s.primaryGenre) e[1].push("Primary genre is required.");
-  if (!s.releaseDate) e[1].push("Release date is required.");
-  if (!s.cover && !s.albumId) e[1].push("Upload cover artwork.");
-
-  // Step 2
-  if (s.platforms.length === 0) e[2].push("Pick at least one platform.");
-
-  // Step 3
-  if (s.tracks.length === 0) e[3].push("Add at least one track.");
+  // Step 1 — Tracks
+  if (s.tracks.length === 0) e[1].push("Add at least one track.");
   const notReady = s.tracks.filter((t) => t.status !== "ready");
   if (notReady.length > 0)
-    e[3].push(`${notReady.length} track(s) still uploading or in error.`);
+    e[1].push(`${notReady.length} track(s) still uploading or in error.`);
   for (const t of s.tracks) {
-    if (!t.title.trim()) e[3].push(`Track "${t.file.name}" needs a title.`);
+    if (!t.title.trim()) e[1].push(`Track "${t.file.name}" needs a title.`);
     if (t.isrc.trim() && !ISRC_RE.test(t.isrc.trim().toUpperCase()))
-      e[3].push(`ISRC for "${t.title || t.file.name}" looks invalid.`);
+      e[1].push(`ISRC for "${t.title || t.file.name}" looks invalid.`);
   }
+
+  // Step 2 — Release Details
+  if (!s.title.trim()) e[2].push("Release title is required.");
+  if (!s.artistProfileId) e[2].push("Pick an artist profile.");
+  if (!s.primaryGenre) e[2].push("Primary genre is required.");
+  if (!s.releaseDate) e[2].push("Release date is required.");
+  if (!s.cover && !s.albumId) e[2].push("Upload cover artwork.");
+
+  // Step 3 — Platforms
+  if (s.platforms.length === 0) e[3].push("Pick at least one platform.");
 
   // Step 4
   const r = s.rights;
