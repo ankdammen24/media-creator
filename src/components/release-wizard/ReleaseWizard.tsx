@@ -1338,6 +1338,7 @@ function StepTracks({
   dispatch: React.Dispatch<Action>;
 }) {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [drag, setDrag] = useState(false);
 
   async function handleFiles(files: File[]) {
@@ -1353,8 +1354,8 @@ function StepTracks({
         errorMsg: ok
           ? null
           : f.size > MAX_AUDIO_BYTES
-            ? `För stor (${formatBytes(f.size)})`
-            : "Ogiltigt format",
+            ? t("wizard.tracks.tooLarge", { size: formatBytes(f.size) })
+            : t("wizard.tracks.invalidFormat"),
         title: baseName(f.name),
         version: "",
         featuredArtists: "",
@@ -1408,7 +1409,7 @@ function StepTracks({
         patch: { status: "ready", uploadPct: 100, audioPath: path },
       });
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Upload failed";
+      const msg = e instanceof Error ? e.message : t("wizard.tracks.uploadFailed");
       dispatch({
         type: "updateTrack",
         id: d.id,
@@ -1420,8 +1421,8 @@ function StepTracks({
   return (
     <StepCard
       step={1}
-      title="Tracks"
-      description="Lägg till alla låtar för releasen. Drag-and-drop eller välj filer."
+      title={t("wizard.tracks.title")}
+      description={t("wizard.tracks.description")}
     >
       <label
         onDragOver={(e) => {
@@ -1444,12 +1445,14 @@ function StepTracks({
         <UploadIcon className="h-8 w-8 text-muted-foreground" />
         <p className="mt-3 text-sm font-medium">
           {state.tracks.length === 0
-            ? "Drop audio files here"
-            : "Add more tracks"}
+            ? t("wizard.tracks.dropHere")
+            : t("wizard.tracks.addMore")}
         </p>
         <p className="mt-1 text-xs text-muted-foreground">
-          {AUDIO_EXTS.join(", ").toUpperCase()} · up to{" "}
-          {formatBytes(MAX_AUDIO_BYTES)} each
+          {t("wizard.tracks.hint", {
+            formats: AUDIO_EXTS.join(", ").toUpperCase(),
+            max: formatBytes(MAX_AUDIO_BYTES),
+          })}
         </p>
         <input
           type="file"
@@ -1467,9 +1470,9 @@ function StepTracks({
       {state.tracks.length === 0 ? (
         <div className="mt-6 rounded-lg border border-dashed border-border bg-background/30 px-4 py-8 text-center">
           <Music2 className="mx-auto h-8 w-8 text-muted-foreground" />
-          <p className="mt-3 text-sm font-medium">No tracks yet</p>
+          <p className="mt-3 text-sm font-medium">{t("wizard.tracks.noneYet")}</p>
           <p className="mt-1 text-xs text-muted-foreground">
-            Lägg till minst en låt för att fortsätta.
+            {t("wizard.tracks.addAtLeastOne")}
           </p>
         </div>
       ) : (
