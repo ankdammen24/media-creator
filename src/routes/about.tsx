@@ -19,6 +19,26 @@ export const Route = createFileRoute("/about")({
   component: AboutPage,
 });
 
+const LINKS = {
+  mr: "https://mediarosenqvist.com",
+  cpr: "https://crystalpierrecords.org",
+  gmp: "https://guerillaminstrel.com",
+  ru: "https://radiouppsala.se",
+} as const;
+
+function ExtLink({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="text-primary underline-offset-4 hover:underline"
+    >
+      {children}
+    </a>
+  );
+}
+
 function AboutPage() {
   const { t } = useTranslation();
   const list = (key: string) =>
@@ -36,7 +56,9 @@ function AboutPage() {
         <p>
           <strong className="text-foreground">{t("about.intro1Bold1")}</strong>
           {t("about.intro1Mid")}
-          <strong className="text-foreground">{t("about.intro1Bold2")}</strong>
+          <strong className="text-foreground">
+            <ExtLink href={LINKS.mr}>{t("about.intro1Bold2")}</ExtLink>
+          </strong>
           {t("about.intro1Suffix")}
         </p>
         <p>{t("about.intro2")}</p>
@@ -49,7 +71,7 @@ function AboutPage() {
       <section className="mt-16">
         <h2 className="flex items-center gap-2 text-2xl font-semibold tracking-tight text-foreground">
           <Globe className="h-5 w-5 text-primary" />
-          {t("about.mr.heading")}
+          <ExtLink href={LINKS.mr}>{t("about.mr.heading")}</ExtLink>
         </h2>
         <p className="mt-2 text-sm font-medium uppercase tracking-wide text-muted-foreground">{t("about.mr.sub")}</p>
         <div className="mt-6 space-y-4 text-foreground/90">
@@ -66,7 +88,7 @@ function AboutPage() {
       <section className="mt-16">
         <h2 className="flex items-center gap-2 text-2xl font-semibold tracking-tight text-foreground">
           <Disc className="h-5 w-5 text-primary" />
-          {t("about.cpr.heading")}
+          <ExtLink href={LINKS.cpr}>{t("about.cpr.heading")}</ExtLink>
         </h2>
         <p className="mt-2 text-sm font-medium uppercase tracking-wide text-muted-foreground">{t("about.cpr.sub")}</p>
         <div className="mt-6 space-y-4 text-foreground/90">
@@ -83,7 +105,7 @@ function AboutPage() {
       <section className="mt-16">
         <h2 className="flex items-center gap-2 text-2xl font-semibold tracking-tight text-foreground">
           <BookOpen className="h-5 w-5 text-primary" />
-          {t("about.gmp.heading")}
+          <ExtLink href={LINKS.gmp}>{t("about.gmp.heading")}</ExtLink>
         </h2>
         <p className="mt-2 text-sm font-medium uppercase tracking-wide text-muted-foreground">{t("about.gmp.sub")}</p>
         <div className="mt-6 space-y-4 text-foreground/90">
@@ -100,7 +122,7 @@ function AboutPage() {
       <section className="mt-16">
         <h2 className="flex items-center gap-2 text-2xl font-semibold tracking-tight text-foreground">
           <Radio className="h-5 w-5 text-primary" />
-          {t("about.ru.heading")}
+          <ExtLink href={LINKS.ru}>{t("about.ru.heading")}</ExtLink>
         </h2>
         <p className="mt-2 text-sm font-medium uppercase tracking-wide text-muted-foreground">{t("about.ru.sub")}</p>
         <div className="mt-6 space-y-4 text-foreground/90">
@@ -125,18 +147,18 @@ function AboutPage() {
 
           <div className="overflow-x-auto rounded-lg border border-border bg-secondary/30 p-6">
             <pre className="text-sm text-foreground/80 leading-relaxed whitespace-pre">
-{`Media Rosenqvist
+<ExtLink href={LINKS.mr}>Media Rosenqvist</ExtLink>{`
 │
-├── Catalogus Musicus
+├── `}Catalogus Musicus{`
 │      └── Central metadata & music catalog
 │
-├── Crystal Pier Records
+├── `}<ExtLink href={LINKS.cpr}>Crystal Pier Records</ExtLink>{`
 │      └── Releases & master recordings
 │
-├── Guerilla Minstrel Publishing
+├── `}<ExtLink href={LINKS.gmp}>Guerilla Minstrel Publishing</ExtLink>{`
 │      └── Publishing & composition rights
 │
-└── Radio Uppsala
+└── `}<ExtLink href={LINKS.ru}>Radio Uppsala</ExtLink>{`
        └── Broadcast, discovery & distribution`}
             </pre>
           </div>
