@@ -321,6 +321,33 @@ export function AdminAutoArtwork() {
         </button>
       </div>
 
+      <div className="rounded-xl border border-primary/40 bg-primary/5 p-5">
+        <div className="mb-3 flex items-center gap-2">
+          <Radio className="h-4 w-4 text-primary" />
+          <h2 className="text-base font-semibold">Sveper bort ALLA Radio Uppsala-bilder</h2>
+        </div>
+        <p className="mb-4 text-sm text-muted-foreground">
+          Loopar låt- och album-regenereringen i upp till 20 batchar tills inga AzuraCast-default-omslag
+          finns kvar. Prioritet: iTunes → Deezer → MusicBrainz → AI som sista utväg. Redan AI-genererade
+          eller redan utbytta omslag ligger på andra paths och rörs inte.
+        </p>
+        <button
+          onClick={runSweepRadioUppsala}
+          disabled={busy !== null}
+          className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+        >
+          {busy === "sweep" ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <Radio className="h-3.5 w-3.5" />
+          )}
+          Svep bort Radio Uppsala-bilder
+        </button>
+        {sweepProgress && (
+          <p className="mt-3 text-xs text-muted-foreground">{sweepProgress}</p>
+        )}
+      </div>
+
       {error && (
         <div className="rounded-xl border border-destructive bg-destructive/10 p-4 text-sm text-destructive">
           {error}
