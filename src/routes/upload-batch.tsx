@@ -20,6 +20,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ShowPicker } from "@/components/ShowPicker";
 import { nextEpisodeNumber } from "@/lib/podcast-helpers";
 import { AiArtworkDialog } from "@/components/AiArtworkDialog";
+import { useEditorRole } from "@/lib/useEditorRole";
 
 type ArtistProfile = { id: string; name: string; bio: string | null };
 
@@ -89,6 +90,7 @@ export const Route = createFileRoute("/upload-batch")({
 function BatchUploadPage() {
   const { user } = useAuth();
   const { t } = useTranslation();
+  const { isAdmin } = useEditorRole();
 
   // Profiles
   const [profiles, setProfiles] = useState<ArtistProfile[]>([]);
@@ -119,11 +121,13 @@ function BatchUploadPage() {
       try {
         setProfilesLoading(true);
         if (!user) return;
-        const { data, error } = await supabase
-          .from("artist_profiles")
-          .select("id, name, bio")
-          .eq("user_id", user.id)
-          .order("created_at", { ascending: true });
+        let q = supabase.from("artist_profiles").select("id, name, bio");
+        if (isAdmin) {
+          q = q.order("name", { ascending: true });
+        } else {
+          q = q.eq("user_id", user.id).order("created_at", { ascending: true });
+        }
+        const { data, error } = await q;
         if (!on) return;
         if (error) throw error;
         const items = (data ?? []) as ArtistProfile[];
@@ -138,7 +142,7 @@ function BatchUploadPage() {
     return () => {
       on = false;
     };
-  }, [user]);
+  }, [user, isAdmin]);
 
   function onPickSharedArtwork(e: ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0] ?? null;

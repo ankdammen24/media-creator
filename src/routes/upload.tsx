@@ -19,6 +19,8 @@ import { nextEpisodeNumber, EPISODE_TYPE_LABELS, type PodcastEpisodeType } from 
 import { useServerFn } from "@tanstack/react-start";
 import { autoFetchArtistArtwork } from "@/lib/artwork.functions";
 import { AiArtworkDialog } from "@/components/AiArtworkDialog";
+import { useEditorRole } from "@/lib/useEditorRole";
+import { useAllArtistNames } from "@/lib/artist-list";
 
 type ArtistProfile = {
   id: string;
@@ -74,6 +76,8 @@ function parseList(s: string): string[] {
 function UploadPage() {
   const { user } = useAuth();
   const { t } = useTranslation();
+  const { isAdmin } = useEditorRole();
+  const { findDuplicate } = useAllArtistNames();
 
   // Profiles
   const [profiles, setProfiles] = useState<ArtistProfile[]>([]);
@@ -120,11 +124,15 @@ function UploadPage() {
       try {
         setProfilesLoading(true);
         if (!user) return;
-        const { data, error } = await supabase
+        let q = supabase
           .from("artist_profiles")
-          .select("id, name, bio")
-          .eq("user_id", user.id)
-          .order("created_at", { ascending: true });
+          .select("id, name, bio");
+        if (isAdmin) {
+          q = q.order("name", { ascending: true });
+        } else {
+          q = q.eq("user_id", user.id).order("created_at", { ascending: true });
+        }
+        const { data, error } = await q;
         if (!on) return;
         if (error) throw error;
         const items = (data ?? []) as ArtistProfile[];
@@ -139,7 +147,7 @@ function UploadPage() {
     return () => {
       on = false;
     };
-  }, [user]);
+  }, [user, isAdmin]);
 
   const audioError = (() => {
     if (!audio) return null;
@@ -192,6 +200,13 @@ function UploadPage() {
   async function createProfile(e: FormEvent) {
     e.preventDefault();
     if (!newProfileName.trim() || !user) return;
+    const dup = findDuplicate(newProfileName);
+    if (dup && !isAdmin) {
+      setProfilesError(
+        t("uploadEpisode.duplicateArtist", { name: dup.name, defaultValue: `En artist med namnet "${dup.name}" finns redan. Kontakta admin om det är ditt artistnamn.` }),
+      );
+      return;
+    }
     setCreateBusy(true);
     setProfilesError(null);
     try {
