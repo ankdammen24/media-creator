@@ -17,12 +17,14 @@ import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as MySubmissionsRouteImport } from './routes/my-submissions'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as CatalogRouteImport } from './routes/catalog'
+import { Route as ApiDocsRouteImport } from './routes/api-docs'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ReleasesNewRouteImport } from './routes/releases.new'
 import { Route as ArtistsNewRouteImport } from './routes/artists.new'
 import { Route as ArtistsArtistIdRouteImport } from './routes/artists.$artistId'
+import { Route as ApiOpenapiRouteImport } from './routes/api/openapi'
 import { Route as ApiGenerateArtworkRouteImport } from './routes/api/generate-artwork'
 import { Route as ApiGenerateArtistImageRouteImport } from './routes/api/generate-artist-image'
 import { Route as AlbumsNewRouteImport } from './routes/albums.new'
@@ -85,6 +87,11 @@ const CatalogRoute = CatalogRouteImport.update({
   path: '/catalog',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiDocsRoute = ApiDocsRouteImport.update({
+  id: '/api-docs',
+  path: '/api-docs',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminRoute = AdminRouteImport.update({
   id: '/admin',
   path: '/admin',
@@ -113,6 +120,11 @@ const ArtistsNewRoute = ArtistsNewRouteImport.update({
 const ArtistsArtistIdRoute = ArtistsArtistIdRouteImport.update({
   id: '/artists/$artistId',
   path: '/artists/$artistId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiOpenapiRoute = ApiOpenapiRouteImport.update({
+  id: '/api/openapi',
+  path: '/api/openapi',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiGenerateArtworkRoute = ApiGenerateArtworkRouteImport.update({
@@ -227,6 +239,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/admin': typeof AdminRoute
+  '/api-docs': typeof ApiDocsRoute
   '/catalog': typeof CatalogRoute
   '/login': typeof LoginRoute
   '/my-submissions': typeof MySubmissionsRoute
@@ -239,6 +252,7 @@ export interface FileRoutesByFullPath {
   '/albums/new': typeof AlbumsNewRoute
   '/api/generate-artist-image': typeof ApiGenerateArtistImageRoute
   '/api/generate-artwork': typeof ApiGenerateArtworkRoute
+  '/api/openapi': typeof ApiOpenapiRoute
   '/artists/$artistId': typeof ArtistsArtistIdRoute
   '/artists/new': typeof ArtistsNewRoute
   '/releases/new': typeof ReleasesNewRoute
@@ -264,6 +278,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/admin': typeof AdminRoute
+  '/api-docs': typeof ApiDocsRoute
   '/catalog': typeof CatalogRoute
   '/login': typeof LoginRoute
   '/my-submissions': typeof MySubmissionsRoute
@@ -276,6 +291,7 @@ export interface FileRoutesByTo {
   '/albums/new': typeof AlbumsNewRoute
   '/api/generate-artist-image': typeof ApiGenerateArtistImageRoute
   '/api/generate-artwork': typeof ApiGenerateArtworkRoute
+  '/api/openapi': typeof ApiOpenapiRoute
   '/artists/$artistId': typeof ArtistsArtistIdRoute
   '/artists/new': typeof ArtistsNewRoute
   '/releases/new': typeof ReleasesNewRoute
@@ -302,6 +318,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/admin': typeof AdminRoute
+  '/api-docs': typeof ApiDocsRoute
   '/catalog': typeof CatalogRoute
   '/login': typeof LoginRoute
   '/my-submissions': typeof MySubmissionsRoute
@@ -314,6 +331,7 @@ export interface FileRoutesById {
   '/albums/new': typeof AlbumsNewRoute
   '/api/generate-artist-image': typeof ApiGenerateArtistImageRoute
   '/api/generate-artwork': typeof ApiGenerateArtworkRoute
+  '/api/openapi': typeof ApiOpenapiRoute
   '/artists/$artistId': typeof ArtistsArtistIdRoute
   '/artists/new': typeof ArtistsNewRoute
   '/releases/new': typeof ReleasesNewRoute
@@ -341,6 +359,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/admin'
+    | '/api-docs'
     | '/catalog'
     | '/login'
     | '/my-submissions'
@@ -353,6 +372,7 @@ export interface FileRouteTypes {
     | '/albums/new'
     | '/api/generate-artist-image'
     | '/api/generate-artwork'
+    | '/api/openapi'
     | '/artists/$artistId'
     | '/artists/new'
     | '/releases/new'
@@ -378,6 +398,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/admin'
+    | '/api-docs'
     | '/catalog'
     | '/login'
     | '/my-submissions'
@@ -390,6 +411,7 @@ export interface FileRouteTypes {
     | '/albums/new'
     | '/api/generate-artist-image'
     | '/api/generate-artwork'
+    | '/api/openapi'
     | '/artists/$artistId'
     | '/artists/new'
     | '/releases/new'
@@ -415,6 +437,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/admin'
+    | '/api-docs'
     | '/catalog'
     | '/login'
     | '/my-submissions'
@@ -427,6 +450,7 @@ export interface FileRouteTypes {
     | '/albums/new'
     | '/api/generate-artist-image'
     | '/api/generate-artwork'
+    | '/api/openapi'
     | '/artists/$artistId'
     | '/artists/new'
     | '/releases/new'
@@ -453,6 +477,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
   AdminRoute: typeof AdminRoute
+  ApiDocsRoute: typeof ApiDocsRoute
   CatalogRoute: typeof CatalogRoute
   LoginRoute: typeof LoginRoute
   MySubmissionsRoute: typeof MySubmissionsRoute
@@ -465,6 +490,7 @@ export interface RootRouteChildren {
   AlbumsNewRoute: typeof AlbumsNewRoute
   ApiGenerateArtistImageRoute: typeof ApiGenerateArtistImageRoute
   ApiGenerateArtworkRoute: typeof ApiGenerateArtworkRoute
+  ApiOpenapiRoute: typeof ApiOpenapiRoute
   ArtistsArtistIdRoute: typeof ArtistsArtistIdRoute
   ArtistsNewRoute: typeof ArtistsNewRoute
   ReleasesNewRoute: typeof ReleasesNewRoute
@@ -540,6 +566,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CatalogRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api-docs': {
+      id: '/api-docs'
+      path: '/api-docs'
+      fullPath: '/api-docs'
+      preLoaderRoute: typeof ApiDocsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin': {
       id: '/admin'
       path: '/admin'
@@ -580,6 +613,13 @@ declare module '@tanstack/react-router' {
       path: '/artists/$artistId'
       fullPath: '/artists/$artistId'
       preLoaderRoute: typeof ArtistsArtistIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/openapi': {
+      id: '/api/openapi'
+      path: '/api/openapi'
+      fullPath: '/api/openapi'
+      preLoaderRoute: typeof ApiOpenapiRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/generate-artwork': {
@@ -794,6 +834,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
   AdminRoute: AdminRoute,
+  ApiDocsRoute: ApiDocsRoute,
   CatalogRoute: CatalogRoute,
   LoginRoute: LoginRoute,
   MySubmissionsRoute: MySubmissionsRoute,
@@ -806,6 +847,7 @@ const rootRouteChildren: RootRouteChildren = {
   AlbumsNewRoute: AlbumsNewRoute,
   ApiGenerateArtistImageRoute: ApiGenerateArtistImageRoute,
   ApiGenerateArtworkRoute: ApiGenerateArtworkRoute,
+  ApiOpenapiRoute: ApiOpenapiRoute,
   ArtistsArtistIdRoute: ArtistsArtistIdRoute,
   ArtistsNewRoute: ArtistsNewRoute,
   ReleasesNewRoute: ReleasesNewRoute,
