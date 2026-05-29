@@ -517,28 +517,26 @@ export function ReleaseWizard() {
           <Check className="h-10 w-10 text-primary" />
         </div>
         <h1 className="font-display text-3xl font-semibold tracking-tight">
-          Release submitted for review
+          {t("wizard.submitted.title")}
         </h1>
         <p className="mx-auto mt-3 max-w-md text-sm text-muted-foreground">
-          Releasen har sparats i Media Rosenqvist Catalog och skickats till Radio
-          Uppsala för granskning. Du kan följa statusen under "Mine".
+          {t("wizard.submitted.body")}
         </p>
         <p className="mx-auto mt-3 max-w-md text-xs text-amber-700 dark:text-amber-300">
-          Obs: distribution till Spotify, Apple Music och andra streamingtjänster
-          är inte aktiv — detta är en demo-inskickning.
+          {t("wizard.submitted.demo")}
         </p>
         <div className="mt-8 flex justify-center gap-3">
           <button
             onClick={() => navigate({ to: "/my-submissions" })}
             className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
           >
-            See my releases
+            {t("wizard.submitted.seeMine")}
           </button>
           <button
             onClick={() => navigate({ to: "/" })}
             className="rounded-md border border-border px-4 py-2 text-sm hover:bg-secondary"
           >
-            Back home
+            {t("wizard.submitted.goHome")}
           </button>
         </div>
       </div>
@@ -558,10 +556,10 @@ export function ReleaseWizard() {
         <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="text-xs uppercase tracking-widest text-muted-foreground">
-              Crystal Pier Records · New Release
+              {t("wizard.header")}
             </p>
             <h1 className="font-display mt-1 text-3xl font-semibold tracking-tight sm:text-4xl">
-              {state.title || "Untitled Release"}
+              {state.title || t("wizard.untitled")}
             </h1>
           </div>
           <ReleaseStatusBadge status={state.status} size="md" />
@@ -631,7 +629,7 @@ export function ReleaseWizard() {
                 disabled={step === 1}
                 className="inline-flex items-center gap-1.5 rounded-md border border-border px-4 py-2 text-sm hover:bg-secondary disabled:opacity-40"
               >
-                <ChevronLeft className="h-4 w-4" /> Back
+                <ChevronLeft className="h-4 w-4" /> {t("wizard.back")}
               </button>
               <div className="flex items-center gap-2">
                 {step < 5 ? (
@@ -640,7 +638,7 @@ export function ReleaseWizard() {
                     disabled={!canGoNext}
                     className="inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    Next <ChevronRight className="h-4 w-4" />
+                    {t("wizard.next")} <ChevronRight className="h-4 w-4" />
                   </button>
                 ) : (
                   <button
@@ -653,7 +651,7 @@ export function ReleaseWizard() {
                     ) : (
                       <Send className="h-4 w-4" />
                     )}
-                    Submit for Review
+                    {submitting ? t("wizard.submitting") : t("wizard.submitForReview")}
                   </button>
                 )}
               </div>
