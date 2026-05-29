@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Bell, CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
@@ -34,6 +35,7 @@ type Row = {
 function NotificationsPage() {
   const { user } = useAuth();
   const qc = useQueryClient();
+  const { t, i18n } = useTranslation();
 
   const { data, isLoading } = useQuery({
     queryKey: ["notifications", user?.id],
@@ -81,9 +83,9 @@ function NotificationsPage() {
             <Bell className="h-5 w-5" />
           </span>
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Notifications</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">{t("notifications.title")}</h1>
             <p className="text-xs text-muted-foreground">
-              {unread > 0 ? `${unread} unread` : "All caught up."}
+              {unread > 0 ? t("notifications.unread", { count: unread }) : t("notifications.allCaughtUp")}
             </p>
           </div>
         </div>
@@ -92,17 +94,17 @@ function NotificationsPage() {
             onClick={markAllRead}
             className="rounded-md border border-border px-3 py-1.5 text-xs hover:bg-secondary"
           >
-            Mark all read
+            {t("notifications.markAllRead")}
           </button>
         )}
       </div>
 
       {isLoading ? (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" /> Loading…
+          <Loader2 className="h-4 w-4 animate-spin" /> {t("notifications.loading")}
         </div>
       ) : (data ?? []).length === 0 ? (
-        <p className="text-sm text-muted-foreground">No notifications yet.</p>
+        <p className="text-sm text-muted-foreground">{t("notifications.empty")}</p>
       ) : (
         <ul className="space-y-3">
           {data!.map((n) => {
@@ -122,11 +124,11 @@ function NotificationsPage() {
                   ) : (
                     <XCircle className="h-3 w-3 text-destructive" />
                   )}
-                  <span>{approved ? "Approved" : "Needs changes"}</span>
+                  <span>{approved ? t("notifications.approved") : t("notifications.needsChanges")}</span>
                   <span>·</span>
-                  <span>{new Date(n.created_at).toLocaleString()}</span>
+                  <span>{new Date(n.created_at).toLocaleString(i18n.language === "sv" ? "sv-SE" : "en-GB")}</span>
                   <span>·</span>
-                  <span>email: {n.email_status}</span>
+                  <span>{t("notifications.emailStatus", { status: n.email_status })}</span>
                 </div>
                 <h2 className="text-sm font-semibold">{n.title}</h2>
                 <pre className="mt-2 whitespace-pre-wrap font-sans text-sm text-muted-foreground">
@@ -137,7 +139,7 @@ function NotificationsPage() {
                     onClick={() => markOne(n.id)}
                     className="mt-3 rounded-md border border-border px-2.5 py-1 text-xs hover:bg-secondary"
                   >
-                    Mark read
+                    {t("notifications.markRead")}
                   </button>
                 )}
               </li>
