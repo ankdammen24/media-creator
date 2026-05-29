@@ -32,12 +32,57 @@ import { EditorTrackMeta, EditorAlbumMeta } from "@/components/EditorCardMeta";
 import { ShareButton } from "@/components/ShareButton";
 
 export const Route = createFileRoute("/artists/$artistId")({
-  head: () => ({
-    meta: [
-      { title: "Artist — Catalogus Musicus" },
-      { name: "description", content: "Approved music and podcasts from this artist." },
-    ],
-  }),
+  loader: async ({ params }) => {
+    const { data: profile } = await supabase
+      .from("artist_profiles")
+      .select("id, name, bio, avatar_path")
+      .eq("id", params.artistId)
+      .maybeSingle();
+    let coverPath: string | null = null;
+    const { data: cover } = await supabase
+      .from("artist_images")
+      .select("storage_path")
+      .eq("artist_profile_id", params.artistId)
+      .eq("kind", "cover")
+      .eq("is_primary", true)
+      .maybeSingle();
+    coverPath = cover?.storage_path ?? profile?.avatar_path ?? null;
+    const ogImage = coverPath
+      ? supabase.storage.from("artwork").getPublicUrl(coverPath).data.publicUrl
+      : null;
+    return { profile, ogImage };
+  },
+  head: ({ params, loaderData }) => {
+    const profile = loaderData?.profile;
+    const title = profile
+      ? `${profile.name} | Catalogus Musicus`
+      : "Artist — Catalogus Musicus";
+    const description =
+      profile?.bio ||
+      (profile
+        ? `Lyssna på ${profile.name} och upptäck musik och poddar.`
+        : "Approved music and podcasts from this artist.");
+    const url = `https://catalog.mediarosenqvist.com/artists/${params.artistId}`;
+    const meta: Array<Record<string, string>> = [
+      { title },
+      { name: "description", content: description },
+      { property: "og:title", content: title },
+      { property: "og:description", content: description },
+      { property: "og:type", content: "profile" },
+      { property: "og:url", content: url },
+      { name: "twitter:card", content: loaderData?.ogImage ? "summary_large_image" : "summary" },
+      { name: "twitter:title", content: title },
+      { name: "twitter:description", content: description },
+    ];
+    if (loaderData?.ogImage) {
+      meta.push({ property: "og:image", content: loaderData.ogImage });
+      meta.push({ name: "twitter:image", content: loaderData.ogImage });
+    }
+    return {
+      meta,
+      links: [{ rel: "canonical", href: url }],
+    };
+  },
   component: ArtistPage,
 });
 
