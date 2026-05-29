@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { LogOut, User, Bell, Settings as SettingsIcon, Menu, Send, Info } from "lucide-react";
+import { LogOut, User, Bell, Settings as SettingsIcon, Menu, Send, Info, BarChart3 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/lib/auth";
 import { useQuery } from "@tanstack/react-query";
@@ -88,6 +88,14 @@ export function SiteHeader() {
                 activeProps={{ className: "rounded-md px-3 py-1.5 text-foreground bg-secondary" }}
               >
                 {t("nav.mine")}
+              </Link>
+              <Link
+                to="/stats"
+                className="rounded-md px-3 py-1.5 text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5"
+                activeProps={{ className: "rounded-md px-3 py-1.5 text-foreground bg-secondary inline-flex items-center gap-1.5" }}
+              >
+                <BarChart3 className="h-4 w-4" />
+                {t("nav.stats")}
               </Link>
               <Link
                 to="/notifications"
