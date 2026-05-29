@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { LogOut, User, Bell, Settings as SettingsIcon, Menu, Send, Info, BarChart3 } from "lucide-react";
+import { LogOut, User, Bell, Settings as SettingsIcon, Menu, Send, Info, BarChart3, Mic } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "@/lib/auth";
 import { useQuery } from "@tanstack/react-query";
@@ -74,15 +74,16 @@ export function SiteHeader() {
               {t("nav.demo")}
             </span>
           </Link>
+          <Link
+            to="/upload"
+            className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-sm font-medium text-foreground hover:bg-secondary"
+            activeProps={{ className: "inline-flex items-center gap-1.5 rounded-md border border-border bg-secondary px-3 py-1.5 text-sm font-medium text-foreground" }}
+          >
+            <Mic className="h-3.5 w-3.5" />
+            {t("nav.submitPodcast")}
+          </Link>
           {user ? (
             <>
-              <Link
-                to="/upload"
-                className="rounded-md px-3 py-1.5 text-muted-foreground hover:text-foreground"
-                activeProps={{ className: "rounded-md px-3 py-1.5 text-foreground bg-secondary" }}
-              >
-                {t("nav.upload")}
-              </Link>
               <Link
                 to="/my-submissions"
                 className="rounded-md px-3 py-1.5 text-muted-foreground hover:text-foreground"
@@ -207,9 +208,13 @@ export function SiteHeader() {
                     </span>
                   </span>
                 </MobileNavLink>
+                <MobileNavLink to="/upload" onSelect={() => setMenuOpen(false)}>
+                  <span className="inline-flex items-center gap-2 font-medium text-foreground">
+                    <Mic className="h-4 w-4" /> {t("nav.submitPodcast")}
+                  </span>
+                </MobileNavLink>
                 {user ? (
                   <>
-                    <MobileNavLink to="/upload" onSelect={() => setMenuOpen(false)}>{t("nav.upload")}</MobileNavLink>
                     <MobileNavLink to="/my-submissions" onSelect={() => setMenuOpen(false)}>{t("nav.mine")}</MobileNavLink>
                     <MobileNavLink to="/stats" onSelect={() => setMenuOpen(false)}>
                       <span className="inline-flex items-center gap-2">

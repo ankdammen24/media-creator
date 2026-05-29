@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowRight, Music2, Mic, UploadCloud, User } from "lucide-react";
+import { ArrowRight, Music2, Mic, User } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { EmptyState, ErrorState } from "@/components/StateViews";
 import { EditorTrackMeta, EditorArtistMeta } from "@/components/EditorCardMeta";
@@ -157,12 +157,6 @@ function Hero() {
           >
             {t("landing.browseCatalog")} <ArrowRight className="h-4 w-4" />
           </Link>
-          <Link
-            to="/upload"
-            className="inline-flex items-center gap-2 rounded-md border border-border bg-background px-4 py-2 text-sm font-semibold text-foreground transition hover:bg-secondary"
-          >
-            <UploadCloud className="h-4 w-4" /> {t("landing.submitMedia")}
-          </Link>
         </div>
       </section>
     );
@@ -220,12 +214,6 @@ function Hero() {
                 className="inline-flex items-center gap-2 rounded-md border border-border bg-background/60 px-4 py-2 text-sm font-semibold text-foreground backdrop-blur transition hover:bg-secondary"
               >
                 {t("landing.browse")} <ArrowRight className="h-4 w-4" />
-              </Link>
-              <Link
-                to="/upload"
-                className="inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-semibold text-muted-foreground transition hover:text-foreground"
-              >
-                <UploadCloud className="h-4 w-4" /> {t("landing.submit")}
               </Link>
             </div>
           </div>
