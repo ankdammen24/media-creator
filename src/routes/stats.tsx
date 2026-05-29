@@ -10,7 +10,7 @@ import { getArtistStats } from "@/lib/stats.functions";
 export const Route = createFileRoute("/stats")({
   head: () => ({
     meta: [
-      { title: "Statistik — Media Rosenqvist" },
+      { title: "Statistik — Catalogus Musicus" },
       { name: "robots", content: "noindex" },
     ],
   }),

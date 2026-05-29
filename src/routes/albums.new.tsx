@@ -9,7 +9,7 @@ export const Route = createFileRoute("/albums/new")({
   }),
   head: () => ({
     meta: [
-      { title: "New album — Media Rosenqvist" },
+      { title: "New album — Catalogus Musicus" },
       { name: "robots", content: "noindex" },
     ],
   }),

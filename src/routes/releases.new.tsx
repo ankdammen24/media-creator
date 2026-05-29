@@ -7,11 +7,11 @@ export const Route = createFileRoute("/releases/new")({
   component: NewReleasePage,
   head: () => ({
     meta: [
-      { title: "Submit release · Media Rosenqvist" },
+      { title: "Submit release · Catalogus Musicus" },
       {
         name: "description",
         content:
-          "Submit a new release to the Media Rosenqvist catalog — cover, tracks, platforms and rights in one flow.",
+          "Submit a new release to the Catalogus Musicus catalog — cover, tracks, platforms and rights in one flow.",
       },
     ],
   }),

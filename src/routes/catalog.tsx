@@ -24,15 +24,15 @@ export const Route = createFileRoute("/catalog")({
   validateSearch: zodValidator(catalogSearchSchema),
   head: () => ({
     meta: [
-      { title: "Catalog — Media Rosenqvist" },
+      { title: "Catalog — Catalogus Musicus" },
       {
         name: "description",
-        content: "Browse the Media Rosenqvist catalog: approved music and podcasts.",
+        content: "Browse the Catalogus Musicus catalog: approved music and podcasts.",
       },
-      { property: "og:title", content: "Catalog — Media Rosenqvist" },
+      { property: "og:title", content: "Catalog — Catalogus Musicus" },
       {
         property: "og:description",
-        content: "Browse approved music and podcasts in the Media Rosenqvist catalog.",
+        content: "Browse approved music and podcasts in the Catalogus Musicus catalog.",
       },
     ],
   }),
