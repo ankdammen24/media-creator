@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { useNavigate } from "@tanstack/react-router";
+import { useTranslation, type TFunction } from "react-i18next";
 import {
   Check,
   ChevronLeft,
@@ -62,7 +63,7 @@ const LANGUAGES = [
   { code: "fr", label: "Français" },
   { code: "es", label: "Español" },
   { code: "instrumental", label: "Instrumental" },
-  { code: "other", label: "Annat" },
+  { code: "other", label: "Other" },
 ];
 
 const ISRC_RE = /^[A-Z]{2}[A-Z0-9]{3}\d{7}$/;
