@@ -1,35 +1,8 @@
 // Server-only API key auth + scope helpers
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { createHash, randomBytes } from "crypto";
-
-export type ApiScope =
-  | "read:catalog"
-  | "write:submissions"
-  | "write:albums"
-  | "read:audio:web"
-  | "read:audio:master"
-  | "read:stats"
-  | "admin:moderate"
-  | "admin:keys";
-
-export const ALL_SCOPES: ApiScope[] = [
-  "read:catalog",
-  "write:submissions",
-  "write:albums",
-  "read:audio:web",
-  "read:audio:master",
-  "read:stats",
-  "admin:moderate",
-  "admin:keys",
-];
-
-export const USER_ALLOWED_SCOPES: ApiScope[] = [
-  "read:catalog",
-  "write:submissions",
-  "write:albums",
-  "read:audio:web",
-  "read:stats",
-];
+export { ALL_SCOPES, USER_ALLOWED_SCOPES, type ApiScope } from "./api-scopes";
+import type { ApiScope } from "./api-scopes";
 
 export type ApiKeyContext = {
   keyId: string;
