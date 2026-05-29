@@ -1,49 +1,52 @@
-## Mål
+# Beta → 1.0 och framåt
 
-Ta bort 2,5-sekunders volym-crossfaden. I stället förladdas nästa låt i kö så snart en låt börjar spela, och nästa låt startas automatiskt **0,8 sekunder innan** den pågående tar slut — utan volym-ramp, bara för att täcka det lilla gapet mellan låtar.
+## 1. Vad ligger i `.lovable/plan.md` idag
 
-## Beteende
+Den existerande planfilen handlar **bara om spelaren**: ta bort 2,5 s volym-crossfade och ersätt med pre-load + auto-start 0,8 s innan låten tar slut (ingen volym-ramp). Den är inte implementerad ännu och hör hemma i v1.0 nedan.
 
-- Tryck Play → låt A börjar spela.
-- Direkt vid start: nästa låt i kön får sin signed URL hämtad och laddas in på den inaktiva audio-decken (`preload="auto"`, ej `play()`).
-- När A når `duration − 0.8s`: den förladdade decken börjar spela på full volym, blir aktiv deck, A pausas direkt.
-- Inget volym-ramp åt något håll.
-- Skip Next / Skip Prev / Play på ny låt = hård switch (som idag, ingen fade).
-- Podcasts och sista låten i kön = ingen pre-load, spelar ut till slut och stoppar.
+## 2. Versions-roadmap
 
-## Tekniska ändringar (`src/components/player/PlayerProvider.tsx`)
+### v1.0-beta (nu) — stabilisera det som finns
+- Bekräfta att hela Submit Music-wizarden fungerar end-to-end (klart).
+- RLS-fix på artist-avatar och presskit-bilder (klart).
+- Användarvänlig `StorageErrorAlert` vid RLS-block (klart).
+- Fixa kvarvarande hydration-mismatch i `SiteHeader` (server renderar "Home", klient "Hem" — språk-init körs efter SSR). Liten men synlig.
 
-1. **Konstanter**
-   - Ta bort `CROSSFADE_SEC` / `CROSSFADE_MS`.
-   - Lägg till `GAP_FILL_SEC = 0.8`.
+### v1.0 — "release-ready"
+- **Spelaren: pre-load + gap-fill** enligt befintliga `.lovable/plan.md`.
+- **Notifikationer**: visa olästa i header, markera som lästa, e-postmall för submission-status.
+- **Admin-moderering**: snabb-godkänn / avvisa direkt i listan, batch-actions, sök på artist/titel/UPC/ISRC.
+- **Artistprofil offentlig sida**: publik vy med presskit-bilder, släpp och spelade spår.
+- **SEO**: unik `head()` per route (artist, album, episode), `og:image` från artwork.
 
-2. **Ta bort fade-rampen**
-   - Radera `startFade`, `cancelFade`, `fadeRafRef`, `fadingOutElRef` och alla volume-mutationer (decks står alltid på `volume = 1`).
-   - Ta bort `useCrossfade`-flaggan från `goToTrack` och alla anrop.
+### v1.1 — innehåll & upptäckt
+- Album-/release-sida publik med tracklist och spelare.
+- Sök (artist, låt, podd) med Supabase full-text.
+- Spellistor / kuraterade samlingar (admin-redaktionellt).
+- "Spelas nu på radion" widget kopplad till `playback_events` + Azuracast.
 
-3. **Förladdning av nästa låt**
-   - Ny ref `preloadedRef: { trackId, url } | null`.
-   - I `goToTrack` (efter att aktiv deck börjat spela): titta på `queueRef.current[0]`. Om den finns och är `music`, hämta signed URL via `signedUrlFor`, sätt `inactiveDeck.src = url`, `inactiveDeck.preload = "auto"`, `inactiveDeck.load()`, spara i `preloadedRef`. Gör inget om nästa redan är förladdad.
-   - Om kön ändras (skip, ny play, queue-rebuild) → invalidera `preloadedRef` och rensa inaktiv decks `src` när den inte matchar nytt nästa.
+### v1.2 — analytics & artistverktyg
+- Artist-dashboard: antal spelningar, topplåtar, geografisk spridning (om vi loggar det).
+- Export av rapporter (CSV) per period.
+- Submission-historik med diff mot godkänd version.
 
-4. **Auto-start vid duration − 0,8s**
-   - Ersätt `maybeAutoCrossfade` med `maybeStartNextEarly`: när `el.duration − el.currentTime ≤ GAP_FILL_SEC`, `currentRef.current.mediaType === "music"`, kö-första är `music` och matchar `preloadedRef.trackId`, och `fadeGuardRef`-motsvarigheten inte redan triggat för denna låt:
-     - Markera triggad (samma guard-mönster).
-     - Flytta `current → history`, `queue.shift()`.
-     - Byt `activeIdxRef` till inaktiv deck, `setCurrent(next)`, kör `inactiveDeck.play()`.
-     - Pausa den nu inaktiva (gamla) decken direkt efter att den nya kommit igång (samma tick) — det ger ~0,8s overlap där båda spelar utan volymjustering.
-     - Rensa `preloadedRef` och starta ny förladdning av nästkommande låt.
+### v1.3+ — community & monetisering (utforska)
+- Följ artist / favoriter för inloggade lyssnare.
+- Donationer/tips via Stripe eller Lovable Payments.
+- Podd-RSS-export.
+- Publikt API (`/api/public/*`) för partners.
 
-5. **`onEnded`** behåller nuvarande beteende som fallback (för fall där nästa-låten inte hann laddas / podcasts / kort spår). Hård switch utan fade.
+## 3. Nästa prioriterade steg (förslag att börja med direkt)
 
-6. **`skipNext` / `skipPrev`** = `goToTrack(next, { keepQueue: true })` utan crossfade-argument; invalidera förladdning och starta om för nya nästa.
+Rangordnat efter värde/effort:
 
-## Filer
+1. **Hydration-fix i header** (liten, syns i konsolen redan nu).
+2. **Spelarens pre-load + gap-fill** (planen finns, en fil).
+3. **Publik artistprofil-sida** (låser upp delning + SEO-värde).
+4. **Notifikationer i UI** (tabellen finns, bara front-end + en serverFn).
+5. **Admin batch-moderering** (sparar mest tid på sikt).
 
-- `src/components/player/PlayerProvider.tsx` (enda filen som behöver ändras).
+## 4. Vad jag behöver veta
 
-## Risker / kantfall
-
-- Spår kortare än 0,8s: villkoret triggar aldrig, `onEnded` tar hand om övergången.
-- Signed URL-cache används redan → ingen extra Supabase-trafik vid själva övergången.
-- `inactiveDeck.play()` är användarinitierad (vi är i en kedja efter ursprungligt Play-klick), så autoplay-policyn blockerar inte.
+- Vilken av v1.0-punkterna vill du börja med? Förslag: 1 + 2 i samma iteration eftersom båda är små.
+- Ska roadmapen sparas som `.lovable/roadmap.md` så vi har den versionerad i repot?
