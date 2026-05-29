@@ -98,7 +98,14 @@
     "bioPlaceholder": "Berätta kort om dig/er som artist.",
     "website": "Webbplats / länk",
     "applicationSentTitle": "Ansökan skickad",
-    "applicationSentBody": "Tack! Din ansökan om artistkonto har skickats och granskas av en administratör. Så snart den är godkänd kan du skicka in musik."
+    "applicationSentBody": "Tack! Din ansökan om artistkonto har skickats och granskas av en administratör. Så snart den är godkänd kan du skicka in musik.",
+    "createTitle": "Skapa ditt artistkonto",
+    "createBody": "Fyll i dina uppgifter så aktiveras artistkontot direkt och du kan börja skicka in musik. En administratör kan granska kontot i efterhand.",
+    "createButton": "Skapa och aktivera",
+    "activateTitle": "Aktivera ditt artistkonto",
+    "activateBodyPrefix": "Ditt artistkonto ",
+    "activateBodySuffix": " är inte aktivt ännu. Aktivera det nu så kan du skicka in musik direkt — en administratör kan granska i efterhand.",
+    "activateButton": "Aktivera artistkontot"
   },
   "settings": {
     "pageTitle": "Inställningar",

@@ -98,7 +98,14 @@
     "bioPlaceholder": "Tell us briefly about you/the act as an artist.",
     "website": "Website / link",
     "applicationSentTitle": "Application sent",
-    "applicationSentBody": "Thanks! Your artist account application has been submitted and is being reviewed by an administrator. As soon as it's approved you'll be able to submit music."
+    "applicationSentBody": "Thanks! Your artist account application has been submitted and is being reviewed by an administrator. As soon as it's approved you'll be able to submit music.",
+    "createTitle": "Create your artist account",
+    "createBody": "Fill in your details and your artist account is activated instantly — you can start submitting music right away. An administrator may review the account afterwards.",
+    "createButton": "Create and activate",
+    "activateTitle": "Activate your artist account",
+    "activateBodyPrefix": "Your artist account ",
+    "activateBodySuffix": " is not active yet. Activate it now to start submitting music — an administrator may review it afterwards.",
+    "activateButton": "Activate artist account"
   },
   "settings": {
     "pageTitle": "Settings",

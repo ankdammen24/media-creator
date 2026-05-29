@@ -1,35 +1,37 @@
-## Mål
+# Auto-grant Artist-roll i Skicka in musik
 
-Göra det enkelt att dela låtar, album och artister till sociala nätverk och via direktlänk.
+Idag måste en användare som ansöker via `ArtistAccountGate` vänta på admin-godkännande (`approval_status = 'pending'`). Användarens önskemål: när man går genom Skicka in musik och skapar ett nytt artistkonto (eller har ett existerande), ska kontot direkt få status **approved** och användaren få rollen **artist**. Admin kan fortfarande granska och rensa i efterhand.
 
-## Lösning
+## Förändringar
 
-En återanvändbar `ShareButton`-komponent som öppnar en liten dialog/popover med:
+### 1. Ny serverfunktion `selfApproveArtistAccount` (server-only, admin-klient)
+Fil: `src/lib/artist-self-approve.functions.ts`
 
-- **Kopiera länk** (med toast-bekräftelse)
-- **Snabbdelning** till: Facebook, X/Twitter, LinkedIn, WhatsApp, Telegram, Threads, e-post
-- **Native share** (`navigator.share`) på mobil när det stöds — visas som primär knapp och faller annars tillbaka till listan ovan
-- Förifylld titel + beskrivning per typ ("Lyssna på {låt} av {artist}", osv.)
+- Skyddad med `requireSupabaseAuth` (kör som inloggad användare, hämtar `userId`).
+- Indata (zod-validerad): antingen `{ mode: "create", name, bio?, website? }` eller `{ mode: "approveExisting", artistProfileId }`.
+- Använder `supabaseAdmin` för att kringgå `enforce_artist_approval`-triggern.
+- För `create`:
+  - Dubblettkontroll mot alla `artist_profiles.name` (samma regel som vid uppladdning) — admin behöver inte denna kontroll, vanliga användare blockeras.
+  - Infogar rad med `user_id = userId`, `approval_status = 'approved'`, `reviewed_by = userId`, `reviewed_at = now()`.
+- För `approveExisting`:
+  - Verifierar att profilen ägs av `userId` och har status `pending` eller `rejected`, sätter den till `approved` med samma stämplar.
+- I båda fallen: upsert i `user_roles` av `{ user_id: userId, role: 'artist' }` (ignorera unique-violation).
+- Returnerar `{ id, name }`.
 
-Tekniskt:
-- Använder web share intent-URL:er (inga API-nycklar, inget backend)
-- Open Graph / Twitter Card-meta läggs i `head()` per route (titel, beskrivning, og:image från artwork) så att länkpreview ser bra ut
-- Strukturerad data (JSON-LD `MusicRecording` / `MusicAlbum` / `MusicGroup`) för SEO
+### 2. `ArtistAccountGate` använder den nya serverfunktionen
+Fil: `src/components/ArtistAccountGate.tsx`
 
-## Placering
+- `ApplicationForm.onSubmit` anropar `selfApproveArtistAccount({ mode: "create", ... })` istället för direkt `supabase.from("artist_profiles").insert(...)`.
+- Vid lyckat svar invalideras `["my-artist-accounts", user.id]` och `["editor-role", user.id]` så gaten släpper igenom användaren direkt till `ReleaseWizard` — ingen "Application sent"-skärm behövs längre.
+- Om användaren redan har en `pending`/`rejected` profil visas en knapp "Aktivera mitt artistkonto" som anropar `selfApproveArtistAccount({ mode: "approveExisting", artistProfileId })`. Tar bort dagens väntelägesvy för det här flödet (admin kan fortfarande nedgradera senare).
 
-1. **Låt** (`/tracks/$trackId`) — ShareButton bredvid Play
-2. **Album** (`/albums/$albumId`) — bredvid Edit/Play i header
-3. **Artist** (`/artists/$artistId`) — bredvid artistens namn/header
-4. **TrackCard** (valfritt) — liten share-ikon vid hover
+### 3. Översättningar
+- `src/i18n/locales/sv.json` + `en.json`: nya nycklar för knapparna ("Aktivera artistkontot" / "Activate artist account") och ev. felmeddelande för dubblettnamn (återanvänd `duplicateArtist` om möjligt).
 
-## Filer
+## Det här rör vi inte
+- RLS-policyn `Users create own artist profiles` och triggern `enforce_artist_approval` ligger kvar — vanlig direktinsert från klient fortsätter att hamna på `pending`. Endast self-approve-flödet via serverfunktionen ger automatisk approve, vilket gör att admin behåller kontroll utanför Skicka in musik.
+- Inga ändringar i admin-vyer; befintliga verktyg räcker för att städa/återkalla roller eller sätta `approval_status = 'rejected'`.
 
-- `src/components/ShareButton.tsx` (ny) — knapp + popover med delningsval
-- `src/lib/share.ts` (ny) — hjälpfunktioner: bygg URL, social intents, getShareData per typ
-- `src/routes/albums.$albumId.tsx` — lägg in ShareButton + og-meta från album/artwork
-- `src/routes/artists.$artistId.tsx` — ShareButton + og-meta
-- `src/routes/tracks.$trackId.tsx` — ShareButton + og-meta
-- `src/i18n/locales/sv.json` + `en.json` — översättningar (Dela, Kopiera länk, Delat!, etc.)
-
-Inga schemaändringar, inga nya beroenden — använder befintliga shadcn Popover/Dialog och lucide-ikoner (Share2, Link, Mail, plus brand-glyphs via inline SVG eller lucide).
+## Tekniska noter
+- Server-fn-filen följer mönstret i `src/lib/admin-users.functions.ts` (tunn fil, bara serverfunktioner som importerar `supabaseAdmin`).
+- Inga DB-migrationer behövs.

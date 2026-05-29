@@ -1,9 +1,11 @@
 import { useState, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Clock, Loader2, UserPlus, CheckCircle2 } from "lucide-react";
+import { Loader2, UserPlus, Sparkles } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { useServerFn } from "@tanstack/react-start";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
+import { selfApproveArtistAccount } from "@/lib/artist-self-approve.functions";
 
 type GateProfile = {
   id: string;
@@ -21,6 +23,9 @@ export function ArtistAccountGate({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const { t } = useTranslation();
+  const selfApprove = useServerFn(selfApproveArtistAccount);
+  const [activating, setActivating] = useState<string | null>(null);
+  const [activateErr, setActivateErr] = useState<string | null>(null);
 
   const { data: profiles, isLoading } = useQuery({
     queryKey: ["my-artist-accounts", user?.id],
@@ -49,107 +54,107 @@ export function ArtistAccountGate({ children }: { children: ReactNode }) {
   const hasApproved = list.some((p) => p.approval_status === "approved");
   if (hasApproved) return <>{children}</>;
 
-  const pending = list.find((p) => p.approval_status === "pending");
-  const rejected = list.find((p) => p.approval_status === "rejected");
+  const inactive = list.find(
+    (p) => p.approval_status === "pending" || p.approval_status === "rejected",
+  );
 
-  if (pending) {
-    return (
-      <StatusCard
-        icon={<Clock className="h-6 w-6 text-primary" />}
-        title={t("artistGate.pendingTitle")}
-        body={
-          <>
-            {t("artistGate.pendingBodyPrefix")}
-            <strong>{pending.name}</strong>
-            {t("artistGate.pendingBodySuffix")}
-          </>
-        }
-      />
-    );
+  async function activateExisting(id: string) {
+    setActivating(id);
+    setActivateErr(null);
+    try {
+      await selfApprove({ data: { mode: "approveExisting", artistProfileId: id } });
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["my-artist-accounts", user?.id] }),
+        qc.invalidateQueries({ queryKey: ["editor-role", user?.id ?? null] }),
+      ]);
+    } catch (e) {
+      setActivateErr(e instanceof Error ? e.message : String(e));
+    } finally {
+      setActivating(null);
+    }
   }
 
-  if (rejected) {
+  if (inactive) {
     return (
-      <ApplicationForm
-        rejectedReason={rejected.rejection_reason}
-        onApplied={() => qc.invalidateQueries({ queryKey: ["my-artist-accounts", user?.id] })}
-      />
+      <div className="mx-auto max-w-xl px-4 py-12 sm:px-6">
+        <div className="rounded-xl border border-border bg-card p-6 text-center">
+          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-secondary">
+            <Sparkles className="h-6 w-6 text-primary" />
+          </div>
+          <h1 className="mb-2 text-xl font-semibold tracking-tight">
+            {t("artistGate.activateTitle")}
+          </h1>
+          <p className="mb-4 text-sm text-muted-foreground">
+            {t("artistGate.activateBodyPrefix")}
+            <strong>{inactive.name}</strong>
+            {t("artistGate.activateBodySuffix")}
+          </p>
+          {activateErr && (
+            <p className="mb-3 text-xs text-destructive">{activateErr}</p>
+          )}
+          <button
+            type="button"
+            disabled={activating === inactive.id}
+            onClick={() => activateExisting(inactive.id)}
+            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
+          >
+            {activating === inactive.id && (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            )}
+            {t("artistGate.activateButton")}
+          </button>
+        </div>
+      </div>
     );
   }
 
   return (
     <ApplicationForm
-      onApplied={() => qc.invalidateQueries({ queryKey: ["my-artist-accounts", user?.id] })}
+      onCreated={() =>
+        Promise.all([
+          qc.invalidateQueries({ queryKey: ["my-artist-accounts", user?.id] }),
+          qc.invalidateQueries({ queryKey: ["editor-role", user?.id ?? null] }),
+        ])
+      }
     />
   );
 }
 
-function StatusCard({
-  icon,
-  title,
-  body,
-}: {
-  icon: ReactNode;
-  title: string;
-  body: ReactNode;
-}) {
-  return (
-    <div className="mx-auto max-w-xl px-4 py-12 sm:px-6">
-      <div className="rounded-xl border border-border bg-card p-6 text-center">
-        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-secondary">
-          {icon}
-        </div>
-        <h1 className="mb-2 text-xl font-semibold tracking-tight">{title}</h1>
-        <p className="text-sm text-muted-foreground">{body}</p>
-      </div>
-    </div>
-  );
-}
-
-function ApplicationForm({
-  rejectedReason,
-  onApplied,
-}: {
-  rejectedReason?: string | null;
-  onApplied: () => void;
-}) {
+function ApplicationForm({ onCreated }: { onCreated: () => Promise<unknown> | void }) {
   const { user } = useAuth();
   const { t } = useTranslation();
+  const selfApprove = useServerFn(selfApproveArtistAccount);
   const [name, setName] = useState("");
   const [bio, setBio] = useState("");
   const [website, setWebsite] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const [done, setDone] = useState(false);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!user || !name.trim()) return;
     setBusy(true);
     setErr(null);
-    const { error } = await supabase.from("artist_profiles").insert({
-      user_id: user.id,
-      name: name.trim(),
-      bio: bio.trim() || null,
-      website_url: website.trim() || null,
-    });
-    setBusy(false);
-    if (error) {
-      setErr(error.message);
-      return;
+    try {
+      await selfApprove({
+        data: {
+          mode: "create",
+          name: name.trim(),
+          bio: bio.trim() || undefined,
+          website: website.trim() || undefined,
+        },
+      });
+      await onCreated();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (msg.startsWith("DUPLICATE_ARTIST:")) {
+        const dupName = msg.slice("DUPLICATE_ARTIST:".length);
+        setErr(t("upload.duplicateArtist", { name: dupName }));
+      } else {
+        setErr(msg);
+      }
+      setBusy(false);
     }
-    setDone(true);
-    onApplied();
-  }
-
-  if (done) {
-    return (
-      <StatusCard
-        icon={<CheckCircle2 className="h-6 w-6 text-primary" />}
-        title={t("artistGate.applicationSentTitle")}
-        body={t("artistGate.applicationSentBody")}
-      />
-    );
   }
 
   return (
@@ -160,19 +165,13 @@ function ApplicationForm({
         </div>
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">
-            {t("artistGate.applyTitle")}
+            {t("artistGate.createTitle")}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {t("artistGate.applyBody")}
+            {t("artistGate.createBody")}
           </p>
         </div>
       </div>
-
-      {rejectedReason && (
-        <div className="mb-4 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          {t("artistGate.rejectedPrefix")}{rejectedReason}
-        </div>
-      )}
 
       <form
         onSubmit={onSubmit}
@@ -217,7 +216,7 @@ function ApplicationForm({
             className="inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
           >
             {busy && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-            {t("artistGate.submitApplication")}
+            {t("artistGate.createButton")}
           </button>
         </div>
       </form>
