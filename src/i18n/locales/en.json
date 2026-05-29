@@ -727,6 +727,7 @@
     "createProfileBtn": "Create profile",
     "couldNotLoadProfiles": "Could not load profiles",
     "couldNotCreateProfile": "Could not create profile",
+    "duplicateArtist": "An artist named \"{{name}}\" already exists. Contact admin if it's your artist name.",
     "primary": "Primary",
     "setPrimary": "Set as primary",
     "multiProfileHint": "Select multiple profiles for collaborations. The first counts as the main profile.",
