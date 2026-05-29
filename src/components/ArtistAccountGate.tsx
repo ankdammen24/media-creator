@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Clock, Loader2, UserPlus, CheckCircle2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -19,6 +20,7 @@ type GateProfile = {
 export function ArtistAccountGate({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const qc = useQueryClient();
+  const { t } = useTranslation();
 
   const { data: profiles, isLoading } = useQuery({
     queryKey: ["my-artist-accounts", user?.id],
@@ -38,7 +40,7 @@ export function ArtistAccountGate({ children }: { children: ReactNode }) {
     return (
       <div className="mx-auto max-w-md px-4 py-16 text-center text-sm text-muted-foreground">
         <Loader2 className="mx-auto mb-2 h-5 w-5 animate-spin" />
-        Laddar…
+        {t("artistGate.loading")}
       </div>
     );
   }
@@ -54,12 +56,12 @@ export function ArtistAccountGate({ children }: { children: ReactNode }) {
     return (
       <StatusCard
         icon={<Clock className="h-6 w-6 text-primary" />}
-        title="Din ansökan granskas"
+        title={t("artistGate.pendingTitle")}
         body={
           <>
-            Ditt artistkonto <strong>{pending.name}</strong> väntar på
-            godkännande av en administratör. Du kan skicka in musik så snart det
-            är godkänt — vi hör av oss.
+            {t("artistGate.pendingBodyPrefix")}
+            <strong>{pending.name}</strong>
+            {t("artistGate.pendingBodySuffix")}
           </>
         }
       />
@@ -112,6 +114,7 @@ function ApplicationForm({
   onApplied: () => void;
 }) {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [name, setName] = useState("");
   const [bio, setBio] = useState("");
   const [website, setWebsite] = useState("");
@@ -143,13 +146,8 @@ function ApplicationForm({
     return (
       <StatusCard
         icon={<CheckCircle2 className="h-6 w-6 text-primary" />}
-        title="Ansökan skickad"
-        body={
-          <>
-            Tack! Din ansökan om artistkonto har skickats och granskas av en
-            administratör. Så snart den är godkänd kan du skicka in musik.
-          </>
-        }
+        title={t("artistGate.applicationSentTitle")}
+        body={t("artistGate.applicationSentBody")}
       />
     );
   }
@@ -162,19 +160,17 @@ function ApplicationForm({
         </div>
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">
-            Ansök om artistkonto
+            {t("artistGate.applyTitle")}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            För att skicka in musik behöver du ett artistkonto. Fyll i dina
-            uppgifter och ansök — en administratör godkänner kontot innan du kan
-            börja skicka in släpp.
+            {t("artistGate.applyBody")}
           </p>
         </div>
       </div>
 
       {rejectedReason && (
         <div className="mb-4 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          Din tidigare ansökan avslogs: {rejectedReason}
+          {t("artistGate.rejectedPrefix")}{rejectedReason}
         </div>
       )}
 
@@ -183,7 +179,7 @@ function ApplicationForm({
         className="space-y-4 rounded-xl border border-border bg-card p-5"
       >
         <div>
-          <label className="mb-1 block text-xs font-medium">Artistnamn *</label>
+          <label className="mb-1 block text-xs font-medium">{t("artistGate.artistName")} *</label>
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -193,18 +189,18 @@ function ApplicationForm({
           />
         </div>
         <div>
-          <label className="mb-1 block text-xs font-medium">Bio</label>
+          <label className="mb-1 block text-xs font-medium">{t("artistGate.bio")}</label>
           <textarea
             value={bio}
             onChange={(e) => setBio(e.target.value)}
             rows={3}
             maxLength={2000}
-            placeholder="Berätta kort om dig/er som artist."
+            placeholder={t("artistGate.bioPlaceholder")}
             className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
           />
         </div>
         <div>
-          <label className="mb-1 block text-xs font-medium">Webbplats / länk</label>
+          <label className="mb-1 block text-xs font-medium">{t("artistGate.website")}</label>
           <input
             type="url"
             value={website}
@@ -221,7 +217,7 @@ function ApplicationForm({
             className="inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
           >
             {busy && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-            Skicka ansökan
+            {t("artistGate.submitApplication")}
           </button>
         </div>
       </form>

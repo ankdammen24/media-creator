@@ -83,19 +83,27 @@
     "pendingTitle": "Din ansökan granskas",
     "pendingBody": "Ditt artistkonto <strong>{{name}}</strong> väntar på godkännande av en administratör. Du kan skicka in musik så snart det är godkänt — vi hör av oss.",
     "applyTitle": "Ansök om artistkonto",
-    "applyBody": "Berätta vem du är som artist så aktiverar vi ditt konto för att skicka in musik.",
+    "applyBody": "För att skicka in musik behöver du ett artistkonto. Fyll i dina uppgifter och ansök — en administratör godkänner kontot innan du kan börja skicka in släpp.",
     "rejectedNote": "Din tidigare ansökan avvisades. Skäl: {{reason}}",
     "artistName": "Artistnamn",
-    "bio": "Kort bio",
+    "bio": "Bio",
     "bioHint": "Berätta lite om din musik, era influenser, varifrån ni kommer.",
     "submitApplication": "Skicka ansökan",
-    "applicationSent": "Ansökan skickad — vi återkommer."
+    "applicationSent": "Ansökan skickad — vi återkommer.",
+    "pendingBodyPrefix": "Ditt artistkonto ",
+    "pendingBodySuffix": " väntar på godkännande av en administratör. Du kan skicka in musik så snart det är godkänt — vi hör av oss.",
+    "rejectedPrefix": "Din tidigare ansökan avslogs: ",
+    "bioPlaceholder": "Berätta kort om dig/er som artist.",
+    "website": "Webbplats / länk",
+    "applicationSentTitle": "Ansökan skickad",
+    "applicationSentBody": "Tack! Din ansökan om artistkonto har skickats och granskas av en administratör. Så snart den är godkänd kan du skicka in musik."
   },
   "settings": {
     "pageTitle": "Inställningar",
-    "languageHeading": "Språk",
-    "languageHint": "Påverkar gränssnittet och språket för utgående mejl.",
-    "savedToast": "Sparat"
+    "languageHeading": "Notisspråk",
+    "languageHint": "Används för e-post och notiser som skickas till dig.",
+    "savedToast": "Sparat",
+    "pageSubtitle": "Hantera dina kontoinställningar."
   },
   "landing": {
     "tagline": "Media Rosenqvist",
@@ -104,16 +112,220 @@
     "browseCatalog": "Bläddra i katalogen",
     "submitMedia": "Skicka in media",
     "submit": "Skicka in",
-    "browse": "Bläddra",
+    "browse": "Bläddra i katalogen",
     "featuredMusic": "Utvald · Musik",
     "latestMusic": "Senaste musik",
     "latestPodcasts": "Senaste poddar",
     "featuredArtists": "Utvalda artister",
     "noMusicTitle": "Ingen musik än",
-    "noMusicBody": "Godkänd musik visas här."
+    "noMusicBody": "Godkänd musik visas här.",
+    "loading": "Laddar…",
+    "viewAll": "Visa alla →",
+    "unknownArtist": "Okänd artist",
+    "podcast": "Podcast"
   },
   "about": {
-    "title": "Om Media Rosenqvist"
+    "title": "Om Catalogus Musicus",
+    "tagline": "En levande musikkatalog",
+    "intro1Prefix": "",
+    "intro1Bold1": "Catalogus Musicus",
+    "intro1Mid": " är den centrala musikkatalogen inom ekosystemet ",
+    "intro1Bold2": "Media Rosenqvist",
+    "intro1Suffix": " — skapad för att organisera, bevara och distribuera musik, metadata och kreativa verk över flera plattformar, projekt och publikgrupper.",
+    "intro2": "Katalogen är utformad som en långsiktig grund för:",
+    "intro2List": [
+      "artister",
+      "releaser",
+      "låtar",
+      "metadata",
+      "publishing",
+      "radiosändning",
+      "digital distribution",
+      "rättighetshantering",
+      "framtida mediatjänster"
+    ],
+    "intro3": "Istället för att behandla musik som isolerade uppladdningar är plattformen byggd kring relationerna mellan:",
+    "relation": "Artist → Album/Release → Låt",
+    "intro4": "Det gör att katalogen kan behålla struktur, historik och konsekvens i ett medielandskap i ständig förändring.",
+    "mr": {
+      "heading": "Media Rosenqvist",
+      "sub": "Kärnplattformen",
+      "p1": "Media Rosenqvist är den övergripande kreativa och tekniska plattformen bakom ekosystemet.",
+      "p2": "Den kombinerar:",
+      "list1": [
+        "musik",
+        "radio",
+        "publishing",
+        "digital infrastruktur",
+        "metadatasystem",
+        "automatisering",
+        "AI-assisterade flöden",
+        "mediadistribution"
+      ],
+      "p3": "Syftet är att bygga ett självständigt och hållbart ramverk för modern medieproduktion och -hantering.",
+      "p4": "Media Rosenqvist fungerar som:",
+      "list2": [
+        "teknisk operatör",
+        "infrastrukturlager",
+        "kreativt paraply",
+        "långsiktig katalogförvaltare"
+      ],
+      "p5": "Målet är inte bara att publicera innehåll utan att bygga system som bevarar och knyter samman kreativa verk över tid."
+    },
+    "cpr": {
+      "heading": "Crystal Pier Records",
+      "sub": "Skivbolag & releaser",
+      "p1": "Crystal Pier Records är den release- och skivbolagsorienterade delen av ekosystemet.",
+      "p2": "Bolaget fokuserar på:",
+      "list1": [
+        "officiella releaser",
+        "artistidentiteter",
+        "albumstrukturer",
+        "singlar och EP",
+        "visuell presentation",
+        "långsiktig katalogutveckling"
+      ],
+      "p3": "Filosofin är artist-first och oberoende.",
+      "p4": "Istället för att jaga kortsiktiga trender ligger fokus på:",
+      "list2": [
+        "atmosfär",
+        "berättande",
+        "identitet",
+        "kontinuitet",
+        "hållbar katalogtillväxt"
+      ],
+      "p5": "Crystal Pier Records hanterar mastersidan av ekosystemet och är en av de huvudsakliga källorna för musik som kommer in i katalogen."
+    },
+    "gmp": {
+      "heading": "Guerilla Minstrel Publishing",
+      "sub": "Publishing & rättigheter",
+      "p1": "Guerilla Minstrel Publishing sköter publishing- och rättighetssidan av ekosystemet.",
+      "p2": "Detta omfattar:",
+      "list1": [
+        "låtskrivarrättigheter",
+        "kompositioner",
+        "texter",
+        "publishing-administration",
+        "förberedelse för licensiering",
+        "framtida sync-möjligheter"
+      ],
+      "p3": "Publishing-strukturen finns separat från skivbolagsstrukturen för att korrekt stödja relationen mellan:",
+      "list2": [
+        "masterinspelningar",
+        "underliggande kompositioner",
+        "kreativt ägarskap"
+      ],
+      "p4": "Allt eftersom katalogen växer blir publishing-data allt viktigare för:",
+      "list3": [
+        "licensiering",
+        "attribuering",
+        "royaltystrukturer",
+        "arkivintegritet"
+      ]
+    },
+    "ru": {
+      "heading": "Radio Uppsala",
+      "sub": "Radio, upptäckt & distribution",
+      "p1": "Radio Uppsala fungerar som en av katalogens levande mottagare.",
+      "p2": "Det är inte bara en digital radiostation utan också:",
+      "list1": [
+        "en upptäcktsplattform",
+        "ett lokalt mediainitiativ",
+        "ett testbed för distribution",
+        "en redaktionell miljö",
+        "en framtidsfokuserad sändningsplattform"
+      ],
+      "p3": "Musik från katalogen kan användas i:",
+      "list2": [
+        "radiorotation",
+        "specialprogram",
+        "temasändningar",
+        "lokalt kulturprogram",
+        "pilotflöden för distribution"
+      ],
+      "p4": "Plattformen kombinerar:",
+      "list3": [
+        "lokal information",
+        "musikupptäckt",
+        "automatisering",
+        "AI-assisterade nyhetsflöden",
+        "oberoende medieproduktion"
+      ],
+      "p5": "Radio Uppsala är den publika och publikorienterade sidan av ekosystemet."
+    },
+    "eco": {
+      "heading": "Hur ekosystemet hänger ihop",
+      "p1": "Ekosystemet är utformat kring sammanlänkade men oberoende komponenter.",
+      "p2": "Varje del har sin roll men bidrar samtidigt till samma långsiktiga struktur."
+    },
+    "meta": {
+      "heading": "Metadata & katalogfilosofi",
+      "p1": "Katalogen är byggd kring strukturerade relationer och metadataintegritet.",
+      "p2": "Exempel på metadata som stöds:",
+      "list1": [
+        "Artist",
+        "Album / Release",
+        "Låt",
+        "UPC",
+        "ISRC",
+        "omslag",
+        "release-information",
+        "publishing-relationer",
+        "ljudtillgångar",
+        "distributionsreferenser"
+      ],
+      "p3": "Systemet är medvetet utformat för att stödja:",
+      "list2": [
+        "flera versioner av låtar",
+        "återutgivningar",
+        "samlingar",
+        "alternativa releaser",
+        "arkivering"
+      ],
+      "p4": "En låt kan finnas på flera releaser men ändå behålla korrekta relationer till:",
+      "list3": [
+        "artister",
+        "releaser",
+        "identifierare",
+        "rättighetshavare"
+      ]
+    },
+    "tech": {
+      "heading": "Teknik & infrastruktur",
+      "p1": "Catalogus Musicus byggs som en modern medieplattform snarare än en traditionell statisk databas.",
+      "p2": "Ekosystemet är utformat kring:",
+      "list1": [
+        "API:er",
+        "automatisering",
+        "metadatakonsistens",
+        "molninfrastruktur",
+        "skalbar lagring",
+        "AI-assisterade flöden",
+        "framtida interoperabilitet"
+      ],
+      "p3": "Plattformen är tänkt att stödja:",
+      "list2": [
+        "radiosystem",
+        "framtida streaminglösningar",
+        "publishing-system",
+        "artistportaler",
+        "licensieringsflöden",
+        "distributionsintegrationer"
+      ]
+    },
+    "vision": {
+      "heading": "Vision",
+      "p1": "Vi tror att musik ska behandlas som långsiktig kulturell infrastruktur — inte engångsuppladdningar.",
+      "p2": "Syftet med ekosystemet är att skapa:",
+      "list1": [
+        "hållbar katalogförvaltning",
+        "oberoende mediainfrastruktur",
+        "starkare relationer mellan kreativa verk",
+        "bevarande av konstnärlig identitet över tid"
+      ],
+      "p3": "Detta är inte bara en katalog.",
+      "p4": "Det är grunden för ett oberoende medieekosystem byggt kring musik, berättande, publishing och digital sändning."
+    }
   },
   "search": {
     "placeholder": "Sök efter låtar, artister, album…",
@@ -131,7 +343,19 @@
     "artists": "Artister",
     "albums": "Album",
     "empty": "Inget innehåll än",
-    "loading": "Laddar katalog…"
+    "loading": "Laddar…",
+    "subtitle": "Godkänd musik och podcasts från community.",
+    "podcast": "Podcast",
+    "allArtists": "Alla artister",
+    "searchTitleOrArtist": "Sök titel eller artist…",
+    "searchArtist": "Sök artist…",
+    "noMatches": "Inga träffar",
+    "tryDifferent": "Försök med ett annat sökord.",
+    "noArtistsYet": "Inga artister än",
+    "noApprovedYet": "Ingen godkänd media än",
+    "noApprovedBody": "När inskick godkänns dyker de upp här.",
+    "notFound": "Hittades inte",
+    "unknownArtist": "Okänd artist"
   },
   "mySubmissions": {
     "myArtists": "Mina artister",
@@ -142,13 +366,32 @@
     "tracksCount_other": "{{count}} låtar",
     "createArtist": "Skapa ny artist",
     "emptyTitle": "Inga artister än",
-    "emptyBody": "Skapa en artistprofil för att börja skicka in musik."
+    "emptyBody": "Du har inga artister ännu.",
+    "title": "Mitt",
+    "subtitleAdmin": "Alla artister i katalogen. Välj en för att se album och låtar.",
+    "subtitleEditor": "Alla artister du kan redigera.",
+    "subtitleUser": "Dina artister. Välj en för att hantera album och låtar.",
+    "demoTitle": "Demo-läge.",
+    "demoBody": "Inskickad musik sparas i Media Rosenqvist Catalog och skickas till Radio Uppsala för granskning. Distribution till Spotify, Apple Music m.fl. är inte aktiv.",
+    "loading": "Laddar…",
+    "createFirst": "Skapa din första artist",
+    "albumsLabel_one": "{{count}} album",
+    "albumsLabel_other": "{{count}} album",
+    "tracksLabel_one": "{{count}} låt",
+    "tracksLabel_other": "{{count}} låtar"
   },
   "notifications": {
     "title": "Notiser",
     "markAllRead": "Markera alla som lästa",
-    "empty": "Inga notiser ännu",
-    "loading": "Laddar…"
+    "empty": "Inga notiser ännu.",
+    "loading": "Laddar…",
+    "unread_one": "{{count}} oläst",
+    "unread_other": "{{count}} olästa",
+    "allCaughtUp": "Allt är ikapp.",
+    "markRead": "Markera som läst",
+    "approved": "Godkänd",
+    "needsChanges": "Behöver ändringar",
+    "emailStatus": "e-post: {{status}}"
   },
   "upload": {
     "podcastTitle": "Skicka in podcast",

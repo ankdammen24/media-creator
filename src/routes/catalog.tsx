@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useState, useMemo, useEffect, useRef } from "react";
 import { Search, Music2, Mic, User } from "lucide-react";
 import { Link } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 import { EmptyState, ErrorState } from "@/components/StateViews";
 import { supabase } from "@/integrations/supabase/client";
 import { zodValidator, fallback } from "@tanstack/zod-adapter";
@@ -40,10 +41,15 @@ export const Route = createFileRoute("/catalog")({
   ),
   notFoundComponent: () => (
     <div className="mx-auto max-w-7xl px-4 py-10">
-      <EmptyState title="Not found" />
+      <CatalogNotFound />
     </div>
   ),
 });
+
+function CatalogNotFound() {
+  const { t } = useTranslation();
+  return <EmptyState title={t("catalog.notFound")} />;
+}
 
 type Tab = "all" | "music" | "podcast" | "artists";
 
@@ -103,6 +109,7 @@ function artworkUrl(path: string) {
 }
 
 function CatalogPage() {
+  const { t } = useTranslation();
   const [tab, setTab] = useState<Tab>("all");
   const [query, setQuery] = useState("");
   const [artistId, setArtistId] = useState<string>("all");
@@ -170,13 +177,20 @@ function CatalogPage() {
     return list.filter((a) => a.name.toLowerCase().includes(q));
   }, [artistsAll, query]);
 
+  const tabLabels: Record<Tab, string> = {
+    all: t("catalog.all"),
+    music: t("catalog.music"),
+    podcast: t("catalog.podcast"),
+    artists: t("catalog.artists"),
+  };
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Catalog</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t("catalog.title")}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Approved music and podcasts from the community.
+            {t("catalog.subtitle")}
           </p>
         </div>
         <div className="relative w-full sm:w-72">
@@ -184,7 +198,7 @@ function CatalogPage() {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder={tab === "artists" ? "Search artist…" : "Search title or artist…"}
+            placeholder={tab === "artists" ? t("catalog.searchArtist") : t("catalog.searchTitleOrArtist")}
             className="w-full rounded-md border border-border bg-card py-2 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
           />
         </div>
@@ -196,13 +210,13 @@ function CatalogPage() {
             <button
               key={t}
               onClick={() => setTab(t)}
-              className={`rounded-md px-4 py-1.5 text-sm font-medium capitalize transition ${
+              className={`rounded-md px-4 py-1.5 text-sm font-medium transition ${
                 tab === t
                   ? "bg-primary text-primary-foreground"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              {t}
+              {tabLabels[t]}
             </button>
           ))}
         </div>
@@ -212,7 +226,7 @@ function CatalogPage() {
             onChange={(e) => setArtistId(e.target.value)}
             className="rounded-md border border-border bg-card px-3 py-1.5 text-sm"
           >
-            <option value="all">All artists</option>
+            <option value="all">{t("catalog.allArtists")}</option>
             {artists.map((a) => (
               <option key={a.id} value={a.id}>
                 {a.name}
@@ -224,13 +238,13 @@ function CatalogPage() {
 
       {tab === "artists" ? (
         artistsLoading ? (
-          <p className="text-sm text-muted-foreground">Loading…</p>
+          <p className="text-sm text-muted-foreground">{t("catalog.loading")}</p>
         ) : artistsError ? (
           <ErrorState error={artistsError as Error} onRetry={() => refetchArtists()} />
         ) : filteredArtists.length === 0 ? (
           <EmptyState
-            title={query ? "No matches" : "No artists yet"}
-            description={query ? "Try a different search term." : undefined}
+            title={query ? t("catalog.noMatches") : t("catalog.noArtistsYet")}
+            description={query ? t("catalog.tryDifferent") : undefined}
           />
         ) : (
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
@@ -267,17 +281,13 @@ function CatalogPage() {
           </div>
         )
       ) : isLoading ? (
-        <p className="text-sm text-muted-foreground">Loading…</p>
+        <p className="text-sm text-muted-foreground">{t("catalog.loading")}</p>
       ) : error ? (
         <ErrorState error={error as Error} onRetry={() => refetch()} />
       ) : items.length === 0 ? (
         <EmptyState
-          title={query ? "No matches" : "No approved media yet"}
-          description={
-            query
-              ? "Try a different search term."
-              : "Once submissions are approved they'll appear here."
-          }
+          title={query ? t("catalog.noMatches") : t("catalog.noApprovedYet")}
+          description={query ? t("catalog.tryDifferent") : t("catalog.noApprovedBody")}
         />
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -301,6 +311,7 @@ function CatalogPage() {
 }
 
 export function CatalogCard({ item }: { item: CatalogItem }) {
+  const { t } = useTranslation();
   const track: PlayerTrack = {
     id: item.id,
     title: item.title,
@@ -334,7 +345,7 @@ export function CatalogCard({ item }: { item: CatalogItem }) {
           ) : (
             <Mic className="h-3 w-3" />
           )}
-          {item.media_type}
+          {item.media_type === "music" ? t("catalog.music") : t("catalog.podcast")}
         </div>
         <h2 className="line-clamp-1 text-sm font-semibold">{item.title}</h2>
         {item.artist_profiles ? (
@@ -346,7 +357,7 @@ export function CatalogCard({ item }: { item: CatalogItem }) {
             {item.artist_profiles.name}
           </Link>
         ) : (
-          <p className="line-clamp-1 text-xs text-muted-foreground">Unknown artist</p>
+          <p className="line-clamp-1 text-xs text-muted-foreground">{t("catalog.unknownArtist")}</p>
         )}
         <EditorTrackMeta meta={item} />
       </div>

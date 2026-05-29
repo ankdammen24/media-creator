@@ -83,19 +83,27 @@
     "pendingTitle": "Your application is under review",
     "pendingBody": "Your artist account <strong>{{name}}</strong> is awaiting approval from an administrator. You'll be able to submit music as soon as it's approved — we'll be in touch.",
     "applyTitle": "Apply for an artist account",
-    "applyBody": "Tell us about yourself as an artist and we'll activate your account so you can submit music.",
+    "applyBody": "To submit music you need an artist account. Fill in your details and apply — an administrator will approve the account before you can start submitting releases.",
     "rejectedNote": "Your previous application was rejected. Reason: {{reason}}",
     "artistName": "Artist name",
-    "bio": "Short bio",
+    "bio": "Bio",
     "bioHint": "Tell us about your music, influences, where you're from.",
     "submitApplication": "Submit application",
-    "applicationSent": "Application sent — we'll get back to you."
+    "applicationSent": "Application sent — we'll get back to you.",
+    "pendingBodyPrefix": "Your artist account ",
+    "pendingBodySuffix": " is awaiting approval from an administrator. You'll be able to submit music as soon as it's approved — we'll be in touch.",
+    "rejectedPrefix": "Your previous application was rejected: ",
+    "bioPlaceholder": "Tell us briefly about you/the act as an artist.",
+    "website": "Website / link",
+    "applicationSentTitle": "Application sent",
+    "applicationSentBody": "Thanks! Your artist account application has been submitted and is being reviewed by an administrator. As soon as it's approved you'll be able to submit music."
   },
   "settings": {
     "pageTitle": "Settings",
-    "languageHeading": "Language",
-    "languageHint": "Affects the interface and the language of outgoing email.",
-    "savedToast": "Saved"
+    "languageHeading": "Notification language",
+    "languageHint": "Used for emails and in-app notifications sent to you.",
+    "savedToast": "Saved",
+    "pageSubtitle": "Manage your account preferences."
   },
   "landing": {
     "tagline": "Media Rosenqvist",
@@ -110,10 +118,214 @@
     "latestPodcasts": "Latest podcasts",
     "featuredArtists": "Featured artists",
     "noMusicTitle": "No music yet",
-    "noMusicBody": "Approved music will appear here."
+    "noMusicBody": "Approved music will appear here.",
+    "loading": "Loading…",
+    "viewAll": "View all →",
+    "unknownArtist": "Unknown artist",
+    "podcast": "Podcast"
   },
   "about": {
-    "title": "About Media Rosenqvist"
+    "title": "About Catalogus Musicus",
+    "tagline": "A Living Music Catalog",
+    "intro1Prefix": "",
+    "intro1Bold1": "Catalogus Musicus",
+    "intro1Mid": " is the central music catalog within the ",
+    "intro1Bold2": "Media Rosenqvist",
+    "intro1Suffix": " ecosystem — created to organize, preserve and distribute music, metadata and creative works across multiple platforms, projects and audiences.",
+    "intro2": "The catalog is designed as a long-term foundation for:",
+    "intro2List": [
+      "artists",
+      "releases",
+      "songs",
+      "metadata",
+      "publishing",
+      "radio broadcasting",
+      "digital distribution",
+      "rights management",
+      "future media services"
+    ],
+    "intro3": "Rather than treating music as isolated uploads, the platform is built around relationships between:",
+    "relation": "Artist → Album/Release → Song",
+    "intro4": "This allows the catalog to maintain structure, history and consistency across an evolving media landscape.",
+    "mr": {
+      "heading": "Media Rosenqvist",
+      "sub": "The Core Platform",
+      "p1": "Media Rosenqvist is the overarching creative and technical platform behind the ecosystem.",
+      "p2": "It combines:",
+      "list1": [
+        "music",
+        "radio",
+        "publishing",
+        "digital infrastructure",
+        "metadata systems",
+        "automation",
+        "AI-assisted workflows",
+        "media distribution"
+      ],
+      "p3": "The purpose is to build an independent and sustainable framework for modern media creation and management.",
+      "p4": "Media Rosenqvist acts as:",
+      "list2": [
+        "technical operator",
+        "infrastructure layer",
+        "creative umbrella",
+        "long-term catalog steward"
+      ],
+      "p5": "The goal is not simply to publish content, but to build systems that preserve and connect creative works over time."
+    },
+    "cpr": {
+      "heading": "Crystal Pier Records",
+      "sub": "Record Label & Releases",
+      "p1": "Crystal Pier Records is the label and release-oriented part of the ecosystem.",
+      "p2": "The label focuses on:",
+      "list1": [
+        "official releases",
+        "artist identities",
+        "album structures",
+        "singles and EPs",
+        "visual presentation",
+        "long-term catalog development"
+      ],
+      "p3": "The philosophy is artist-first and independent.",
+      "p4": "Rather than chasing short-term trends, the focus is on:",
+      "list2": [
+        "atmosphere",
+        "storytelling",
+        "identity",
+        "continuity",
+        "sustainable catalog growth"
+      ],
+      "p5": "Crystal Pier Records handles the master release side of the ecosystem and acts as one of the primary origins of music entering the catalog."
+    },
+    "gmp": {
+      "heading": "Guerilla Minstrel Publishing",
+      "sub": "Publishing & Rights",
+      "p1": "Guerilla Minstrel Publishing manages the publishing and rights-related side of the ecosystem.",
+      "p2": "This includes:",
+      "list1": [
+        "songwriting rights",
+        "compositions",
+        "lyrics",
+        "publishing administration",
+        "licensing preparation",
+        "future sync opportunities"
+      ],
+      "p3": "The publishing structure exists separately from the label structure in order to properly support the relationship between:",
+      "list2": [
+        "master recordings",
+        "underlying compositions",
+        "creative ownership"
+      ],
+      "p4": "As the catalog evolves, publishing data will become increasingly important for:",
+      "list3": [
+        "licensing",
+        "attribution",
+        "royalty structures",
+        "archival integrity"
+      ]
+    },
+    "ru": {
+      "heading": "Radio Uppsala",
+      "sub": "Radio, Discovery & Distribution",
+      "p1": "Radio Uppsala serves as one of the living recipients of the catalog.",
+      "p2": "It is not only a digital radio station, but also:",
+      "list1": [
+        "a discovery platform",
+        "a local media initiative",
+        "a testing ground for distribution",
+        "an editorial environment",
+        "a future-facing broadcast platform"
+      ],
+      "p3": "Music from the catalog may be used within:",
+      "list2": [
+        "radio rotation",
+        "special programming",
+        "thematic broadcasts",
+        "local cultural programming",
+        "pilot distribution workflows"
+      ],
+      "p4": "The platform combines:",
+      "list3": [
+        "local information",
+        "music discovery",
+        "automation",
+        "AI-assisted news workflows",
+        "independent media production"
+      ],
+      "p5": "Radio Uppsala represents the public-facing and audience-oriented side of the ecosystem."
+    },
+    "eco": {
+      "heading": "How the Ecosystem Connects",
+      "p1": "The ecosystem is designed around interconnected but independent components.",
+      "p2": "Each part has its own role, while still contributing to the same long-term structure."
+    },
+    "meta": {
+      "heading": "Metadata & Catalog Philosophy",
+      "p1": "The catalog is built around structured relationships and metadata integrity.",
+      "p2": "Examples of supported metadata include:",
+      "list1": [
+        "Artist",
+        "Album / Release",
+        "Track",
+        "UPC",
+        "ISRC",
+        "artwork",
+        "release information",
+        "publishing relationships",
+        "audio assets",
+        "distribution references"
+      ],
+      "p3": "The system is intentionally designed to support:",
+      "list2": [
+        "multiple versions of songs",
+        "re-releases",
+        "compilations",
+        "alternate releases",
+        "archival preservation"
+      ],
+      "p4": "A song may exist on several releases while still maintaining accurate relationships to:",
+      "list3": [
+        "artists",
+        "releases",
+        "identifiers",
+        "rights holders"
+      ]
+    },
+    "tech": {
+      "heading": "Technology & Infrastructure",
+      "p1": "Catalogus Musicus is being built as a modern media platform rather than a traditional static database.",
+      "p2": "The ecosystem is designed around:",
+      "list1": [
+        "APIs",
+        "automation",
+        "metadata consistency",
+        "cloud infrastructure",
+        "scalable storage",
+        "AI-assisted workflows",
+        "future interoperability"
+      ],
+      "p3": "The platform is intended to support:",
+      "list2": [
+        "radio systems",
+        "future streaming solutions",
+        "publishing systems",
+        "artist portals",
+        "licensing workflows",
+        "distribution integrations"
+      ]
+    },
+    "vision": {
+      "heading": "Vision",
+      "p1": "We believe music should be treated as long-term cultural infrastructure — not disposable uploads.",
+      "p2": "The purpose of the ecosystem is to create:",
+      "list1": [
+        "sustainable catalog management",
+        "independent media infrastructure",
+        "stronger relationships between creative works",
+        "preservation of artistic identity over time"
+      ],
+      "p3": "This is not only a catalog.",
+      "p4": "It is the foundation of an independent media ecosystem built around music, storytelling, publishing and digital broadcasting."
+    }
   },
   "search": {
     "placeholder": "Search for tracks, artists, albums…",
@@ -131,7 +343,19 @@
     "artists": "Artists",
     "albums": "Albums",
     "empty": "No content yet",
-    "loading": "Loading catalog…"
+    "loading": "Loading…",
+    "subtitle": "Approved music and podcasts from the community.",
+    "podcast": "Podcast",
+    "allArtists": "All artists",
+    "searchTitleOrArtist": "Search title or artist…",
+    "searchArtist": "Search artist…",
+    "noMatches": "No matches",
+    "tryDifferent": "Try a different search term.",
+    "noArtistsYet": "No artists yet",
+    "noApprovedYet": "No approved media yet",
+    "noApprovedBody": "Once submissions are approved they'll appear here.",
+    "notFound": "Not found",
+    "unknownArtist": "Unknown artist"
   },
   "mySubmissions": {
     "myArtists": "My artists",
@@ -142,13 +366,32 @@
     "tracksCount_other": "{{count}} tracks",
     "createArtist": "Create new artist",
     "emptyTitle": "No artists yet",
-    "emptyBody": "Create an artist profile to start submitting music."
+    "emptyBody": "You don't have any artists yet.",
+    "title": "Mine",
+    "subtitleAdmin": "All artists in the catalog. Select one to see albums and tracks.",
+    "subtitleEditor": "All artists you can edit.",
+    "subtitleUser": "Your artists. Select one to manage albums and tracks.",
+    "demoTitle": "Demo mode.",
+    "demoBody": "Submitted music is saved to the Media Rosenqvist Catalog and sent to Radio Uppsala for review. Distribution to Spotify, Apple Music etc. is not active.",
+    "loading": "Loading…",
+    "createFirst": "Create your first artist",
+    "albumsLabel_one": "{{count}} album",
+    "albumsLabel_other": "{{count}} albums",
+    "tracksLabel_one": "{{count}} track",
+    "tracksLabel_other": "{{count}} tracks"
   },
   "notifications": {
     "title": "Notifications",
-    "markAllRead": "Mark all as read",
-    "empty": "No notifications yet",
-    "loading": "Loading…"
+    "markAllRead": "Mark all read",
+    "empty": "No notifications yet.",
+    "loading": "Loading…",
+    "unread_one": "{{count}} unread",
+    "unread_other": "{{count}} unread",
+    "allCaughtUp": "All caught up.",
+    "markRead": "Mark read",
+    "approved": "Approved",
+    "needsChanges": "Needs changes",
+    "emailStatus": "email: {{status}}"
   },
   "upload": {
     "podcastTitle": "Submit podcast",

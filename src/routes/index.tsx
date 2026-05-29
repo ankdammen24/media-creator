@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { ArrowRight, Music2, Mic, UploadCloud, User } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { EmptyState, ErrorState } from "@/components/StateViews";
 import { EditorTrackMeta, EditorArtistMeta } from "@/components/EditorCardMeta";
 import { supabase } from "@/integrations/supabase/client";
@@ -110,6 +111,7 @@ function Index() {
 }
 
 function Hero() {
+  const { t } = useTranslation();
   const { data, isLoading } = useQuery({
     queryKey: ["home", "hero"],
     queryFn: async (): Promise<Row | null> => {
@@ -140,26 +142,26 @@ function Hero() {
     return (
       <section className="mb-14 overflow-hidden rounded-2xl border border-border bg-card p-8 sm:p-12">
         <span className="inline-block rounded-full border border-border bg-background px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-          Media Rosenqvist
+          {t("landing.tagline")}
         </span>
         <h1 className="mt-4 text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
-          Music & Podcast Catalog
+          {t("landing.heroTitle")}
         </h1>
         <p className="mt-4 max-w-xl text-base text-muted-foreground">
-          Discover approved music and podcasts, or submit your own work for review.
+          {t("landing.heroBody")}
         </p>
         <div className="mt-6 flex flex-wrap gap-3">
           <Link
             to="/catalog"
             className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:opacity-90"
           >
-            Browse the catalog <ArrowRight className="h-4 w-4" />
+            {t("landing.browseCatalog")} <ArrowRight className="h-4 w-4" />
           </Link>
           <Link
             to="/upload"
             className="inline-flex items-center gap-2 rounded-md border border-border bg-background px-4 py-2 text-sm font-semibold text-foreground transition hover:bg-secondary"
           >
-            <UploadCloud className="h-4 w-4" /> Submit media
+            <UploadCloud className="h-4 w-4" /> {t("landing.submitMedia")}
           </Link>
         </div>
       </section>
@@ -191,7 +193,7 @@ function Hero() {
           />
           <div className="min-w-0">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-primary">
-              <Music2 className="h-3 w-3" /> Featured · Music
+              <Music2 className="h-3 w-3" /> {t("landing.featuredMusic")}
             </span>
             <h1 className="mt-3 text-3xl font-bold tracking-tight text-foreground sm:text-5xl">
               {data.title}
@@ -217,13 +219,13 @@ function Hero() {
                 to="/catalog"
                 className="inline-flex items-center gap-2 rounded-md border border-border bg-background/60 px-4 py-2 text-sm font-semibold text-foreground backdrop-blur transition hover:bg-secondary"
               >
-                Browse catalog <ArrowRight className="h-4 w-4" />
+                {t("landing.browse")} <ArrowRight className="h-4 w-4" />
               </Link>
               <Link
                 to="/upload"
                 className="inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-semibold text-muted-foreground transition hover:text-foreground"
               >
-                <UploadCloud className="h-4 w-4" /> Submit
+                <UploadCloud className="h-4 w-4" /> {t("landing.submit")}
               </Link>
             </div>
           </div>
@@ -234,17 +236,19 @@ function Hero() {
 }
 
 function SectionHeader({ title, to }: { title: string; to: "/catalog" }) {
+  const { t } = useTranslation();
   return (
     <div className="mb-4 flex items-end justify-between">
       <h2 className="text-xl font-semibold tracking-tight">{title}</h2>
       <Link to={to} className="text-xs font-medium text-muted-foreground hover:text-foreground">
-        View all →
+        {t("landing.viewAll")}
       </Link>
     </div>
   );
 }
 
 function LatestMusic() {
+  const { t } = useTranslation();
   const { data, isLoading } = useQuery({
     queryKey: ["home", "latest-music"],
     queryFn: async (): Promise<Row[]> => {
@@ -267,11 +271,11 @@ function LatestMusic() {
 
   return (
     <section className="mb-14">
-      <SectionHeader title="Latest music" to="/catalog" />
+      <SectionHeader title={t("landing.latestMusic")} to="/catalog" />
       {isLoading ? (
-        <p className="text-sm text-muted-foreground">Loading…</p>
+        <p className="text-sm text-muted-foreground">{t("landing.loading")}</p>
       ) : shown.length === 0 ? (
-        <EmptyState title="No music yet" description="Approved music will appear here." />
+        <EmptyState title={t("landing.noMusicTitle")} description={t("landing.noMusicBody")} />
       ) : (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
           {shown.map((i) => (
@@ -284,6 +288,7 @@ function LatestMusic() {
 }
 
 function TrackCard({ item }: { item: Row }) {
+  const { t } = useTranslation();
   const track = toTrack(item);
   const art = artworkUrl(effectiveArtworkPath(item) ?? item.artwork_path);
   return (
@@ -310,7 +315,7 @@ function TrackCard({ item }: { item: Row }) {
             {item.artist_profiles.name}
           </Link>
         ) : (
-          <p className="line-clamp-1 text-xs text-muted-foreground">Unknown artist</p>
+          <p className="line-clamp-1 text-xs text-muted-foreground">{t("landing.unknownArtist")}</p>
         )}
         <EditorTrackMeta meta={item} />
       </div>
@@ -319,6 +324,7 @@ function TrackCard({ item }: { item: Row }) {
 }
 
 function LatestPodcasts() {
+  const { t } = useTranslation();
   const { data, isLoading } = useQuery({
     queryKey: ["home", "latest-podcasts"],
     queryFn: async (): Promise<Row[]> => {
@@ -340,9 +346,9 @@ function LatestPodcasts() {
 
   return (
     <section className="mb-14">
-      <SectionHeader title="Latest podcasts" to="/catalog" />
+      <SectionHeader title={t("landing.latestPodcasts")} to="/catalog" />
       {isLoading ? (
-        <p className="text-sm text-muted-foreground">Loading…</p>
+        <p className="text-sm text-muted-foreground">{t("landing.loading")}</p>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {data!.map((i) => (
@@ -355,6 +361,7 @@ function LatestPodcasts() {
 }
 
 function PodcastRow({ item }: { item: Row }) {
+  const { t } = useTranslation();
   const track = toTrack(item);
   const art = artworkUrl(effectiveArtworkPath(item) ?? item.artwork_path);
   return (
@@ -367,7 +374,7 @@ function PodcastRow({ item }: { item: Row }) {
       />
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-muted-foreground">
-          <Mic className="h-3 w-3" /> Podcast
+          <Mic className="h-3 w-3" /> {t("landing.podcast")}
         </div>
         <h3 className="mt-1 line-clamp-1 text-sm font-semibold">{item.title}</h3>
         {item.artist_profiles ? (
@@ -392,6 +399,7 @@ function PodcastRow({ item }: { item: Row }) {
 }
 
 function FeaturedArtists() {
+  const { t } = useTranslation();
   const { data, isLoading } = useQuery({
     queryKey: ["home", "featured-artists"],
     queryFn: async (): Promise<ArtistRow[]> => {
@@ -428,9 +436,9 @@ function FeaturedArtists() {
 
   return (
     <section className="mb-14">
-      <SectionHeader title="Featured artists" to="/catalog" />
+      <SectionHeader title={t("landing.featuredArtists")} to="/catalog" />
       {isLoading ? (
-        <p className="text-sm text-muted-foreground">Loading…</p>
+        <p className="text-sm text-muted-foreground">{t("landing.loading")}</p>
       ) : (
         <div className="grid grid-cols-3 gap-4 sm:grid-cols-4 lg:grid-cols-8">
           {shown.map((a) => {
