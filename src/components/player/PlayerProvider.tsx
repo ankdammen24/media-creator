@@ -423,6 +423,38 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     goToTrackRef.current = goToTrack;
   }, [goToTrack]);
 
+  // Preload the next queue track on the inactive deck so the gap-fill
+  // handoff can start it instantly without buffering.
+  const preloadNext = useCallback(async () => {
+    const next = queueRef.current[0];
+    if (!next || next.mediaType !== "music") {
+      clearPreload();
+      return;
+    }
+    if (preloadedRef.current?.trackId === next.id) return;
+    const url = await signedUrlFor(next);
+    if (!url) return;
+    // Re-check after the async hop — the queue may have changed.
+    if (queueRef.current[0]?.id !== next.id) return;
+    const inactive = decksRef.current[activeIdxRef.current ^ 1];
+    if (!inactive) return;
+    inactive.pause();
+    inactive.volume = 1;
+    inactive.preload = "auto";
+    inactive.src = url;
+    try { inactive.load(); } catch { /* ignore */ }
+    preloadedRef.current = { trackId: next.id, url };
+  }, [clearPreload, signedUrlFor]);
+
+  useEffect(() => {
+    preloadNextRef.current = preloadNext;
+  }, [preloadNext]);
+
+  // When the queue changes (auto-rebuild, skip, new play), refresh preload.
+  useEffect(() => {
+    void preloadNext();
+  }, [queue, preloadNext]);
+
   // Public play: toggles the active deck for the same track, otherwise
   // hard-switches and rebuilds the random queue.
   const play = useCallback(
