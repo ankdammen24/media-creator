@@ -43,7 +43,7 @@ type PlayerContextValue = {
 const PlayerContext = createContext<PlayerContextValue | null>(null);
 
 /** How many seconds before a track ends we kick off the next (already preloaded) track. */
-const GAP_FILL_SEC = 0.8;
+const GAP_FILL_SEC = 0;
 
 export function usePlayer() {
   const ctx = useContext(PlayerContext);
@@ -243,6 +243,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     // preloaded next track on the inactive deck and swap. No volume ramp —
     // both decks just briefly overlap to cover the silent gap.
     function maybeAutoCrossfade() {
+      if (GAP_FILL_SEC <= 0) return;
       const el = getActive();
       const cur = currentRef.current;
       if (!el || !cur || cur.mediaType !== "music") return;
