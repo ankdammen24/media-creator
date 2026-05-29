@@ -20,6 +20,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ShowPicker } from "@/components/ShowPicker";
 import { nextEpisodeNumber } from "@/lib/podcast-helpers";
 import { AiArtworkDialog } from "@/components/AiArtworkDialog";
+import { useEditorRole } from "@/lib/useEditorRole";
 
 type ArtistProfile = { id: string; name: string; bio: string | null };
 
