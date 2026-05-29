@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { GlobalSearch } from "@/components/GlobalSearch";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import logoCM from "@/assets/logo-cm.png";
 
@@ -152,10 +153,12 @@ export function SiteHeader() {
           <span className="ml-2">
             <LanguageSwitcher />
           </span>
+          <ThemeToggle className="ml-1" />
         </nav>
 
         {/* Mobile nav trigger */}
         <div className="flex items-center gap-1 md:hidden">
+          <ThemeToggle />
           <LanguageSwitcher />
           {user && (
             <Link
