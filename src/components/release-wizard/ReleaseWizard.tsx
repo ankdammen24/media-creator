@@ -848,7 +848,7 @@ function StepReleaseDetails({
 
   return (
     <StepCard
-      step={1}
+      step={2}
       title="Release Details"
       description="Grunduppgifterna om din release. Allt sparas i Media Rosenqvist Catalog och går att redigera senare."
     >
