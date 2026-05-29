@@ -60,12 +60,57 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 
 export const Route = createFileRoute("/albums/$albumId")({
-  head: () => ({
-    meta: [
-      { title: "Album — Catalogus Musicus" },
-      { name: "description", content: "Album details and tracks." },
-    ],
-  }),
+  loader: async ({ params }) => {
+    const { data: album } = await supabase
+      .from("albums")
+      .select("id, title, description, artwork_path, artist_profile_id")
+      .eq("id", params.albumId)
+      .maybeSingle();
+    let artistName: string | null = null;
+    if (album?.artist_profile_id) {
+      const { data: artist } = await supabase
+        .from("artist_profiles")
+        .select("name")
+        .eq("id", album.artist_profile_id)
+        .maybeSingle();
+      artistName = artist?.name ?? null;
+    }
+    const ogImage = album?.artwork_path
+      ? supabase.storage.from("artwork").getPublicUrl(album.artwork_path).data.publicUrl
+      : null;
+    return { album, artistName, ogImage };
+  },
+  head: ({ params, loaderData }) => {
+    const album = loaderData?.album;
+    const title = album
+      ? `${album.title}${loaderData?.artistName ? ` — ${loaderData.artistName}` : ""} | Catalogus Musicus`
+      : "Album — Catalogus Musicus";
+    const description =
+      album?.description ||
+      (album
+        ? `Lyssna på ${album.title}${loaderData?.artistName ? ` av ${loaderData.artistName}` : ""}.`
+        : "Album details and tracks.");
+    const url = `https://catalog.mediarosenqvist.com/albums/${params.albumId}`;
+    const meta: Array<Record<string, string>> = [
+      { title },
+      { name: "description", content: description },
+      { property: "og:title", content: title },
+      { property: "og:description", content: description },
+      { property: "og:type", content: "music.album" },
+      { property: "og:url", content: url },
+      { name: "twitter:card", content: loaderData?.ogImage ? "summary_large_image" : "summary" },
+      { name: "twitter:title", content: title },
+      { name: "twitter:description", content: description },
+    ];
+    if (loaderData?.ogImage) {
+      meta.push({ property: "og:image", content: loaderData.ogImage });
+      meta.push({ name: "twitter:image", content: loaderData.ogImage });
+    }
+    return {
+      meta,
+      links: [{ rel: "canonical", href: url }],
+    };
+  },
   component: AlbumPage,
 });
 
