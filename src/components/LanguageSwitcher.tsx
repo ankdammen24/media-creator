@@ -11,9 +11,8 @@ export function LanguageSwitcher({ size = "sm" }: { size?: "sm" | "md" }) {
     ? (raw as AppLang)
     : "sv";
 
-  async function pick(lang: AppLang) {
-    const next = lang as AppLang;
-    if (lang === current) return;
+  async function pick(next: AppLang) {
+    if (next === current) return;
     setAppLanguage(next);
     if (user) {
       await supabase
@@ -23,29 +22,32 @@ export function LanguageSwitcher({ size = "sm" }: { size?: "sm" | "md" }) {
     }
   }
 
-  const padding = size === "md" ? "px-2 py-1.5 text-xs" : "px-1.5 py-1 text-[11px]";
+  const sizing =
+    size === "md"
+      ? "h-9 pl-2.5 pr-7 text-xs"
+      : "h-8 pl-2 pr-6 text-[11px]";
+
   return (
-    <div
-      className="inline-flex flex-wrap items-center gap-0.5 rounded-md border border-border bg-background/60 p-0.5"
-      role="group"
-      aria-label={t("language.switch")}
-    >
-      {SUPPORTED_LANGS.map((l) => (
-        <button
-          key={l}
-          type="button"
-          onClick={() => void pick(l)}
-          aria-pressed={current === l}
-          title={t(`language.${l}`)}
-          className={`rounded ${padding} font-medium uppercase tracking-wide transition ${
-            current === l
-              ? "bg-secondary text-foreground"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          {t(`language.${l}Short`)}
-        </button>
-      ))}
+    <div className="relative inline-flex items-center">
+      <select
+        aria-label={t("language.switch")}
+        value={current}
+        onChange={(e) => void pick(e.target.value as AppLang)}
+        className={`appearance-none rounded-md border border-border bg-background/60 ${sizing} font-medium uppercase tracking-wide text-foreground transition hover:bg-secondary focus:outline-none focus:ring-1 focus:ring-ring`}
+      >
+        {SUPPORTED_LANGS.map((l) => (
+          <option key={l} value={l} className="normal-case">
+            {t(`language.${l}`)}
+          </option>
+        ))}
+      </select>
+      <svg
+        aria-hidden
+        viewBox="0 0 20 20"
+        className="pointer-events-none absolute right-1.5 h-3 w-3 text-muted-foreground"
+      >
+        <path d="M5 7l5 6 5-6" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
     </div>
   );
 }
