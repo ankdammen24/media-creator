@@ -881,6 +881,7 @@
     "radio": "Radiospelningar",
     "lastPlayed": "Senast spelad",
     "title_col": "Låt",
+    "artist": "Artist",
     "album": "Album",
     "never": "Aldrig",
     "empty": "Inga godkända låtar än — statistik visas när du har minst en publicerad låt.",

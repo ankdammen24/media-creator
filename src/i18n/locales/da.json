@@ -881,6 +881,7 @@
     "radio": "Radioafspilninger",
     "lastPlayed": "Sidst afspillet",
     "title_col": "Sang",
+    "artist": "Kunstner",
     "album": "Album",
     "never": "Aldrig",
     "empty": "Ingen godkendte sange endnu — statistik vises, når du har mindst én udgivet sang.",
