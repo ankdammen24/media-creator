@@ -201,9 +201,35 @@ const MostPlayedInput = z.object({
 const MOST_PLAYED_COLUMNS =
   "id, title, description, media_type, artwork_path, audio_path, audio_web_path, isrc, upc, version, track_number, duration_seconds, loudness_lufs, explicit, instrumental, ai_generated, dolby_atmos_available, songwriters, producers, featured_artists, processing_status, artist_profiles!submissions_artist_profile_id_fkey(id, name), albums(artwork_path)";
 
+export type MostPlayedRow = {
+  id: string;
+  title: string;
+  description: string | null;
+  media_type: "music" | "podcast";
+  artwork_path: string;
+  audio_path: string;
+  audio_web_path: string | null;
+  artist_profiles: { id: string; name: string } | null;
+  albums: { artwork_path: string | null } | null;
+  isrc: string | null;
+  upc: string | null;
+  version: string | null;
+  track_number: number | null;
+  duration_seconds: number | null;
+  loudness_lufs: number | null;
+  explicit: boolean | null;
+  instrumental: boolean | null;
+  ai_generated: boolean | null;
+  dolby_atmos_available: boolean | null;
+  songwriters: string[] | null;
+  producers: string[] | null;
+  featured_artists: string[] | null;
+  processing_status: string | null;
+};
+
 export const getMostPlayedMusic = createServerFn({ method: "POST" })
   .inputValidator((input) => MostPlayedInput.parse(input))
-  .handler(async ({ data }) => {
+  .handler(async ({ data }): Promise<MostPlayedRow[]> => {
     const cutoff = new Date(Date.now() - data.windowDays * 24 * 60 * 60 * 1000).toISOString();
 
     // Pull events in pages (catalog is small; aggregate in JS).
@@ -225,7 +251,7 @@ export const getMostPlayedMusic = createServerFn({ method: "POST" })
       from += PAGE;
     }
 
-    if (counts.size === 0) return [] as unknown[];
+    if (counts.size === 0) return [];
 
     const topIds = Array.from(counts.entries())
       .sort((a, b) => b[1] - a[1])
@@ -241,7 +267,7 @@ export const getMostPlayedMusic = createServerFn({ method: "POST" })
     if (subErr) throw new Error(`submissions lookup: ${subErr.message}`);
 
     const order = new Map(topIds.map((id, i) => [id, i]));
-    return (subs ?? [])
+    return ((subs ?? []) as unknown as MostPlayedRow[])
       .slice()
-      .sort((a, b) => (order.get((a as { id: string }).id) ?? 0) - (order.get((b as { id: string }).id) ?? 0));
+      .sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
   });
