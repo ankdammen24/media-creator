@@ -46,6 +46,7 @@ export type ArtistStatRow = {
   submissionId: string;
   title: string;
   mediaType: "music" | "podcast";
+  artistName: string | null;
   albumTitle: string | null;
   playCount: number;
   completedCount: number;
@@ -94,7 +95,7 @@ export const getArtistStats = createServerFn({ method: "POST" })
 
     const { data: subs, error: subsErr } = await supabaseAdmin
       .from("submissions")
-      .select("id, title, media_type, status, album_id, albums(title)")
+      .select("id, title, media_type, status, album_id, albums(title), artist_profiles!submissions_artist_profile_id_fkey(name)")
       .in("artist_profile_id", artistIds)
       .eq("status", "approved");
     if (subsErr) throw new Error(`submissions lookup: ${subsErr.message}`);
@@ -104,6 +105,7 @@ export const getArtistStats = createServerFn({ method: "POST" })
       media_type: "music" | "podcast";
       album_id: string | null;
       albums: { title: string } | { title: string }[] | null;
+      artist_profiles: { name: string } | { name: string }[] | null;
     }>;
     if (submissionList.length === 0) return { totals: emptyTotals(), rows: [] };
     const subIds = submissionList.map((s) => s.id);
@@ -165,10 +167,12 @@ export const getArtistStats = createServerFn({ method: "POST" })
       .map((s) => {
         const b = perSub.get(s.id)!;
         const album = Array.isArray(s.albums) ? s.albums[0] : s.albums;
+        const artist = Array.isArray(s.artist_profiles) ? s.artist_profiles[0] : s.artist_profiles;
         return {
           submissionId: s.id,
           title: s.title,
           mediaType: s.media_type,
+          artistName: artist?.name ?? null,
           albumTitle: album?.title ?? null,
           playCount: b.play,
           completedCount: b.completed,

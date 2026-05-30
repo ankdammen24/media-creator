@@ -107,19 +107,33 @@ export async function performRadioSpinsImport(opts: {
     const history = await fetchHistory(apiKey, windowStart, now);
     summary.fetched = history.length;
 
-    // Build lookup: azuracast song id -> submission id.
+    // Build lookup: azuracast song hash -> submission id. History returns
+    // song.id = 32-char song hash, which is stored as `azuracast_song_id`.
+    // We also fall back to `azuracast_unique_id` for legacy rows that haven't
+    // been backfilled yet.
     const songIds = Array.from(
       new Set(history.map((h) => h.song?.id).filter((x): x is string => !!x)),
     );
     const idMap = new Map<string, string>();
     if (songIds.length > 0) {
-      const { data: matches, error: matchErr } = await supabaseAdmin
+      const { data: bySong, error: songErr } = await supabaseAdmin
         .from("submissions")
-        .select("id, azuracast_unique_id")
-        .in("azuracast_unique_id", songIds);
-      if (matchErr) throw new Error(`submission match: ${matchErr.message}`);
-      for (const m of matches ?? []) {
-        if (m.azuracast_unique_id) idMap.set(m.azuracast_unique_id, m.id);
+        .select("id, azuracast_song_id")
+        .in("azuracast_song_id", songIds);
+      if (songErr) throw new Error(`submission match (song_id): ${songErr.message}`);
+      for (const m of (bySong ?? []) as Array<{ id: string; azuracast_song_id: string | null }>) {
+        if (m.azuracast_song_id) idMap.set(m.azuracast_song_id, m.id);
+      }
+      // Legacy fallback: rader utan song_id backfill.
+      const stillMissing = songIds.filter((id) => !idMap.has(id));
+      if (stillMissing.length > 0) {
+        const { data: byUnique } = await supabaseAdmin
+          .from("submissions")
+          .select("id, azuracast_unique_id")
+          .in("azuracast_unique_id", stillMissing);
+        for (const m of byUnique ?? []) {
+          if (m.azuracast_unique_id) idMap.set(m.azuracast_unique_id, m.id);
+        }
       }
     }
 

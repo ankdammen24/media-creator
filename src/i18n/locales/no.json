@@ -881,6 +881,7 @@
     "radio": "Radioavspillinger",
     "lastPlayed": "Sist spilt",
     "title_col": "Låt",
+    "artist": "Artist",
     "album": "Album",
     "never": "Aldri",
     "empty": "Ingen godkjente låter ennå – statistikk vises når du har minst én publisert låt.",

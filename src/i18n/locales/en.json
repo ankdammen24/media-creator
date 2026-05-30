@@ -881,6 +881,7 @@
     "radio": "Radio spins",
     "lastPlayed": "Last played",
     "title_col": "Track",
+    "artist": "Artist",
     "album": "Album",
     "never": "Never",
     "empty": "No approved tracks yet — stats appear once you have at least one published track.",

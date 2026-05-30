@@ -881,6 +881,7 @@
     "radio": "Radiosoitot",
     "lastPlayed": "Viimeksi soitettu",
     "title_col": "Kappale",
+    "artist": "Artisti",
     "album": "Albumi",
     "never": "Ei koskaan",
     "empty": "Ei hyväksyttyjä kappaleita vielä – tilastot näytetään, kun sinulla on vähintään yksi julkaistu kappale.",
