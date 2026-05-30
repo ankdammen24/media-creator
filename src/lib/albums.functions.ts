@@ -2,6 +2,75 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
+// ---------- getAlbumDetails ----------
+// Public — returns a single album with artist mini-info and all its tracks.
+// Uses the admin client so that the album page mirrors the catalog's
+// visibility (which already lists draft albums via getAllAlbums).
+const AlbumDetailsInput = z.object({ albumId: z.string().uuid() });
+
+export type AlbumDetailsTrack = {
+  id: string;
+  title: string;
+  track_number: number | null;
+  artwork_path: string;
+  audio_path: string;
+  audio_web_path: string | null;
+  description: string | null;
+  status: string;
+  user_id: string;
+  media_type: "music" | "podcast";
+  isrc: string | null;
+  upc: string | null;
+  version: string | null;
+  duration_seconds: number | null;
+  loudness_lufs: number | null;
+  explicit: boolean | null;
+  instrumental: boolean | null;
+  ai_generated: boolean | null;
+  dolby_atmos_available: boolean | null;
+  songwriters: string[] | null;
+  producers: string[] | null;
+  featured_artists: string[] | null;
+  processing_status: string | null;
+};
+
+export const getAlbumDetails = createServerFn({ method: "POST" })
+  .inputValidator((input) => AlbumDetailsInput.parse(input))
+  .handler(async ({ data }) => {
+    const { data: album, error: albumErr } = await supabaseAdmin
+      .from("albums")
+      .select(
+        "id, user_id, artist_profile_id, title, description, album_type, artwork_path, genre, secondary_genre, language, label, upc, release_date, status, distribution_platforms, previously_released, podcast_category, published_at, submitted_at, created_at, updated_at",
+      )
+      .eq("id", data.albumId)
+      .maybeSingle();
+    if (albumErr) throw new Error(`album lookup: ${albumErr.message}`);
+    if (!album) return { album: null, artist: null, tracks: [] as AlbumDetailsTrack[] };
+
+    const [artistRes, tracksRes] = await Promise.all([
+      supabaseAdmin
+        .from("artist_profiles")
+        .select("id, name, avatar_path")
+        .eq("id", album.artist_profile_id)
+        .maybeSingle(),
+      supabaseAdmin
+        .from("submissions")
+        .select(
+          "id, title, track_number, artwork_path, audio_path, audio_web_path, description, status, user_id, media_type, isrc, upc, version, duration_seconds, loudness_lufs, explicit, instrumental, ai_generated, dolby_atmos_available, songwriters, producers, featured_artists, processing_status",
+        )
+        .eq("album_id", album.id)
+        .order("track_number", { ascending: true }),
+    ]);
+    if (artistRes.error) throw new Error(`artist lookup: ${artistRes.error.message}`);
+    if (tracksRes.error) throw new Error(`tracks lookup: ${tracksRes.error.message}`);
+
+    return {
+      album,
+      artist: artistRes.data ?? null,
+      tracks: (tracksRes.data ?? []) as AlbumDetailsTrack[],
+    };
+  });
+
 export type PublicAlbum = {
   id: string;
   title: string;

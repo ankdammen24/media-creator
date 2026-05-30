@@ -22,6 +22,7 @@ import {
   deleteAlbum as deleteAlbumFn,
   reorderAlbumTracks,
 } from "@/lib/catalog-edit.functions";
+import { getAlbumDetails } from "@/lib/albums.functions";
 import { useAuth } from "@/lib/auth";
 import { useEditorRole } from "@/lib/useEditorRole";
 import { PlayButton } from "@/components/player/PlayButton";
@@ -61,24 +62,13 @@ import { CSS } from "@dnd-kit/utilities";
 
 export const Route = createFileRoute("/albums/$albumId")({
   loader: async ({ params }) => {
-    const { data: album } = await supabase
-      .from("albums")
-      .select("id, title, description, artwork_path, artist_profile_id")
-      .eq("id", params.albumId)
-      .maybeSingle();
-    let artistName: string | null = null;
-    if (album?.artist_profile_id) {
-      const { data: artist } = await supabase
-        .from("artist_profiles")
-        .select("name")
-        .eq("id", album.artist_profile_id)
-        .maybeSingle();
-      artistName = artist?.name ?? null;
-    }
+    const { album, artist } = await getAlbumDetails({
+      data: { albumId: params.albumId },
+    });
     const ogImage = album?.artwork_path
       ? supabase.storage.from("artwork").getPublicUrl(album.artwork_path).data.publicUrl
       : null;
-    return { album, artistName, ogImage };
+    return { album, artistName: artist?.name ?? null, ogImage };
   },
   head: ({ params, loaderData }) => {
     const album = loaderData?.album;
@@ -167,43 +157,16 @@ function AlbumPage() {
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["album", albumId, user?.id, isAdmin],
     queryFn: async (): Promise<AlbumData> => {
-      const albumRes = await supabase
-        .from("albums")
-        .select(
-          "id, user_id, artist_profile_id, title, description, album_type, artwork_path, genre, secondary_genre, language, label, upc, release_date, status, distribution_platforms, previously_released, podcast_category, published_at, submitted_at, created_at, updated_at",
-        )
-        .eq("id", albumId)
-        .maybeSingle();
-      if (albumRes.error) throw albumRes.error;
-      const album = (albumRes.data as Album | null) ?? null;
-      let artist: ArtistMini = null;
-      let tracks: Track[] = [];
-      if (album) {
-        const [artistRes, tracksRes] = await Promise.all([
-          supabase
-            .from("artist_profiles")
-            .select("id, name, avatar_path")
-            .eq("id", album.artist_profile_id)
-            .maybeSingle(),
-          (() => {
-            const isOwner = user?.id === album.user_id;
-            let q = supabase
-              .from("submissions")
-              .select(
-                "id, title, track_number, artwork_path, audio_path, audio_web_path, description, status, user_id, media_type, isrc, upc, version, duration_seconds, loudness_lufs, explicit, instrumental, ai_generated, dolby_atmos_available, songwriters, producers, featured_artists, processing_status",
-              )
-              .eq("album_id", album.id)
-              .order("track_number", { ascending: true });
-            if (!isOwner && !isAdmin) q = q.eq("status", "approved");
-            return q;
-          })(),
-        ]);
-        if (artistRes.error) throw artistRes.error;
-        if (tracksRes.error) throw tracksRes.error;
-        artist = (artistRes.data as ArtistMini) ?? null;
-        tracks = (tracksRes.data ?? []) as Track[];
-      }
-      return { album, artist, tracks };
+      const res = await getAlbumDetails({ data: { albumId } });
+      const isOwner = !!user && !!res.album && user.id === res.album.user_id;
+      const tracks = (res.tracks as Track[]).filter(
+        (t) => isOwner || isAdmin || t.status === "approved",
+      );
+      return {
+        album: (res.album as Album | null) ?? null,
+        artist: (res.artist as ArtistMini) ?? null,
+        tracks,
+      };
     },
   });
 
