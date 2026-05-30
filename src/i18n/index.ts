@@ -18,6 +18,7 @@ if (!i18n.isInitialized) {
       fallbackLng: "sv",
       supportedLngs: ["sv", "en"],
       load: "languageOnly",
+      initAsync: false,
       nonExplicitSupportedLngs: true,
       interpolation: { escapeValue: false },
       returnNull: false,
