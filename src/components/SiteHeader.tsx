@@ -34,7 +34,7 @@ export function SiteHeader() {
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-2 px-3 sm:gap-4 sm:px-6">
         <Link to="/" className="flex min-w-0 items-center gap-2 text-sm font-bold tracking-tight">
           <img src={logoCM} alt="Catalogus Musicus logo" width={28} height={28} className="h-7 w-7 flex-shrink-0 object-contain" />
-          <span className="truncate">Catalogus Musicus</span>
+          <span className="hidden truncate sm:inline">Catalogus Musicus</span>
         </Link>
         <div className="flex flex-1 justify-center px-1 sm:px-2">
           <GlobalSearch />
