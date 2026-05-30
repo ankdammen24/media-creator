@@ -401,16 +401,18 @@ function LatestPodcasts() {
     },
   });
 
-  if (!isLoading && (!data || data.length === 0)) return null;
-
   return (
     <section className="mb-14">
       <SectionHeader title={t("landing.latestPodcasts")} to="/catalog" />
       {isLoading ? (
         <p className="text-sm text-muted-foreground">{t("landing.loading")}</p>
+      ) : !data || data.length === 0 ? (
+        <p className="rounded-lg border border-dashed border-border bg-card/50 p-6 text-center text-sm text-muted-foreground">
+          {t("landing.podcastsComingSoon")}
+        </p>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {data!.map((i) => (
+          {data.map((i) => (
             <PodcastRow key={i.id} item={i} />
           ))}
         </div>
@@ -424,7 +426,11 @@ function PodcastRow({ item }: { item: Row }) {
   const track = toTrack(item);
   const art = artworkUrl(effectiveArtworkPath(item) ?? item.artwork_path);
   return (
-    <article className="flex gap-4 overflow-hidden rounded-lg border border-border bg-card p-3 transition hover:border-primary/40">
+    <Link
+      to="/catalog"
+      search={{ focus: item.id }}
+      className="flex gap-4 overflow-hidden rounded-lg border border-border bg-card p-3 transition hover:border-primary/40"
+    >
       <img
         src={art}
         alt={item.title}
@@ -437,23 +443,26 @@ function PodcastRow({ item }: { item: Row }) {
         </div>
         <h3 className="mt-1 line-clamp-1 text-sm font-semibold">{item.title}</h3>
         {item.artist_profiles ? (
-          <Link
-            to="/artists/$artistId"
-            params={{ artistId: item.artist_profiles.id }}
-            className="line-clamp-1 text-xs text-muted-foreground hover:text-foreground hover:underline"
-          >
+          <span className="line-clamp-1 text-xs text-muted-foreground">
             {item.artist_profiles.name}
-          </Link>
+          </span>
         ) : null}
         {item.description ? (
           <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{item.description}</p>
         ) : null}
         <EditorTrackMeta meta={item} />
-        <div className="mt-auto pt-2">
+        <div className="mt-auto flex items-center gap-2 pt-2">
           <PlayButton track={track} size="sm" />
+          <ShareButton
+            path={`/catalog?focus=${item.id}`}
+            title={`${item.title}${item.artist_profiles ? ` — ${item.artist_profiles.name}` : ""}`}
+            text={item.description ?? undefined}
+            variant="ghost"
+            size="sm"
+          />
         </div>
       </div>
-    </article>
+    </Link>
   );
 }
 
