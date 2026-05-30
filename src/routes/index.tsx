@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowRight, Music2, Mic, User } from "lucide-react";
+import { ArrowRight, Music2, Mic, User, Flame } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { EmptyState, ErrorState } from "@/components/StateViews";
 import { EditorTrackMeta, EditorArtistMeta } from "@/components/EditorCardMeta";
@@ -9,6 +10,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { PlayButton } from "@/components/player/PlayButton";
 import type { PlayerTrack } from "@/components/player/PlayerProvider";
 import { effectiveArtworkPath } from "@/lib/album-helpers";
+import { ShareButton } from "@/components/ShareButton";
+import { getMostPlayedMusic } from "@/lib/stats.functions";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -76,11 +79,11 @@ function shuffle<T>(arr: T[]): T[] {
   return out;
 }
 
-/** Returns a counter that increments every 5 minutes to trigger a reshuffle. */
+/** Returns a counter that increments every 4 hours to trigger a reshuffle. */
 function useShuffleTick() {
   const [tick, setTick] = useState(0);
   useEffect(() => {
-    const id = setInterval(() => setTick((t) => t + 1), 5 * 60 * 1000);
+    const id = setInterval(() => setTick((t) => t + 1), 4 * 60 * 60 * 1000);
     return () => clearInterval(id);
   }, []);
   return tick;
@@ -104,6 +107,7 @@ function Index() {
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10">
       <Hero />
       <LatestMusic />
+      <MostPlayed />
       <LatestPodcasts />
       <FeaturedArtists />
     </div>
