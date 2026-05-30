@@ -29,12 +29,17 @@ type HistoryRow = {
 
 async function fetchHistory(
   apiKey: string,
-  startSec: number,
-  endSec: number,
+  start: Date,
+  end: Date,
 ): Promise<HistoryRow[]> {
-  // AzuraCast public history endpoint supports start/end (unix seconds).
-  // We page by 7-day chunks to be safe.
-  const url = `${AZURACAST_BASE}/api/station/${STATION_ID}/history?start=${startSec}&end=${endSec}`;
+  // AzuraCast's history endpoint expects ISO-8601 date strings, not unix
+  // timestamps. Use the path form /history/{start}/{end} with full ISO
+  // datetimes (the server accepts both YYYY-MM-DD and full ISO).
+  const startStr = start.toISOString();
+  const endStr = end.toISOString();
+  const url = `${AZURACAST_BASE}/api/station/${STATION_ID}/history/${encodeURIComponent(
+    startStr,
+  )}/${encodeURIComponent(endStr)}`;
   const res = await fetch(url, {
     headers: { "X-API-Key": apiKey, Accept: "application/json" },
   });
@@ -97,9 +102,7 @@ export async function performRadioSpinsImport(opts: {
   };
 
   try {
-    const startSec = Math.floor(windowStart.getTime() / 1000);
-    const endSec = Math.floor(now.getTime() / 1000);
-    const history = await fetchHistory(apiKey, startSec, endSec);
+    const history = await fetchHistory(apiKey, windowStart, now);
     summary.fetched = history.length;
 
     // Build lookup: azuracast song id -> submission id.
