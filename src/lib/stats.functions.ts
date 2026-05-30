@@ -187,3 +187,61 @@ export const getArtistStats = createServerFn({ method: "POST" })
 function emptyTotals() {
   return { play: 0, completed: 0, radio: 0, play30d: 0, completed30d: 0, radio30d: 0 };
 }
+
+// ---------- getMostPlayedMusic ----------
+// Public (anonymous) — used by the homepage "Mest spelade" rail.
+// Aggregates playback_events over the last N days, counts play + radio_spin
+// per submission, then hydrates the top N approved music submissions in
+// the same row shape used by the homepage.
+const MostPlayedInput = z.object({
+  limit: z.number().int().min(1).max(50).optional().default(20),
+  windowDays: z.number().int().min(1).max(365).optional().default(30),
+});
+
+const MOST_PLAYED_COLUMNS =
+  "id, title, description, media_type, artwork_path, audio_path, audio_web_path, isrc, upc, version, track_number, duration_seconds, loudness_lufs, explicit, instrumental, ai_generated, dolby_atmos_available, songwriters, producers, featured_artists, processing_status, artist_profiles!submissions_artist_profile_id_fkey(id, name), albums(artwork_path)";
+
+export const getMostPlayedMusic = createServerFn({ method: "POST" })
+  .inputValidator((input) => MostPlayedInput.parse(input))
+  .handler(async ({ data }) => {
+    const cutoff = new Date(Date.now() - data.windowDays * 24 * 60 * 60 * 1000).toISOString();
+
+    // Pull events in pages (catalog is small; aggregate in JS).
+    const counts = new Map<string, number>();
+    const PAGE = 1000;
+    let from = 0;
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      const { data: page, error } = await supabaseAdmin
+        .from("playback_events" as never)
+        .select("submission_id, event_type")
+        .gte("occurred_at", cutoff)
+        .in("event_type", ["play", "radio_spin"])
+        .range(from, from + PAGE - 1);
+      if (error) throw new Error(`events lookup: ${error.message}`);
+      const rows = (page ?? []) as Array<{ submission_id: string; event_type: string }>;
+      for (const r of rows) counts.set(r.submission_id, (counts.get(r.submission_id) ?? 0) + 1);
+      if (rows.length < PAGE) break;
+      from += PAGE;
+    }
+
+    if (counts.size === 0) return [] as unknown[];
+
+    const topIds = Array.from(counts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, data.limit)
+      .map(([id]) => id);
+
+    const { data: subs, error: subErr } = await supabaseAdmin
+      .from("submissions")
+      .select(MOST_PLAYED_COLUMNS)
+      .in("id", topIds)
+      .eq("status", "approved")
+      .eq("media_type", "music");
+    if (subErr) throw new Error(`submissions lookup: ${subErr.message}`);
+
+    const order = new Map(topIds.map((id, i) => [id, i]));
+    return (subs ?? [])
+      .slice()
+      .sort((a, b) => (order.get((a as { id: string }).id) ?? 0) - (order.get((b as { id: string }).id) ?? 0));
+  });
