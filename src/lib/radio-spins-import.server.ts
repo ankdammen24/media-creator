@@ -32,14 +32,16 @@ async function fetchHistory(
   start: Date,
   end: Date,
 ): Promise<HistoryRow[]> {
-  // AzuraCast's history endpoint expects ISO-8601 date strings, not unix
-  // timestamps. Use the path form /history/{start}/{end} with full ISO
-  // datetimes (the server accepts both YYYY-MM-DD and full ISO).
-  const startStr = start.toISOString();
-  const endStr = end.toISOString();
-  const url = `${AZURACAST_BASE}/api/station/${STATION_ID}/history/${encodeURIComponent(
-    startStr,
-  )}/${encodeURIComponent(endStr)}`;
+  // AzuraCast's history endpoint takes `start`/`end` as query parameters in a
+  // PHP-supported date format. Bare unix timestamps are rejected by AzuraCast's
+  // parser, so send explicit UTC date strings instead.
+  const formatDate = (date: Date) =>
+    date.toISOString().replace("T", " ").replace(/\.\d{3}Z$/, " UTC");
+  const params = new URLSearchParams({
+    start: formatDate(start),
+    end: formatDate(end),
+  });
+  const url = `${AZURACAST_BASE}/api/station/${STATION_ID}/history?${params.toString()}`;
   const res = await fetch(url, {
     headers: { "X-API-Key": apiKey, Accept: "application/json" },
   });
