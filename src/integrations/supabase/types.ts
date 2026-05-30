@@ -658,6 +658,7 @@ export type Database = {
           audio_path: string
           audio_web_path: string | null
           azuracast_file_id: number | null
+          azuracast_song_id: string | null
           azuracast_sync_error: string | null
           azuracast_synced_at: string | null
           azuracast_unique_id: string | null
@@ -712,6 +713,7 @@ export type Database = {
           audio_path: string
           audio_web_path?: string | null
           azuracast_file_id?: number | null
+          azuracast_song_id?: string | null
           azuracast_sync_error?: string | null
           azuracast_synced_at?: string | null
           azuracast_unique_id?: string | null
@@ -766,6 +768,7 @@ export type Database = {
           audio_path?: string
           audio_web_path?: string | null
           azuracast_file_id?: number | null
+          azuracast_song_id?: string | null
           azuracast_sync_error?: string | null
           azuracast_synced_at?: string | null
           azuracast_unique_id?: string | null

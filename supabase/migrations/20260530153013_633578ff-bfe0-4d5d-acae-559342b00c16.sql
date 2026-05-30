@@ -1,0 +1,2 @@
+ALTER TABLE public.submissions ADD COLUMN IF NOT EXISTS azuracast_song_id text;
+CREATE INDEX IF NOT EXISTS idx_submissions_azuracast_song_id ON public.submissions(azuracast_song_id) WHERE azuracast_song_id IS NOT NULL;
