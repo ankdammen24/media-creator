@@ -29,11 +29,19 @@
   },
   "language": {
     "label": "Language",
+    "switch": "Change language",
     "sv": "Swedish",
     "en": "English",
-    "switch": "Switch language",
+    "no": "Norwegian",
+    "da": "Danish",
+    "fi": "Finnish",
+    "is": "Icelandic",
     "svShort": "SV",
-    "enShort": "EN"
+    "enShort": "EN",
+    "noShort": "NO",
+    "daShort": "DA",
+    "fiShort": "FI",
+    "isShort": "IS"
   },
   "nav": {
     "home": "Home",

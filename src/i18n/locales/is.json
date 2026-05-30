@@ -28,12 +28,20 @@
     "required": "obligatoriskt"
   },
   "language": {
-    "label": "Språk",
-    "sv": "Svenska",
-    "en": "Engelska",
-    "switch": "Byt språk",
+    "label": "Tungumál",
+    "switch": "Skipta um tungumál",
+    "sv": "Sænska",
+    "en": "Enska",
+    "no": "Norska",
+    "da": "Danska",
+    "fi": "Finnska",
+    "is": "Íslenska",
     "svShort": "SV",
-    "enShort": "EN"
+    "enShort": "EN",
+    "noShort": "NO",
+    "daShort": "DA",
+    "fiShort": "FI",
+    "isShort": "IS"
   },
   "nav": {
     "home": "Hem",

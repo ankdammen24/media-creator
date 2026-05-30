@@ -29,11 +29,19 @@
   },
   "language": {
     "label": "Språk",
+    "switch": "Byt språk",
     "sv": "Svenska",
     "en": "Engelska",
-    "switch": "Byt språk",
+    "no": "Norska",
+    "da": "Danska",
+    "fi": "Finska",
+    "is": "Isländska",
     "svShort": "SV",
-    "enShort": "EN"
+    "enShort": "EN",
+    "noShort": "NO",
+    "daShort": "DA",
+    "fiShort": "FI",
+    "isShort": "IS"
   },
   "nav": {
     "home": "Hem",
