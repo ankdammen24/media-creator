@@ -37,7 +37,7 @@ export function LanguageSwitcher({ size = "sm" }: { size?: "sm" | "md" }) {
       >
         {SUPPORTED_LANGS.map((l) => (
           <option key={l} value={l} className="normal-case">
-            {t(`language.${l}Short`)} — {t(`language.${l}`)}
+            {t(`language.${l}`)}
           </option>
         ))}
       </select>
