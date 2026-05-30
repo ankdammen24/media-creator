@@ -86,6 +86,7 @@ function StatsPage() {
             <table className="w-full text-sm">
               <thead className="border-b border-border bg-secondary/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
                 <tr>
+                  <th className="px-4 py-2">{t("stats.artist")}</th>
                   <th className="px-4 py-2">{t("stats.title_col")}</th>
                   <th className="px-4 py-2">{t("stats.album")}</th>
                   <th className="px-4 py-2 text-right">{t("stats.plays")}</th>
@@ -97,6 +98,7 @@ function StatsPage() {
               <tbody>
                 {data.rows.map((r) => (
                   <tr key={r.submissionId} className="border-b border-border/60 last:border-b-0">
+                    <td className="px-4 py-2 text-muted-foreground">{r.artistName ?? "—"}</td>
                     <td className="px-4 py-2 font-medium text-foreground">
                       <Link
                         to="/catalog"

@@ -53,6 +53,7 @@ async function streamUploadToStorage(params: {
 export type AzFile = {
   id?: number;
   unique_id?: string;
+  song_id?: string;
   path?: string;
   title?: string;
   artist?: string;
@@ -369,6 +370,7 @@ export async function performAzuracastImport(
         reviewed_at: now,
         reviewed_by: adminUserId,
         azuracast_unique_id: azId,
+        azuracast_song_id: file.song_id ?? null,
       });
       if (insErr) {
         // Rensa upp om submission-insert failade
