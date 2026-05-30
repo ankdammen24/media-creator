@@ -269,6 +269,40 @@ export async function performAzuracastImport(
   const trackNumberCache = new Map<string, number>();
   let processed = 0;
 
+  // Backfill: säkerställ att redan importerade rader får sitt azuracast_song_id
+  // satt. AzuraCast-historiken matchar mot song_id (32-tecken hash), inte mot
+  // filens unique_id (24 tecken), så utan detta blir inga radiospelningar
+  // kopplade till spår.
+  try {
+    const byUniqueId = new Map<string, string>();
+    for (const f of files) {
+      if (f.unique_id && f.song_id) byUniqueId.set(f.unique_id, f.song_id);
+    }
+    if (byUniqueId.size > 0) {
+      const uniqueIds = Array.from(byUniqueId.keys());
+      // Hämta rader som saknar song_id
+      for (let i = 0; i < uniqueIds.length; i += 500) {
+        const slice = uniqueIds.slice(i, i + 500);
+        const { data: rows } = await supabaseAdmin
+          .from("submissions")
+          .select("id, azuracast_unique_id")
+          .in("azuracast_unique_id", slice)
+          .is("azuracast_song_id", null);
+        for (const r of rows ?? []) {
+          const songId = r.azuracast_unique_id ? byUniqueId.get(r.azuracast_unique_id) : null;
+          if (songId) {
+            await supabaseAdmin
+              .from("submissions")
+              .update({ azuracast_song_id: songId })
+              .eq("id", r.id);
+          }
+        }
+      }
+    }
+  } catch (e) {
+    console.warn("azuracast song_id backfill:", e);
+  }
+
   for (const file of files) {
     if (opts.limit && summary.inserted >= opts.limit) break;
     const azId = file.unique_id || (file.id != null ? String(file.id) : null);
