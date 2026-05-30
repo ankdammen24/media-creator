@@ -2,6 +2,7 @@ import { Pause, Play, X, Music2, Mic, SkipBack, SkipForward, Square } from "luci
 import { Link } from "@tanstack/react-router";
 import { usePlayer } from "./PlayerProvider";
 import { supabase } from "@/integrations/supabase/client";
+import { ShareButton } from "@/components/ShareButton";
 
 function fmt(seconds: number) {
   if (!isFinite(seconds) || seconds <= 0) return "0:00";
@@ -66,6 +67,15 @@ export function MiniPlayer() {
         </div>
 
         <div className="flex flex-shrink-0 items-center gap-0.5 sm:gap-1">
+          <div className="hidden sm:block">
+            <ShareButton
+              path={`/catalog?focus=${current.id}`}
+              title={`${current.title}${current.artist ? ` — ${current.artist}` : ""}`}
+              variant="ghost"
+              size="sm"
+              label=""
+            />
+          </div>
           <button
             type="button"
             onClick={skipPrev}
