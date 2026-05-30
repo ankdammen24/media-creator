@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowRight, Music2, Mic, User } from "lucide-react";
+import { ArrowRight, Music2, Mic, User, Flame } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { EmptyState, ErrorState } from "@/components/StateViews";
 import { EditorTrackMeta, EditorArtistMeta } from "@/components/EditorCardMeta";
@@ -9,6 +10,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { PlayButton } from "@/components/player/PlayButton";
 import type { PlayerTrack } from "@/components/player/PlayerProvider";
 import { effectiveArtworkPath } from "@/lib/album-helpers";
+import { ShareButton } from "@/components/ShareButton";
+import { getMostPlayedMusic } from "@/lib/stats.functions";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -76,11 +79,11 @@ function shuffle<T>(arr: T[]): T[] {
   return out;
 }
 
-/** Returns a counter that increments every 5 minutes to trigger a reshuffle. */
+/** Returns a counter that increments every 4 hours to trigger a reshuffle. */
 function useShuffleTick() {
   const [tick, setTick] = useState(0);
   useEffect(() => {
-    const id = setInterval(() => setTick((t) => t + 1), 5 * 60 * 1000);
+    const id = setInterval(() => setTick((t) => t + 1), 4 * 60 * 60 * 1000);
     return () => clearInterval(id);
   }, []);
   return tick;
@@ -104,6 +107,7 @@ function Index() {
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10">
       <Hero />
       <LatestMusic />
+      <MostPlayed />
       <LatestPodcasts />
       <FeaturedArtists />
     </div>
@@ -248,30 +252,88 @@ function LatestMusic() {
         .eq("status", "approved")
         .eq("media_type", "music")
         .order("created_at", { ascending: false })
-        .limit(30);
+        .limit(20);
       if (error) throw error;
       return (data ?? []) as unknown as Row[];
     },
   });
-
-  const tick = useShuffleTick();
-  const shown = useMemo(() => shuffle(data ?? []).slice(0, 8), [data, tick]);
 
   return (
     <section className="mb-14">
       <SectionHeader title={t("landing.latestMusic")} to="/catalog" />
       {isLoading ? (
         <p className="text-sm text-muted-foreground">{t("landing.loading")}</p>
-      ) : shown.length === 0 ? (
+      ) : (data ?? []).length === 0 ? (
         <EmptyState title={t("landing.noMusicTitle")} description={t("landing.noMusicBody")} />
       ) : (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-          {shown.map((i) => (
+        <HorizontalRail>
+          {(data ?? []).map((i) => (
             <TrackCard key={i.id} item={i} />
           ))}
-        </div>
+        </HorizontalRail>
       )}
     </section>
+  );
+}
+
+function MostPlayed() {
+  const { t } = useTranslation();
+  const fetchTop = useServerFn(getMostPlayedMusic);
+  const { data, isLoading } = useQuery({
+    queryKey: ["home", "most-played"],
+    queryFn: () => fetchTop({ data: { limit: 20, windowDays: 30 } }) as Promise<Row[]>,
+    staleTime: 4 * 60 * 60 * 1000,
+  });
+
+  if (!isLoading && (!data || data.length === 0)) return null;
+
+  return (
+    <section className="mb-14">
+      <div className="mb-4 flex items-end justify-between">
+        <h2 className="flex items-center gap-2 text-xl font-semibold tracking-tight">
+          <Flame className="h-5 w-5 text-primary" />
+          {t("landing.mostPlayed")}
+        </h2>
+        <Link
+          to="/catalog"
+          className="text-xs font-medium text-muted-foreground hover:text-foreground"
+        >
+          {t("landing.viewAll")}
+        </Link>
+      </div>
+      {isLoading ? (
+        <p className="text-sm text-muted-foreground">{t("landing.loading")}</p>
+      ) : (
+        <HorizontalRail>
+          {(data ?? []).map((i) => (
+            <TrackCard key={i.id} item={i} />
+          ))}
+        </HorizontalRail>
+      )}
+    </section>
+  );
+}
+
+/**
+ * Horizontal snap-scrolling rail. First 4 cards visible on desktop without
+ * scrolling; rest accessed by horizontal scroll/swipe.
+ */
+function HorizontalRail({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="-mx-4 overflow-x-auto px-4 pb-2 sm:-mx-6 sm:px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="flex snap-x snap-mandatory gap-4">
+        {Array.isArray(children)
+          ? children.map((child, idx) => (
+              <div
+                key={idx}
+                className="w-[44vw] max-w-[220px] flex-shrink-0 snap-start sm:w-[200px] lg:w-[calc((100%-3rem)/4)]"
+              >
+                {child}
+              </div>
+            ))
+          : children}
+      </div>
+    </div>
   );
 }
 
@@ -280,7 +342,11 @@ function TrackCard({ item }: { item: Row }) {
   const track = toTrack(item);
   const art = artworkUrl(effectiveArtworkPath(item) ?? item.artwork_path);
   return (
-    <article className="group overflow-hidden rounded-lg border border-border bg-card transition hover:border-primary/40">
+    <Link
+      to="/catalog"
+      search={{ focus: item.id }}
+      className="group block h-full overflow-hidden rounded-lg border border-border bg-card transition hover:border-primary/40"
+    >
       <div className="relative aspect-square w-full bg-secondary">
         <img src={art} alt={item.title} className="h-full w-full object-cover" loading="lazy" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-100 transition md:opacity-0 md:group-hover:opacity-100" />
@@ -295,19 +361,24 @@ function TrackCard({ item }: { item: Row }) {
         </div>
         <h3 className="line-clamp-1 text-sm font-semibold">{item.title}</h3>
         {item.artist_profiles ? (
-          <Link
-            to="/artists/$artistId"
-            params={{ artistId: item.artist_profiles.id }}
-            className="line-clamp-1 text-xs text-muted-foreground hover:text-foreground hover:underline"
-          >
+          <span className="line-clamp-1 text-xs text-muted-foreground">
             {item.artist_profiles.name}
-          </Link>
+          </span>
         ) : (
           <p className="line-clamp-1 text-xs text-muted-foreground">{t("landing.unknownArtist")}</p>
         )}
         <EditorTrackMeta meta={item} />
+        <div className="pt-1">
+          <ShareButton
+            path={`/catalog?focus=${item.id}`}
+            title={`${item.title}${item.artist_profiles ? ` — ${item.artist_profiles.name}` : ""}`}
+            text={item.description ?? undefined}
+            variant="ghost"
+            size="sm"
+          />
+        </div>
       </div>
-    </article>
+    </Link>
   );
 }
 
@@ -330,16 +401,18 @@ function LatestPodcasts() {
     },
   });
 
-  if (!isLoading && (!data || data.length === 0)) return null;
-
   return (
     <section className="mb-14">
       <SectionHeader title={t("landing.latestPodcasts")} to="/catalog" />
       {isLoading ? (
         <p className="text-sm text-muted-foreground">{t("landing.loading")}</p>
+      ) : !data || data.length === 0 ? (
+        <p className="rounded-lg border border-dashed border-border bg-card/50 p-6 text-center text-sm text-muted-foreground">
+          {t("landing.podcastsComingSoon")}
+        </p>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {data!.map((i) => (
+          {data.map((i) => (
             <PodcastRow key={i.id} item={i} />
           ))}
         </div>
@@ -353,7 +426,11 @@ function PodcastRow({ item }: { item: Row }) {
   const track = toTrack(item);
   const art = artworkUrl(effectiveArtworkPath(item) ?? item.artwork_path);
   return (
-    <article className="flex gap-4 overflow-hidden rounded-lg border border-border bg-card p-3 transition hover:border-primary/40">
+    <Link
+      to="/catalog"
+      search={{ focus: item.id }}
+      className="flex gap-4 overflow-hidden rounded-lg border border-border bg-card p-3 transition hover:border-primary/40"
+    >
       <img
         src={art}
         alt={item.title}
@@ -366,23 +443,26 @@ function PodcastRow({ item }: { item: Row }) {
         </div>
         <h3 className="mt-1 line-clamp-1 text-sm font-semibold">{item.title}</h3>
         {item.artist_profiles ? (
-          <Link
-            to="/artists/$artistId"
-            params={{ artistId: item.artist_profiles.id }}
-            className="line-clamp-1 text-xs text-muted-foreground hover:text-foreground hover:underline"
-          >
+          <span className="line-clamp-1 text-xs text-muted-foreground">
             {item.artist_profiles.name}
-          </Link>
+          </span>
         ) : null}
         {item.description ? (
           <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{item.description}</p>
         ) : null}
         <EditorTrackMeta meta={item} />
-        <div className="mt-auto pt-2">
+        <div className="mt-auto flex items-center gap-2 pt-2">
           <PlayButton track={track} size="sm" />
+          <ShareButton
+            path={`/catalog?focus=${item.id}`}
+            title={`${item.title}${item.artist_profiles ? ` — ${item.artist_profiles.name}` : ""}`}
+            text={item.description ?? undefined}
+            variant="ghost"
+            size="sm"
+          />
         </div>
       </div>
-    </article>
+    </Link>
   );
 }
 
