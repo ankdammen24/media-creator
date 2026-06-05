@@ -1,4 +1,4 @@
-import { CopyObjectCommand, DeleteObjectCommand, GetObjectCommand, HeadBucketCommand, PutObjectCommand } from '@aws-sdk/client-s3';
+import { DeleteObjectCommand, GetObjectCommand, HeadBucketCommand, PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { createReadStream, createWriteStream } from 'node:fs';
 import { pipeline } from 'node:stream/promises';
@@ -8,11 +8,6 @@ import { r2Client } from '../config/r2.js';
 export async function createPresignedUploadUrl(key: string, contentType: string) {
   const command = new PutObjectCommand({ Bucket: env.R2_BUCKET_NAME, Key: key, ContentType: contentType });
   return getSignedUrl(r2Client, command, { expiresIn: 900 });
-}
-
-export async function createPresignedDownloadUrl(key: string, expiresIn = 300) {
-  const command = new GetObjectCommand({ Bucket: env.R2_BUCKET_NAME, Key: key });
-  return getSignedUrl(r2Client, command, { expiresIn });
 }
 
 export async function checkStorageConnection() {
@@ -41,16 +36,6 @@ export async function uploadJsonObject(key: string, value: unknown) {
     Key: key,
     ContentType: 'application/json',
     Body: JSON.stringify(value, null, 2),
-  }));
-}
-
-export async function copyObject(sourceKey: string, destinationKey: string, contentType?: string) {
-  await r2Client.send(new CopyObjectCommand({
-    Bucket: env.R2_BUCKET_NAME,
-    CopySource: `${env.R2_BUCKET_NAME}/${sourceKey}`,
-    Key: destinationKey,
-    ContentType: contentType,
-    MetadataDirective: contentType ? 'REPLACE' : 'COPY',
   }));
 }
 

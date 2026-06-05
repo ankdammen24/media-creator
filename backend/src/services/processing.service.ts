@@ -4,14 +4,12 @@ import path from 'node:path';
 import { pool } from '../config/db.js';
 import { createNormalizedWav, createPreviewMp3, probeAudio } from './ffmpeg.service.js';
 import { downloadObjectToFile, uploadFileToObject, uploadJsonObject } from './r2.service.js';
-import { writeAuditLog } from './audit.service.js';
 
 export async function processAudioJob(jobId: string) {
   const jobResult = await pool.query(
-    `select j.*, f.r2_key, f.filename, f.content_type, t.creator_id
+    `select j.*, f.r2_key, f.filename, f.content_type
      from processing_jobs j
      join track_files f on f.id = j.input_file_id
-     join tracks t on t.id = j.track_id
      where j.id = $1`,
     [jobId],
   );
@@ -27,13 +25,6 @@ export async function processAudioJob(jobId: string) {
   try {
     await pool.query('update processing_jobs set status = $2, started_at = now(), updated_at = now() where id = $1', [jobId, 'running']);
     await pool.query('update tracks set status = $2, updated_at = now() where id = $1', [job.track_id, 'processing']);
-    await writeAuditLog({
-      userId: job.creator_id,
-      action: 'processing_started',
-      entityType: 'track',
-      entityId: job.track_id,
-      payload: { jobId },
-    });
 
     await downloadObjectToFile(job.r2_key, originalPath);
     const metadata = await probeAudio(originalPath);
@@ -60,24 +51,10 @@ export async function processAudioJob(jobId: string) {
 
     await pool.query('update processing_jobs set status = $2, completed_at = now(), updated_at = now(), error_message = null where id = $1', [jobId, 'completed']);
     await pool.query('update tracks set status = $2, technical_metadata = $3::jsonb, updated_at = now() where id = $1', [job.track_id, 'processed', JSON.stringify(metadata)]);
-    await writeAuditLog({
-      userId: job.creator_id,
-      action: 'processing_completed',
-      entityType: 'track',
-      entityId: job.track_id,
-      payload: { jobId, metadataKey, previewKey, normalizedKey },
-    });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown processing failure';
     await pool.query('update processing_jobs set status = $2, completed_at = now(), updated_at = now(), error_message = $3 where id = $1', [jobId, 'failed', message]);
     await pool.query('update tracks set status = $2, updated_at = now() where id = $1', [job.track_id, 'failed']);
-    await writeAuditLog({
-      userId: job.creator_id,
-      action: 'processing_failed',
-      entityType: 'track',
-      entityId: job.track_id,
-      payload: { jobId, error: message },
-    });
     throw error;
   } finally {
     await rm(workDir, { recursive: true, force: true });

@@ -1,6 +1,5 @@
 import { pool } from '../config/db.js';
 import { AppError } from '../middleware/errorHandler.js';
-import { writeAuditLog } from './audit.service.js';
 
 export async function listCreatorTracks(creatorId: string) {
   const result = await pool.query('select * from tracks where creator_id = $1 order by created_at desc', [creatorId]);
@@ -35,15 +34,6 @@ export async function updateTrackMetadata(creatorId: string, trackId: string, me
   );
 
   if (!result.rowCount) throw new AppError(404, 'Track not found');
-
-  await writeAuditLog({
-    userId: creatorId,
-    action: 'metadata_updated',
-    entityType: 'track',
-    entityId: trackId,
-    payload: { fields: Object.keys(metadata) },
-  });
-
   return result.rows[0];
 }
 
@@ -59,13 +49,6 @@ export async function submitTrack(creatorId: string, trackId: string) {
   if (!result.rowCount) {
     throw new AppError(400, 'Track must be processed and include required metadata before submission');
   }
-
-  await writeAuditLog({
-    userId: creatorId,
-    action: 'submitted_for_review',
-    entityType: 'track',
-    entityId: trackId,
-  });
 
   return result.rows[0];
 }

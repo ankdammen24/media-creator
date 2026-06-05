@@ -4,7 +4,6 @@ import { pool } from '../config/db.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { createPresignedUploadUrl } from './r2.service.js';
 import { enqueueAudioJob } from '../workers/audio.worker.js';
-import { writeAuditLog } from './audit.service.js';
 
 export const allowedAudioContentTypes = ['audio/wav', 'audio/mpeg', 'audio/flac', 'audio/aiff', 'audio/x-aiff'] as const;
 
@@ -60,12 +59,6 @@ export async function createUploadSession(creatorId: string, files: z.infer<type
     }
 
     await client.query('commit');
-    await writeAuditLog({
-      userId: creatorId,
-      action: 'upload_session_created',
-      entityType: 'upload_session',
-      payload: { trackIds: uploads.map((upload) => upload.trackId), fileCount: uploads.length },
-    });
     return uploads;
   } catch (error) {
     await client.query('rollback');
@@ -81,7 +74,7 @@ export async function completeUpload(creatorId: string, trackId: string, fileId:
     await client.query('begin');
     const file = await client.query(
       `update track_files set status = 'uploaded', uploaded_at = now(), updated_at = now()
-       where id = $1 and track_id = $2 and r2_key = $3 and file_type = 'original' and status = 'pending_upload'
+       where id = $1 and track_id = $2 and r2_key = $3 and file_type = 'original'
        returning *`,
       [fileId, trackId, r2Key],
     );
@@ -100,13 +93,6 @@ export async function completeUpload(creatorId: string, trackId: string, fileId:
     );
 
     await client.query('commit');
-    await writeAuditLog({
-      userId: creatorId,
-      action: 'upload_completed',
-      entityType: 'track',
-      entityId: trackId,
-      payload: { fileId, r2Key, jobId: job.rows[0].id },
-    });
     enqueueAudioJob(job.rows[0].id);
     return { track: track.rows[0], file: file.rows[0], processingJob: job.rows[0] };
   } catch (error) {

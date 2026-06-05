@@ -6,9 +6,6 @@ import { creatorTracksRouter } from './routes/creator.tracks.routes.js';
 import { creatorUploadsRouter } from './routes/creator.uploads.routes.js';
 import { healthRouter } from './routes/health.routes.js';
 import { processingRouter } from './routes/processing.routes.js';
-import { adminReviewRouter } from './routes/admin.review.routes.js';
-import { publicCatalogRouter } from './routes/public.catalog.routes.js';
-import { playbackRouter } from './routes/playback.routes.js';
 
 export function createApp() {
   const app = express();
@@ -26,9 +23,6 @@ export function createApp() {
   app.use(creatorUploadsRouter);
   app.use(creatorTracksRouter);
   app.use(processingRouter);
-  app.use(adminReviewRouter);
-  app.use(publicCatalogRouter);
-  app.use(playbackRouter);
 
   app.use(notFoundHandler);
   app.use(errorHandler);
