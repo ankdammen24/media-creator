@@ -28,11 +28,10 @@ function DashboardPage() {
         {tracks.isLoading ? <p className="mt-3 text-sm text-muted-foreground">Loading tracks…</p> : allTracks.length === 0 ? <p className="mt-3 text-sm text-muted-foreground">No tracks yet. Start with an upload.</p> : <div className="mt-3 divide-y divide-border">{allTracks.slice(0, 5).map((track) => <Link key={track.id} to="/tracks/$trackId" params={{ trackId: track.id }} className="flex items-center justify-between py-3 text-sm hover:text-primary"><span>{track.title || "Untitled track"}</span><span className="text-xs uppercase text-muted-foreground">{track.status}</span></Link>)}</div>}
       </section>
       <p className="mt-8 text-center text-xs text-muted-foreground">{t("footer")}</p>
-}
-
-
+    </PageContainer>
   );
 }
+
 
 function Metric({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: number }) {
   return <div className="rounded-xl border border-border bg-card p-5"><Icon className="h-5 w-5 text-primary" /><div className="mt-4 text-3xl font-semibold">{value}</div><div className="text-sm text-muted-foreground">{label}</div></div>;
