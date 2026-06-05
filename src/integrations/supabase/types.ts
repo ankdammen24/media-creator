@@ -538,8 +538,11 @@ export type Database = {
         Row: {
           avatar_url: string | null
           created_at: string
+          disabled_at: string | null
+          disabled_by: string | null
           display_name: string | null
           id: string
+          is_disabled: boolean
           notification_prefs: Json
           preferred_language: Database["public"]["Enums"]["app_language"]
           updated_at: string
@@ -548,8 +551,11 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           created_at?: string
+          disabled_at?: string | null
+          disabled_by?: string | null
           display_name?: string | null
           id?: string
+          is_disabled?: boolean
           notification_prefs?: Json
           preferred_language?: Database["public"]["Enums"]["app_language"]
           updated_at?: string
@@ -558,8 +564,11 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           created_at?: string
+          disabled_at?: string | null
+          disabled_by?: string | null
           display_name?: string | null
           id?: string
+          is_disabled?: boolean
           notification_prefs?: Json
           preferred_language?: Database["public"]["Enums"]["app_language"]
           updated_at?: string
@@ -854,6 +863,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_set_user_disabled: {
+        Args: { _disabled: boolean; _target_user: string }
+        Returns: undefined
+      }
+      admin_set_user_role: {
+        Args: {
+          _new_role: Database["public"]["Enums"]["app_role"]
+          _target_user: string
+        }
+        Returns: undefined
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
