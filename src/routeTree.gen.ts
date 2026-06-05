@@ -13,9 +13,11 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
+import { Route as CatalogRouteImport } from './routes/catalog'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as CatalogTrackIdRouteImport } from './routes/catalog.$trackId'
 import { Route as AuthenticatedUploadRouteImport } from './routes/_authenticated/upload'
 import { Route as AuthenticatedTracksRouteImport } from './routes/_authenticated/tracks'
 import { Route as AuthenticatedReleasesRouteImport } from './routes/_authenticated/releases'
@@ -47,6 +49,11 @@ const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
   path: '/forgot-password',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CatalogRoute = CatalogRouteImport.update({
+  id: '/catalog',
+  path: '/catalog',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
@@ -60,6 +67,11 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const CatalogTrackIdRoute = CatalogTrackIdRouteImport.update({
+  id: '/$trackId',
+  path: '/$trackId',
+  getParentRoute: () => CatalogRoute,
 } as any)
 const AuthenticatedUploadRoute = AuthenticatedUploadRouteImport.update({
   id: '/upload',
@@ -118,6 +130,7 @@ const AuthenticatedAdminUsersRoute = AuthenticatedAdminUsersRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/catalog': typeof CatalogRouteWithChildren
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
@@ -129,6 +142,7 @@ export interface FileRoutesByFullPath {
   '/releases': typeof AuthenticatedReleasesRouteWithChildren
   '/tracks': typeof AuthenticatedTracksRouteWithChildren
   '/upload': typeof AuthenticatedUploadRoute
+  '/catalog/$trackId': typeof CatalogTrackIdRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/releases/$releaseId': typeof AuthenticatedReleasesReleaseIdRoute
   '/tracks/$trackId': typeof AuthenticatedTracksTrackIdRoute
@@ -136,6 +150,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/catalog': typeof CatalogRouteWithChildren
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
@@ -147,6 +162,7 @@ export interface FileRoutesByTo {
   '/releases': typeof AuthenticatedReleasesRouteWithChildren
   '/tracks': typeof AuthenticatedTracksRouteWithChildren
   '/upload': typeof AuthenticatedUploadRoute
+  '/catalog/$trackId': typeof CatalogTrackIdRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/releases/$releaseId': typeof AuthenticatedReleasesReleaseIdRoute
   '/tracks/$trackId': typeof AuthenticatedTracksTrackIdRoute
@@ -156,6 +172,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/catalog': typeof CatalogRouteWithChildren
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
   '/register': typeof RegisterRoute
@@ -167,6 +184,7 @@ export interface FileRoutesById {
   '/_authenticated/releases': typeof AuthenticatedReleasesRouteWithChildren
   '/_authenticated/tracks': typeof AuthenticatedTracksRouteWithChildren
   '/_authenticated/upload': typeof AuthenticatedUploadRoute
+  '/catalog/$trackId': typeof CatalogTrackIdRoute
   '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
   '/_authenticated/releases/$releaseId': typeof AuthenticatedReleasesReleaseIdRoute
   '/_authenticated/tracks/$trackId': typeof AuthenticatedTracksTrackIdRoute
@@ -176,6 +194,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/catalog'
     | '/forgot-password'
     | '/login'
     | '/register'
@@ -187,6 +206,7 @@ export interface FileRouteTypes {
     | '/releases'
     | '/tracks'
     | '/upload'
+    | '/catalog/$trackId'
     | '/admin/users'
     | '/releases/$releaseId'
     | '/tracks/$trackId'
@@ -194,6 +214,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/catalog'
     | '/forgot-password'
     | '/login'
     | '/register'
@@ -205,6 +226,7 @@ export interface FileRouteTypes {
     | '/releases'
     | '/tracks'
     | '/upload'
+    | '/catalog/$trackId'
     | '/admin/users'
     | '/releases/$releaseId'
     | '/tracks/$trackId'
@@ -213,6 +235,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/catalog'
     | '/forgot-password'
     | '/login'
     | '/register'
@@ -224,6 +247,7 @@ export interface FileRouteTypes {
     | '/_authenticated/releases'
     | '/_authenticated/tracks'
     | '/_authenticated/upload'
+    | '/catalog/$trackId'
     | '/_authenticated/admin/users'
     | '/_authenticated/releases/$releaseId'
     | '/_authenticated/tracks/$trackId'
@@ -233,6 +257,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  CatalogRoute: typeof CatalogRouteWithChildren
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
   RegisterRoute: typeof RegisterRoute
@@ -269,6 +294,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ForgotPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/catalog': {
+      id: '/catalog'
+      path: '/catalog'
+      fullPath: '/catalog'
+      preLoaderRoute: typeof CatalogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth': {
       id: '/auth'
       path: '/auth'
@@ -289,6 +321,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/catalog/$trackId': {
+      id: '/catalog/$trackId'
+      path: '/$trackId'
+      fullPath: '/catalog/$trackId'
+      preLoaderRoute: typeof CatalogTrackIdRouteImport
+      parentRoute: typeof CatalogRoute
     }
     '/_authenticated/upload': {
       id: '/_authenticated/upload'
@@ -412,10 +451,22 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
 const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
+interface CatalogRouteChildren {
+  CatalogTrackIdRoute: typeof CatalogTrackIdRoute
+}
+
+const CatalogRouteChildren: CatalogRouteChildren = {
+  CatalogTrackIdRoute: CatalogTrackIdRoute,
+}
+
+const CatalogRouteWithChildren =
+  CatalogRoute._addFileChildren(CatalogRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  CatalogRoute: CatalogRouteWithChildren,
   ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
   RegisterRoute: RegisterRoute,
