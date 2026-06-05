@@ -7,14 +7,15 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { t } from "@/lib/i18n";
 
 const NAV = [
-  { to: "/dashboard", label: "Översikt", icon: LayoutDashboard },
-  { to: "/upload", label: "Ladda upp", icon: Upload },
-  { to: "/processing", label: "Bearbetning", icon: Activity },
-  { to: "/tracks", label: "Mina spår", icon: Music },
-  { to: "/releases", label: "Mina releaser", icon: Disc3 },
-  { to: "/distribution", label: "Distribution", icon: Radio },
-  { to: "/account", label: "Konto", icon: UserCircle },
+  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/upload", label: "Upload Music", icon: Upload },
+  { to: "/processing", label: "Processing", icon: Activity },
+  { to: "/tracks", label: "My Tracks", icon: Music },
+  { to: "/releases", label: "My Releases", icon: Disc3 },
+  { to: "/distribution", label: "Distribution Status", icon: Radio },
+  { to: "/account", label: "Account", icon: UserCircle },
 ] as const;
+
 
 export function AppShell() {
   const { user, logout } = useAuth();
@@ -50,9 +51,13 @@ function SidebarContent({ onNavigate, onLogout, email, name }: { onNavigate: () 
   return (
     <div className="flex h-full flex-col p-4">
       <div className="mb-6 px-2">
-        <Link to="/dashboard" className="block text-xl font-semibold" onClick={onNavigate}>{t("appName")}</Link>
-        <p className="text-xs text-muted-foreground">Tunn skaparklient</p>
+        <Link to="/dashboard" className="block" onClick={onNavigate}>
+          <div className="text-base font-semibold leading-tight">{t("appNameShort")}</div>
+          <div className="text-xs text-muted-foreground">{t("appTagline")}</div>
+        </Link>
+        <p className="mt-2 text-[11px] text-muted-foreground">{t("sidebarSubtitle")}</p>
       </div>
+
       <nav className="flex flex-1 flex-col gap-1">
         {NAV.map(({ to, label, icon: Icon }) => (
           <Link key={to} to={to} onClick={onNavigate} className="group flex items-center gap-3 rounded-md px-3 py-2 text-sm text-sidebar-foreground hover:bg-sidebar-accent" activeProps={{ className: cn("group flex items-center gap-3 rounded-md px-3 py-2 text-sm", "bg-sidebar-primary text-sidebar-primary-foreground") }}>
