@@ -1,0 +1,15 @@
+services:
+  media-creator:
+    build:
+      context: .
+      args:
+        VITE_API_BASE_URL: https://api.mediarosenqvist.com
+        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL:-}
+        VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY:-}
+    environment:
+      VITE_API_BASE_URL: https://api.mediarosenqvist.com
+      VITE_SUPABASE_URL: ${VITE_SUPABASE_URL:-}
+      VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY:-}
+    ports:
+      - "8088:80"
+    restart: unless-stopped
