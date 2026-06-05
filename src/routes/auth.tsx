@@ -76,7 +76,9 @@ function AuthPage() {
           <div className="relative py-2"><div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border" /></div><div className="relative flex justify-center text-[10px] uppercase tracking-wider text-muted-foreground"><span className="bg-card px-2">eller</span></div></div>
           <Button type="button" variant="outline" className="w-full" onClick={onGoogle} disabled={busy}>Fortsätt med Google</Button>
         </form>
-        <p className="mt-4 text-center text-xs text-muted-foreground">{mode === "sign-in" ? "Inget konto än?" : "Har du redan konto?"} <button type="button" className="font-medium text-primary hover:underline" onClick={() => { setMode(mode === "sign-in" ? "sign-up" : "sign-in"); setError(null); setInfo(null); }}>{mode === "sign-in" ? "Skapa ett" : "Logga in"}</button></p>
+        <p className="mt-4 text-center text-xs text-muted-foreground">{mode === "sign-in" ? "No account yet?" : "Already have an account?"} <button type="button" className="font-medium text-primary hover:underline" onClick={() => { setMode(mode === "sign-in" ? "sign-up" : "sign-in"); setError(null); setInfo(null); }}>{mode === "sign-in" ? "Create one" : "Sign in"}</button></p>
+        <p className="mt-6 text-center text-[11px] text-muted-foreground">Crystal Pier Records is part of Media Rosenqvist.</p>
+
       </div>
     </div>
   );
