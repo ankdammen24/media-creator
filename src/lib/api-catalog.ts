@@ -1,8 +1,7 @@
 // Public catalog API — anonymous endpoints on the Media Rosenqvist API.
 //
-// Assumed shapes (adjust paths if the real API differs):
-//   GET /catalog/tracks          -> { tracks: CatalogTrack[] }
-//   GET /catalog/tracks/:id      -> { track: CatalogTrack }
+//   GET /tracks         -> { tracks: CatalogTrack[] }
+//   GET /tracks/:id     -> { track: CatalogTrack }
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "./api-client";
 
@@ -26,12 +25,12 @@ export type CatalogTrack = {
 };
 
 export function listCatalogTracks() {
-  return apiFetch<{ tracks: CatalogTrack[] }>("/catalog/tracks", { anonymous: true });
+  return apiFetch<{ tracks: CatalogTrack[] }>("/tracks", { anonymous: true });
 }
 
 export function getCatalogTrack(trackId: string) {
   return apiFetch<{ track: CatalogTrack }>(
-    `/catalog/tracks/${encodeURIComponent(trackId)}`,
+    `/tracks/${encodeURIComponent(trackId)}`,
     { anonymous: true },
   );
 }
