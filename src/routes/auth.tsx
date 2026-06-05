@@ -60,9 +60,12 @@ function AuthPage() {
     <div className="flex min-h-screen items-center justify-center bg-background px-4 py-12">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Media Creator</h1>
-          <p className="mt-1 text-sm text-muted-foreground">{mode === "sign-in" ? "Logga in på ditt skaparkonto" : "Skapa ett skaparkonto"}</p>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Crystal Pier Records</h1>
+          <p className="mt-1 text-xs uppercase tracking-[0.2em] text-muted-foreground">Creator Portal</p>
+          <p className="mt-4 text-sm text-muted-foreground">{mode === "sign-in" ? "Sign in to Crystal Pier Records Creator Portal" : "Create your Crystal Pier creator account"}</p>
+          <p className="mt-1 text-xs text-muted-foreground">Manage your uploads, tracks, releases, and distribution status.</p>
         </div>
+
         <form onSubmit={onSubmit} className="space-y-4 rounded-xl border border-border bg-card p-6 shadow-sm">
           {mode === "sign-up" ? <div className="space-y-1.5"><Label htmlFor="name">Visningsnamn</Label><Input id="name" autoComplete="name" value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="Ditt namn" /></div> : null}
           <div className="space-y-1.5"><Label htmlFor="email">E-post</Label><Input id="email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} /></div>
