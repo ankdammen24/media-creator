@@ -78,7 +78,7 @@ create table if not exists processing_jobs (
 
 create table if not exists audit_log (
   id uuid primary key default gen_random_uuid(),
-  user_id text,
+  user_id text references users(id) on delete set null,
   action text not null,
   entity_type text,
   entity_id text,
@@ -88,8 +88,5 @@ create table if not exists audit_log (
 
 create index if not exists idx_tracks_creator_id on tracks(creator_id);
 create index if not exists idx_track_files_track_id on track_files(track_id);
-create unique index if not exists idx_track_files_one_original_per_track on track_files(track_id) where file_type = 'original';
 create index if not exists idx_processing_jobs_track_id on processing_jobs(track_id);
 create index if not exists idx_processing_jobs_status on processing_jobs(status);
-create index if not exists idx_audit_log_entity on audit_log(entity_type, entity_id);
-create index if not exists idx_audit_log_action on audit_log(action);
