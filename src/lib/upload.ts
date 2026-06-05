@@ -1,58 +1,43 @@
-// Helpers for the direct-to-R2 upload step. Uses XHR so we can report progress.
-import type { UploadSessionTrack } from "./api-creator";
+import type { UploadSessionUpload } from "./api-creator";
 
-export type UploadProgress = {
-  trackId: string;
-  loaded: number;
-  total: number;
-  percent: number;
-};
-
-export function putFileToR2(
-  upload: UploadSessionTrack,
-  file: File,
-  onProgress?: (p: UploadProgress) => void,
-): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open("PUT", upload.putUrl, true);
-
-    const headers = upload.headers ?? { "Content-Type": file.type || "application/octet-stream" };
-    for (const [k, v] of Object.entries(headers)) {
-      try {
-        xhr.setRequestHeader(k, v);
-      } catch {
-        /* some headers are forbidden by the browser — ignore */
-      }
-    }
-
-    xhr.upload.onprogress = (e) => {
-      if (e.lengthComputable && onProgress) {
-        onProgress({
-          trackId: upload.trackId,
-          loaded: e.loaded,
-          total: e.total,
-          percent: Math.round((e.loaded / e.total) * 100),
-        });
-      }
-    };
-    xhr.onload = () => {
-      if (xhr.status >= 200 && xhr.status < 300) resolve();
-      else reject(new Error(`Upload failed (${xhr.status}): ${xhr.responseText.slice(0, 200)}`));
-    };
-    xhr.onerror = () => reject(new Error("Network error during upload"));
-    xhr.onabort = () => reject(new Error("Upload aborted"));
-    xhr.send(file);
-  });
-}
-
-export const AUDIO_ACCEPT = "audio/wav,audio/x-wav,audio/flac,audio/x-flac,audio/aiff,audio/x-aiff,audio/mpeg,audio/mp4,audio/aac,.wav,.flac,.aif,.aiff,.mp3,.m4a";
-
-export const MAX_FILE_BYTES = 500 * 1024 * 1024; // 500 MB
+export const AUDIO_ACCEPT = "audio/wav,audio/mpeg,audio/flac,audio/aiff,audio/x-aiff";
+export const ALLOWED_AUDIO_TYPES = new Set(["audio/wav", "audio/mpeg", "audio/flac", "audio/aiff", "audio/x-aiff"]);
+export const MAX_FILE_BYTES = 500 * 1024 * 1024;
 
 export function formatBytes(bytes: number) {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} kB`;
-  if (bytes < 1024 * 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
-  return `${(bytes / 1024 / 1024 / 1024).toFixed(2)} GB`;
+  if (bytes === 0) return "0 B";
+  const units = ["B", "KB", "MB", "GB"];
+  const exponent = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+  return `${(bytes / 1024 ** exponent).toFixed(exponent === 0 ? 0 : 1)} ${units[exponent]}`;
+}
+
+export function validateAudioFile(file: File) {
+  if (!ALLOWED_AUDIO_TYPES.has(file.type)) {
+    return `Filtypen stöds inte: ${file.type || "okänd"}`;
+  }
+  if (file.size > MAX_FILE_BYTES) {
+    return `Filen är för stor. Maxstorlek är ${formatBytes(MAX_FILE_BYTES)}.`;
+  }
+  return null;
+}
+
+export function putFileToR2(upload: UploadSessionUpload, file: File, onProgress: (percent: number) => void) {
+  return new Promise<void>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("PUT", upload.uploadUrl, true);
+    xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) onProgress(Math.round((event.loaded / event.total) * 100));
+    };
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        onProgress(100);
+        resolve();
+      } else {
+        reject(new Error(`R2-uppladdningen misslyckades (${xhr.status})`));
+      }
+    };
+    xhr.onerror = () => reject(new Error("Nätverksfel vid uppladdning till lagring"));
+    xhr.send(file);
+  });
 }
