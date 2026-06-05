@@ -9,100 +9,26 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as UploadBatchRouteImport } from './routes/upload-batch'
-import { Route as UploadRouteImport } from './routes/upload'
-import { Route as StatsRouteImport } from './routes/stats'
-import { Route as SettingsRouteImport } from './routes/settings'
-import { Route as NotificationsRouteImport } from './routes/notifications'
-import { Route as MySubmissionsRouteImport } from './routes/my-submissions'
-import { Route as LoginRouteImport } from './routes/login'
-import { Route as CatalogRouteImport } from './routes/catalog'
-import { Route as ApiDocsRouteImport } from './routes/api-docs'
-import { Route as AdminRouteImport } from './routes/admin'
-import { Route as AboutRouteImport } from './routes/about'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as ReleasesNewRouteImport } from './routes/releases.new'
-import { Route as ArtistsNewRouteImport } from './routes/artists.new'
-import { Route as ArtistsArtistIdRouteImport } from './routes/artists.$artistId'
-import { Route as ApiOpenapiRouteImport } from './routes/api/openapi'
-import { Route as ApiGenerateArtworkRouteImport } from './routes/api/generate-artwork'
-import { Route as ApiGenerateArtistImageRouteImport } from './routes/api/generate-artist-image'
-import { Route as AlbumsNewRouteImport } from './routes/albums.new'
-import { Route as AlbumsAlbumIdRouteImport } from './routes/albums.$albumId'
-import { Route as ApiV1SubmissionsRouteImport } from './routes/api/v1/submissions'
-import { Route as ApiV1AlbumsRouteImport } from './routes/api/v1/albums'
-import { Route as ApiPublicTracksRouteImport } from './routes/api/public/tracks'
-import { Route as ApiPublicPodcastsRouteImport } from './routes/api/public/podcasts'
-import { Route as ApiPublicArtistsRouteImport } from './routes/api/public/artists'
-import { Route as ApiPublicAlbumsRouteImport } from './routes/api/public/albums'
-import { Route as AlbumsAlbumIdEditRouteImport } from './routes/albums.$albumId.edit'
-import { Route as ApiV1SubmissionsIdRouteImport } from './routes/api/v1/submissions.$id'
-import { Route as ApiV1StatsSpinsRouteImport } from './routes/api/v1/stats.spins'
-import { Route as ApiV1AudioIdRouteImport } from './routes/api/v1/audio.$id'
-import { Route as ApiV1AdminModerationRouteImport } from './routes/api/v1/admin/moderation'
-import { Route as ApiPublicTracksIdRouteImport } from './routes/api/public/tracks.$id'
-import { Route as ApiPublicStreamIdRouteImport } from './routes/api/public/stream.$id'
-import { Route as ApiPublicHooksSyncAzuracastRouteImport } from './routes/api/public/hooks/sync-azuracast'
-import { Route as ApiPublicHooksSweepAzuracastArtworkRouteImport } from './routes/api/public/hooks/sweep-azuracast-artwork'
-import { Route as ApiPublicHooksImportRadioUppsalaRouteImport } from './routes/api/public/hooks/import-radio-uppsala'
-import { Route as ApiPublicHooksAudioProcessedRouteImport } from './routes/api/public/hooks/audio-processed'
-import { Route as ApiPublicEpisodesIdRouteImport } from './routes/api/public/episodes.$id'
-import { Route as ApiPublicArtistsIdRouteImport } from './routes/api/public/artists.$id'
-import { Route as ApiPublicAlbumsIdRouteImport } from './routes/api/public/albums.$id'
+import { Route as AuthenticatedUploadRouteImport } from './routes/_authenticated/upload'
+import { Route as AuthenticatedTracksRouteImport } from './routes/_authenticated/tracks'
+import { Route as AuthenticatedReleasesRouteImport } from './routes/_authenticated/releases'
+import { Route as AuthenticatedProcessingRouteImport } from './routes/_authenticated/processing'
+import { Route as AuthenticatedDistributionRouteImport } from './routes/_authenticated/distribution'
+import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticated/account'
+import { Route as AuthenticatedTracksTrackIdRouteImport } from './routes/_authenticated/tracks.$trackId'
+import { Route as AuthenticatedReleasesReleaseIdRouteImport } from './routes/_authenticated/releases.$releaseId'
 
-const UploadBatchRoute = UploadBatchRouteImport.update({
-  id: '/upload-batch',
-  path: '/upload-batch',
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
-const UploadRoute = UploadRouteImport.update({
-  id: '/upload',
-  path: '/upload',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const StatsRoute = StatsRouteImport.update({
-  id: '/stats',
-  path: '/stats',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SettingsRoute = SettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const NotificationsRoute = NotificationsRouteImport.update({
-  id: '/notifications',
-  path: '/notifications',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MySubmissionsRoute = MySubmissionsRouteImport.update({
-  id: '/my-submissions',
-  path: '/my-submissions',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CatalogRoute = CatalogRouteImport.update({
-  id: '/catalog',
-  path: '/catalog',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiDocsRoute = ApiDocsRouteImport.update({
-  id: '/api-docs',
-  path: '/api-docs',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminRoute = AdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AboutRoute = AboutRouteImport.update({
-  id: '/about',
-  path: '/about',
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -110,522 +36,159 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ReleasesNewRoute = ReleasesNewRouteImport.update({
-  id: '/releases/new',
-  path: '/releases/new',
-  getParentRoute: () => rootRouteImport,
+const AuthenticatedUploadRoute = AuthenticatedUploadRouteImport.update({
+  id: '/upload',
+  path: '/upload',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const ArtistsNewRoute = ArtistsNewRouteImport.update({
-  id: '/artists/new',
-  path: '/artists/new',
-  getParentRoute: () => rootRouteImport,
+const AuthenticatedTracksRoute = AuthenticatedTracksRouteImport.update({
+  id: '/tracks',
+  path: '/tracks',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const ArtistsArtistIdRoute = ArtistsArtistIdRouteImport.update({
-  id: '/artists/$artistId',
-  path: '/artists/$artistId',
-  getParentRoute: () => rootRouteImport,
+const AuthenticatedReleasesRoute = AuthenticatedReleasesRouteImport.update({
+  id: '/releases',
+  path: '/releases',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const ApiOpenapiRoute = ApiOpenapiRouteImport.update({
-  id: '/api/openapi',
-  path: '/api/openapi',
-  getParentRoute: () => rootRouteImport,
+const AuthenticatedProcessingRoute = AuthenticatedProcessingRouteImport.update({
+  id: '/processing',
+  path: '/processing',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const ApiGenerateArtworkRoute = ApiGenerateArtworkRouteImport.update({
-  id: '/api/generate-artwork',
-  path: '/api/generate-artwork',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiGenerateArtistImageRoute = ApiGenerateArtistImageRouteImport.update({
-  id: '/api/generate-artist-image',
-  path: '/api/generate-artist-image',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AlbumsNewRoute = AlbumsNewRouteImport.update({
-  id: '/albums/new',
-  path: '/albums/new',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AlbumsAlbumIdRoute = AlbumsAlbumIdRouteImport.update({
-  id: '/albums/$albumId',
-  path: '/albums/$albumId',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiV1SubmissionsRoute = ApiV1SubmissionsRouteImport.update({
-  id: '/api/v1/submissions',
-  path: '/api/v1/submissions',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiV1AlbumsRoute = ApiV1AlbumsRouteImport.update({
-  id: '/api/v1/albums',
-  path: '/api/v1/albums',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicTracksRoute = ApiPublicTracksRouteImport.update({
-  id: '/api/public/tracks',
-  path: '/api/public/tracks',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicPodcastsRoute = ApiPublicPodcastsRouteImport.update({
-  id: '/api/public/podcasts',
-  path: '/api/public/podcasts',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicArtistsRoute = ApiPublicArtistsRouteImport.update({
-  id: '/api/public/artists',
-  path: '/api/public/artists',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicAlbumsRoute = ApiPublicAlbumsRouteImport.update({
-  id: '/api/public/albums',
-  path: '/api/public/albums',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AlbumsAlbumIdEditRoute = AlbumsAlbumIdEditRouteImport.update({
-  id: '/edit',
-  path: '/edit',
-  getParentRoute: () => AlbumsAlbumIdRoute,
-} as any)
-const ApiV1SubmissionsIdRoute = ApiV1SubmissionsIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => ApiV1SubmissionsRoute,
-} as any)
-const ApiV1StatsSpinsRoute = ApiV1StatsSpinsRouteImport.update({
-  id: '/api/v1/stats/spins',
-  path: '/api/v1/stats/spins',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiV1AudioIdRoute = ApiV1AudioIdRouteImport.update({
-  id: '/api/v1/audio/$id',
-  path: '/api/v1/audio/$id',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiV1AdminModerationRoute = ApiV1AdminModerationRouteImport.update({
-  id: '/api/v1/admin/moderation',
-  path: '/api/v1/admin/moderation',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicTracksIdRoute = ApiPublicTracksIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => ApiPublicTracksRoute,
-} as any)
-const ApiPublicStreamIdRoute = ApiPublicStreamIdRouteImport.update({
-  id: '/api/public/stream/$id',
-  path: '/api/public/stream/$id',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicHooksSyncAzuracastRoute =
-  ApiPublicHooksSyncAzuracastRouteImport.update({
-    id: '/api/public/hooks/sync-azuracast',
-    path: '/api/public/hooks/sync-azuracast',
-    getParentRoute: () => rootRouteImport,
+const AuthenticatedDistributionRoute =
+  AuthenticatedDistributionRouteImport.update({
+    id: '/distribution',
+    path: '/distribution',
+    getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const ApiPublicHooksSweepAzuracastArtworkRoute =
-  ApiPublicHooksSweepAzuracastArtworkRouteImport.update({
-    id: '/api/public/hooks/sweep-azuracast-artwork',
-    path: '/api/public/hooks/sweep-azuracast-artwork',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicHooksImportRadioUppsalaRoute =
-  ApiPublicHooksImportRadioUppsalaRouteImport.update({
-    id: '/api/public/hooks/import-radio-uppsala',
-    path: '/api/public/hooks/import-radio-uppsala',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicHooksAudioProcessedRoute =
-  ApiPublicHooksAudioProcessedRouteImport.update({
-    id: '/api/public/hooks/audio-processed',
-    path: '/api/public/hooks/audio-processed',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicEpisodesIdRoute = ApiPublicEpisodesIdRouteImport.update({
-  id: '/api/public/episodes/$id',
-  path: '/api/public/episodes/$id',
-  getParentRoute: () => rootRouteImport,
+const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const ApiPublicArtistsIdRoute = ApiPublicArtistsIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => ApiPublicArtistsRoute,
+const AuthenticatedAccountRoute = AuthenticatedAccountRouteImport.update({
+  id: '/account',
+  path: '/account',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const ApiPublicAlbumsIdRoute = ApiPublicAlbumsIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => ApiPublicAlbumsRoute,
-} as any)
+const AuthenticatedTracksTrackIdRoute =
+  AuthenticatedTracksTrackIdRouteImport.update({
+    id: '/$trackId',
+    path: '/$trackId',
+    getParentRoute: () => AuthenticatedTracksRoute,
+  } as any)
+const AuthenticatedReleasesReleaseIdRoute =
+  AuthenticatedReleasesReleaseIdRouteImport.update({
+    id: '/$releaseId',
+    path: '/$releaseId',
+    getParentRoute: () => AuthenticatedReleasesRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/about': typeof AboutRoute
-  '/admin': typeof AdminRoute
-  '/api-docs': typeof ApiDocsRoute
-  '/catalog': typeof CatalogRoute
-  '/login': typeof LoginRoute
-  '/my-submissions': typeof MySubmissionsRoute
-  '/notifications': typeof NotificationsRoute
-  '/settings': typeof SettingsRoute
-  '/stats': typeof StatsRoute
-  '/upload': typeof UploadRoute
-  '/upload-batch': typeof UploadBatchRoute
-  '/albums/$albumId': typeof AlbumsAlbumIdRouteWithChildren
-  '/albums/new': typeof AlbumsNewRoute
-  '/api/generate-artist-image': typeof ApiGenerateArtistImageRoute
-  '/api/generate-artwork': typeof ApiGenerateArtworkRoute
-  '/api/openapi': typeof ApiOpenapiRoute
-  '/artists/$artistId': typeof ArtistsArtistIdRoute
-  '/artists/new': typeof ArtistsNewRoute
-  '/releases/new': typeof ReleasesNewRoute
-  '/albums/$albumId/edit': typeof AlbumsAlbumIdEditRoute
-  '/api/public/albums': typeof ApiPublicAlbumsRouteWithChildren
-  '/api/public/artists': typeof ApiPublicArtistsRouteWithChildren
-  '/api/public/podcasts': typeof ApiPublicPodcastsRoute
-  '/api/public/tracks': typeof ApiPublicTracksRouteWithChildren
-  '/api/v1/albums': typeof ApiV1AlbumsRoute
-  '/api/v1/submissions': typeof ApiV1SubmissionsRouteWithChildren
-  '/api/public/albums/$id': typeof ApiPublicAlbumsIdRoute
-  '/api/public/artists/$id': typeof ApiPublicArtistsIdRoute
-  '/api/public/episodes/$id': typeof ApiPublicEpisodesIdRoute
-  '/api/public/hooks/audio-processed': typeof ApiPublicHooksAudioProcessedRoute
-  '/api/public/hooks/import-radio-uppsala': typeof ApiPublicHooksImportRadioUppsalaRoute
-  '/api/public/hooks/sweep-azuracast-artwork': typeof ApiPublicHooksSweepAzuracastArtworkRoute
-  '/api/public/hooks/sync-azuracast': typeof ApiPublicHooksSyncAzuracastRoute
-  '/api/public/stream/$id': typeof ApiPublicStreamIdRoute
-  '/api/public/tracks/$id': typeof ApiPublicTracksIdRoute
-  '/api/v1/admin/moderation': typeof ApiV1AdminModerationRoute
-  '/api/v1/audio/$id': typeof ApiV1AudioIdRoute
-  '/api/v1/stats/spins': typeof ApiV1StatsSpinsRoute
-  '/api/v1/submissions/$id': typeof ApiV1SubmissionsIdRoute
+  '/auth': typeof AuthRoute
+  '/account': typeof AuthenticatedAccountRoute
+  '/dashboard': typeof AuthenticatedDashboardRoute
+  '/distribution': typeof AuthenticatedDistributionRoute
+  '/processing': typeof AuthenticatedProcessingRoute
+  '/releases': typeof AuthenticatedReleasesRouteWithChildren
+  '/tracks': typeof AuthenticatedTracksRouteWithChildren
+  '/upload': typeof AuthenticatedUploadRoute
+  '/releases/$releaseId': typeof AuthenticatedReleasesReleaseIdRoute
+  '/tracks/$trackId': typeof AuthenticatedTracksTrackIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/about': typeof AboutRoute
-  '/admin': typeof AdminRoute
-  '/api-docs': typeof ApiDocsRoute
-  '/catalog': typeof CatalogRoute
-  '/login': typeof LoginRoute
-  '/my-submissions': typeof MySubmissionsRoute
-  '/notifications': typeof NotificationsRoute
-  '/settings': typeof SettingsRoute
-  '/stats': typeof StatsRoute
-  '/upload': typeof UploadRoute
-  '/upload-batch': typeof UploadBatchRoute
-  '/albums/$albumId': typeof AlbumsAlbumIdRouteWithChildren
-  '/albums/new': typeof AlbumsNewRoute
-  '/api/generate-artist-image': typeof ApiGenerateArtistImageRoute
-  '/api/generate-artwork': typeof ApiGenerateArtworkRoute
-  '/api/openapi': typeof ApiOpenapiRoute
-  '/artists/$artistId': typeof ArtistsArtistIdRoute
-  '/artists/new': typeof ArtistsNewRoute
-  '/releases/new': typeof ReleasesNewRoute
-  '/albums/$albumId/edit': typeof AlbumsAlbumIdEditRoute
-  '/api/public/albums': typeof ApiPublicAlbumsRouteWithChildren
-  '/api/public/artists': typeof ApiPublicArtistsRouteWithChildren
-  '/api/public/podcasts': typeof ApiPublicPodcastsRoute
-  '/api/public/tracks': typeof ApiPublicTracksRouteWithChildren
-  '/api/v1/albums': typeof ApiV1AlbumsRoute
-  '/api/v1/submissions': typeof ApiV1SubmissionsRouteWithChildren
-  '/api/public/albums/$id': typeof ApiPublicAlbumsIdRoute
-  '/api/public/artists/$id': typeof ApiPublicArtistsIdRoute
-  '/api/public/episodes/$id': typeof ApiPublicEpisodesIdRoute
-  '/api/public/hooks/audio-processed': typeof ApiPublicHooksAudioProcessedRoute
-  '/api/public/hooks/import-radio-uppsala': typeof ApiPublicHooksImportRadioUppsalaRoute
-  '/api/public/hooks/sweep-azuracast-artwork': typeof ApiPublicHooksSweepAzuracastArtworkRoute
-  '/api/public/hooks/sync-azuracast': typeof ApiPublicHooksSyncAzuracastRoute
-  '/api/public/stream/$id': typeof ApiPublicStreamIdRoute
-  '/api/public/tracks/$id': typeof ApiPublicTracksIdRoute
-  '/api/v1/admin/moderation': typeof ApiV1AdminModerationRoute
-  '/api/v1/audio/$id': typeof ApiV1AudioIdRoute
-  '/api/v1/stats/spins': typeof ApiV1StatsSpinsRoute
-  '/api/v1/submissions/$id': typeof ApiV1SubmissionsIdRoute
+  '/auth': typeof AuthRoute
+  '/account': typeof AuthenticatedAccountRoute
+  '/dashboard': typeof AuthenticatedDashboardRoute
+  '/distribution': typeof AuthenticatedDistributionRoute
+  '/processing': typeof AuthenticatedProcessingRoute
+  '/releases': typeof AuthenticatedReleasesRouteWithChildren
+  '/tracks': typeof AuthenticatedTracksRouteWithChildren
+  '/upload': typeof AuthenticatedUploadRoute
+  '/releases/$releaseId': typeof AuthenticatedReleasesReleaseIdRoute
+  '/tracks/$trackId': typeof AuthenticatedTracksTrackIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/about': typeof AboutRoute
-  '/admin': typeof AdminRoute
-  '/api-docs': typeof ApiDocsRoute
-  '/catalog': typeof CatalogRoute
-  '/login': typeof LoginRoute
-  '/my-submissions': typeof MySubmissionsRoute
-  '/notifications': typeof NotificationsRoute
-  '/settings': typeof SettingsRoute
-  '/stats': typeof StatsRoute
-  '/upload': typeof UploadRoute
-  '/upload-batch': typeof UploadBatchRoute
-  '/albums/$albumId': typeof AlbumsAlbumIdRouteWithChildren
-  '/albums/new': typeof AlbumsNewRoute
-  '/api/generate-artist-image': typeof ApiGenerateArtistImageRoute
-  '/api/generate-artwork': typeof ApiGenerateArtworkRoute
-  '/api/openapi': typeof ApiOpenapiRoute
-  '/artists/$artistId': typeof ArtistsArtistIdRoute
-  '/artists/new': typeof ArtistsNewRoute
-  '/releases/new': typeof ReleasesNewRoute
-  '/albums/$albumId/edit': typeof AlbumsAlbumIdEditRoute
-  '/api/public/albums': typeof ApiPublicAlbumsRouteWithChildren
-  '/api/public/artists': typeof ApiPublicArtistsRouteWithChildren
-  '/api/public/podcasts': typeof ApiPublicPodcastsRoute
-  '/api/public/tracks': typeof ApiPublicTracksRouteWithChildren
-  '/api/v1/albums': typeof ApiV1AlbumsRoute
-  '/api/v1/submissions': typeof ApiV1SubmissionsRouteWithChildren
-  '/api/public/albums/$id': typeof ApiPublicAlbumsIdRoute
-  '/api/public/artists/$id': typeof ApiPublicArtistsIdRoute
-  '/api/public/episodes/$id': typeof ApiPublicEpisodesIdRoute
-  '/api/public/hooks/audio-processed': typeof ApiPublicHooksAudioProcessedRoute
-  '/api/public/hooks/import-radio-uppsala': typeof ApiPublicHooksImportRadioUppsalaRoute
-  '/api/public/hooks/sweep-azuracast-artwork': typeof ApiPublicHooksSweepAzuracastArtworkRoute
-  '/api/public/hooks/sync-azuracast': typeof ApiPublicHooksSyncAzuracastRoute
-  '/api/public/stream/$id': typeof ApiPublicStreamIdRoute
-  '/api/public/tracks/$id': typeof ApiPublicTracksIdRoute
-  '/api/v1/admin/moderation': typeof ApiV1AdminModerationRoute
-  '/api/v1/audio/$id': typeof ApiV1AudioIdRoute
-  '/api/v1/stats/spins': typeof ApiV1StatsSpinsRoute
-  '/api/v1/submissions/$id': typeof ApiV1SubmissionsIdRoute
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/auth': typeof AuthRoute
+  '/_authenticated/account': typeof AuthenticatedAccountRoute
+  '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/distribution': typeof AuthenticatedDistributionRoute
+  '/_authenticated/processing': typeof AuthenticatedProcessingRoute
+  '/_authenticated/releases': typeof AuthenticatedReleasesRouteWithChildren
+  '/_authenticated/tracks': typeof AuthenticatedTracksRouteWithChildren
+  '/_authenticated/upload': typeof AuthenticatedUploadRoute
+  '/_authenticated/releases/$releaseId': typeof AuthenticatedReleasesReleaseIdRoute
+  '/_authenticated/tracks/$trackId': typeof AuthenticatedTracksTrackIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/about'
-    | '/admin'
-    | '/api-docs'
-    | '/catalog'
-    | '/login'
-    | '/my-submissions'
-    | '/notifications'
-    | '/settings'
-    | '/stats'
+    | '/auth'
+    | '/account'
+    | '/dashboard'
+    | '/distribution'
+    | '/processing'
+    | '/releases'
+    | '/tracks'
     | '/upload'
-    | '/upload-batch'
-    | '/albums/$albumId'
-    | '/albums/new'
-    | '/api/generate-artist-image'
-    | '/api/generate-artwork'
-    | '/api/openapi'
-    | '/artists/$artistId'
-    | '/artists/new'
-    | '/releases/new'
-    | '/albums/$albumId/edit'
-    | '/api/public/albums'
-    | '/api/public/artists'
-    | '/api/public/podcasts'
-    | '/api/public/tracks'
-    | '/api/v1/albums'
-    | '/api/v1/submissions'
-    | '/api/public/albums/$id'
-    | '/api/public/artists/$id'
-    | '/api/public/episodes/$id'
-    | '/api/public/hooks/audio-processed'
-    | '/api/public/hooks/import-radio-uppsala'
-    | '/api/public/hooks/sweep-azuracast-artwork'
-    | '/api/public/hooks/sync-azuracast'
-    | '/api/public/stream/$id'
-    | '/api/public/tracks/$id'
-    | '/api/v1/admin/moderation'
-    | '/api/v1/audio/$id'
-    | '/api/v1/stats/spins'
-    | '/api/v1/submissions/$id'
+    | '/releases/$releaseId'
+    | '/tracks/$trackId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/about'
-    | '/admin'
-    | '/api-docs'
-    | '/catalog'
-    | '/login'
-    | '/my-submissions'
-    | '/notifications'
-    | '/settings'
-    | '/stats'
+    | '/auth'
+    | '/account'
+    | '/dashboard'
+    | '/distribution'
+    | '/processing'
+    | '/releases'
+    | '/tracks'
     | '/upload'
-    | '/upload-batch'
-    | '/albums/$albumId'
-    | '/albums/new'
-    | '/api/generate-artist-image'
-    | '/api/generate-artwork'
-    | '/api/openapi'
-    | '/artists/$artistId'
-    | '/artists/new'
-    | '/releases/new'
-    | '/albums/$albumId/edit'
-    | '/api/public/albums'
-    | '/api/public/artists'
-    | '/api/public/podcasts'
-    | '/api/public/tracks'
-    | '/api/v1/albums'
-    | '/api/v1/submissions'
-    | '/api/public/albums/$id'
-    | '/api/public/artists/$id'
-    | '/api/public/episodes/$id'
-    | '/api/public/hooks/audio-processed'
-    | '/api/public/hooks/import-radio-uppsala'
-    | '/api/public/hooks/sweep-azuracast-artwork'
-    | '/api/public/hooks/sync-azuracast'
-    | '/api/public/stream/$id'
-    | '/api/public/tracks/$id'
-    | '/api/v1/admin/moderation'
-    | '/api/v1/audio/$id'
-    | '/api/v1/stats/spins'
-    | '/api/v1/submissions/$id'
+    | '/releases/$releaseId'
+    | '/tracks/$trackId'
   id:
     | '__root__'
     | '/'
-    | '/about'
-    | '/admin'
-    | '/api-docs'
-    | '/catalog'
-    | '/login'
-    | '/my-submissions'
-    | '/notifications'
-    | '/settings'
-    | '/stats'
-    | '/upload'
-    | '/upload-batch'
-    | '/albums/$albumId'
-    | '/albums/new'
-    | '/api/generate-artist-image'
-    | '/api/generate-artwork'
-    | '/api/openapi'
-    | '/artists/$artistId'
-    | '/artists/new'
-    | '/releases/new'
-    | '/albums/$albumId/edit'
-    | '/api/public/albums'
-    | '/api/public/artists'
-    | '/api/public/podcasts'
-    | '/api/public/tracks'
-    | '/api/v1/albums'
-    | '/api/v1/submissions'
-    | '/api/public/albums/$id'
-    | '/api/public/artists/$id'
-    | '/api/public/episodes/$id'
-    | '/api/public/hooks/audio-processed'
-    | '/api/public/hooks/import-radio-uppsala'
-    | '/api/public/hooks/sweep-azuracast-artwork'
-    | '/api/public/hooks/sync-azuracast'
-    | '/api/public/stream/$id'
-    | '/api/public/tracks/$id'
-    | '/api/v1/admin/moderation'
-    | '/api/v1/audio/$id'
-    | '/api/v1/stats/spins'
-    | '/api/v1/submissions/$id'
+    | '/_authenticated'
+    | '/auth'
+    | '/_authenticated/account'
+    | '/_authenticated/dashboard'
+    | '/_authenticated/distribution'
+    | '/_authenticated/processing'
+    | '/_authenticated/releases'
+    | '/_authenticated/tracks'
+    | '/_authenticated/upload'
+    | '/_authenticated/releases/$releaseId'
+    | '/_authenticated/tracks/$trackId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AboutRoute: typeof AboutRoute
-  AdminRoute: typeof AdminRoute
-  ApiDocsRoute: typeof ApiDocsRoute
-  CatalogRoute: typeof CatalogRoute
-  LoginRoute: typeof LoginRoute
-  MySubmissionsRoute: typeof MySubmissionsRoute
-  NotificationsRoute: typeof NotificationsRoute
-  SettingsRoute: typeof SettingsRoute
-  StatsRoute: typeof StatsRoute
-  UploadRoute: typeof UploadRoute
-  UploadBatchRoute: typeof UploadBatchRoute
-  AlbumsAlbumIdRoute: typeof AlbumsAlbumIdRouteWithChildren
-  AlbumsNewRoute: typeof AlbumsNewRoute
-  ApiGenerateArtistImageRoute: typeof ApiGenerateArtistImageRoute
-  ApiGenerateArtworkRoute: typeof ApiGenerateArtworkRoute
-  ApiOpenapiRoute: typeof ApiOpenapiRoute
-  ArtistsArtistIdRoute: typeof ArtistsArtistIdRoute
-  ArtistsNewRoute: typeof ArtistsNewRoute
-  ReleasesNewRoute: typeof ReleasesNewRoute
-  ApiPublicAlbumsRoute: typeof ApiPublicAlbumsRouteWithChildren
-  ApiPublicArtistsRoute: typeof ApiPublicArtistsRouteWithChildren
-  ApiPublicPodcastsRoute: typeof ApiPublicPodcastsRoute
-  ApiPublicTracksRoute: typeof ApiPublicTracksRouteWithChildren
-  ApiV1AlbumsRoute: typeof ApiV1AlbumsRoute
-  ApiV1SubmissionsRoute: typeof ApiV1SubmissionsRouteWithChildren
-  ApiPublicEpisodesIdRoute: typeof ApiPublicEpisodesIdRoute
-  ApiPublicHooksAudioProcessedRoute: typeof ApiPublicHooksAudioProcessedRoute
-  ApiPublicHooksImportRadioUppsalaRoute: typeof ApiPublicHooksImportRadioUppsalaRoute
-  ApiPublicHooksSweepAzuracastArtworkRoute: typeof ApiPublicHooksSweepAzuracastArtworkRoute
-  ApiPublicHooksSyncAzuracastRoute: typeof ApiPublicHooksSyncAzuracastRoute
-  ApiPublicStreamIdRoute: typeof ApiPublicStreamIdRoute
-  ApiV1AdminModerationRoute: typeof ApiV1AdminModerationRoute
-  ApiV1AudioIdRoute: typeof ApiV1AudioIdRoute
-  ApiV1StatsSpinsRoute: typeof ApiV1StatsSpinsRoute
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AuthRoute: typeof AuthRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/upload-batch': {
-      id: '/upload-batch'
-      path: '/upload-batch'
-      fullPath: '/upload-batch'
-      preLoaderRoute: typeof UploadBatchRouteImport
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/upload': {
-      id: '/upload'
-      path: '/upload'
-      fullPath: '/upload'
-      preLoaderRoute: typeof UploadRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/stats': {
-      id: '/stats'
-      path: '/stats'
-      fullPath: '/stats'
-      preLoaderRoute: typeof StatsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/settings': {
-      id: '/settings'
-      path: '/settings'
-      fullPath: '/settings'
-      preLoaderRoute: typeof SettingsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/notifications': {
-      id: '/notifications'
-      path: '/notifications'
-      fullPath: '/notifications'
-      preLoaderRoute: typeof NotificationsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/my-submissions': {
-      id: '/my-submissions'
-      path: '/my-submissions'
-      fullPath: '/my-submissions'
-      preLoaderRoute: typeof MySubmissionsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/catalog': {
-      id: '/catalog'
-      path: '/catalog'
-      fullPath: '/catalog'
-      preLoaderRoute: typeof CatalogRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api-docs': {
-      id: '/api-docs'
-      path: '/api-docs'
-      fullPath: '/api-docs'
-      preLoaderRoute: typeof ApiDocsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin': {
-      id: '/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof AdminRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/about': {
-      id: '/about'
-      path: '/about'
-      fullPath: '/about'
-      preLoaderRoute: typeof AboutRouteImport
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -635,300 +198,123 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/releases/new': {
-      id: '/releases/new'
-      path: '/releases/new'
-      fullPath: '/releases/new'
-      preLoaderRoute: typeof ReleasesNewRouteImport
-      parentRoute: typeof rootRouteImport
+    '/_authenticated/upload': {
+      id: '/_authenticated/upload'
+      path: '/upload'
+      fullPath: '/upload'
+      preLoaderRoute: typeof AuthenticatedUploadRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/artists/new': {
-      id: '/artists/new'
-      path: '/artists/new'
-      fullPath: '/artists/new'
-      preLoaderRoute: typeof ArtistsNewRouteImport
-      parentRoute: typeof rootRouteImport
+    '/_authenticated/tracks': {
+      id: '/_authenticated/tracks'
+      path: '/tracks'
+      fullPath: '/tracks'
+      preLoaderRoute: typeof AuthenticatedTracksRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/artists/$artistId': {
-      id: '/artists/$artistId'
-      path: '/artists/$artistId'
-      fullPath: '/artists/$artistId'
-      preLoaderRoute: typeof ArtistsArtistIdRouteImport
-      parentRoute: typeof rootRouteImport
+    '/_authenticated/releases': {
+      id: '/_authenticated/releases'
+      path: '/releases'
+      fullPath: '/releases'
+      preLoaderRoute: typeof AuthenticatedReleasesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/api/openapi': {
-      id: '/api/openapi'
-      path: '/api/openapi'
-      fullPath: '/api/openapi'
-      preLoaderRoute: typeof ApiOpenapiRouteImport
-      parentRoute: typeof rootRouteImport
+    '/_authenticated/processing': {
+      id: '/_authenticated/processing'
+      path: '/processing'
+      fullPath: '/processing'
+      preLoaderRoute: typeof AuthenticatedProcessingRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/api/generate-artwork': {
-      id: '/api/generate-artwork'
-      path: '/api/generate-artwork'
-      fullPath: '/api/generate-artwork'
-      preLoaderRoute: typeof ApiGenerateArtworkRouteImport
-      parentRoute: typeof rootRouteImport
+    '/_authenticated/distribution': {
+      id: '/_authenticated/distribution'
+      path: '/distribution'
+      fullPath: '/distribution'
+      preLoaderRoute: typeof AuthenticatedDistributionRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/api/generate-artist-image': {
-      id: '/api/generate-artist-image'
-      path: '/api/generate-artist-image'
-      fullPath: '/api/generate-artist-image'
-      preLoaderRoute: typeof ApiGenerateArtistImageRouteImport
-      parentRoute: typeof rootRouteImport
+    '/_authenticated/dashboard': {
+      id: '/_authenticated/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/albums/new': {
-      id: '/albums/new'
-      path: '/albums/new'
-      fullPath: '/albums/new'
-      preLoaderRoute: typeof AlbumsNewRouteImport
-      parentRoute: typeof rootRouteImport
+    '/_authenticated/account': {
+      id: '/_authenticated/account'
+      path: '/account'
+      fullPath: '/account'
+      preLoaderRoute: typeof AuthenticatedAccountRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/albums/$albumId': {
-      id: '/albums/$albumId'
-      path: '/albums/$albumId'
-      fullPath: '/albums/$albumId'
-      preLoaderRoute: typeof AlbumsAlbumIdRouteImport
-      parentRoute: typeof rootRouteImport
+    '/_authenticated/tracks/$trackId': {
+      id: '/_authenticated/tracks/$trackId'
+      path: '/$trackId'
+      fullPath: '/tracks/$trackId'
+      preLoaderRoute: typeof AuthenticatedTracksTrackIdRouteImport
+      parentRoute: typeof AuthenticatedTracksRoute
     }
-    '/api/v1/submissions': {
-      id: '/api/v1/submissions'
-      path: '/api/v1/submissions'
-      fullPath: '/api/v1/submissions'
-      preLoaderRoute: typeof ApiV1SubmissionsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/v1/albums': {
-      id: '/api/v1/albums'
-      path: '/api/v1/albums'
-      fullPath: '/api/v1/albums'
-      preLoaderRoute: typeof ApiV1AlbumsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/tracks': {
-      id: '/api/public/tracks'
-      path: '/api/public/tracks'
-      fullPath: '/api/public/tracks'
-      preLoaderRoute: typeof ApiPublicTracksRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/podcasts': {
-      id: '/api/public/podcasts'
-      path: '/api/public/podcasts'
-      fullPath: '/api/public/podcasts'
-      preLoaderRoute: typeof ApiPublicPodcastsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/artists': {
-      id: '/api/public/artists'
-      path: '/api/public/artists'
-      fullPath: '/api/public/artists'
-      preLoaderRoute: typeof ApiPublicArtistsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/albums': {
-      id: '/api/public/albums'
-      path: '/api/public/albums'
-      fullPath: '/api/public/albums'
-      preLoaderRoute: typeof ApiPublicAlbumsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/albums/$albumId/edit': {
-      id: '/albums/$albumId/edit'
-      path: '/edit'
-      fullPath: '/albums/$albumId/edit'
-      preLoaderRoute: typeof AlbumsAlbumIdEditRouteImport
-      parentRoute: typeof AlbumsAlbumIdRoute
-    }
-    '/api/v1/submissions/$id': {
-      id: '/api/v1/submissions/$id'
-      path: '/$id'
-      fullPath: '/api/v1/submissions/$id'
-      preLoaderRoute: typeof ApiV1SubmissionsIdRouteImport
-      parentRoute: typeof ApiV1SubmissionsRoute
-    }
-    '/api/v1/stats/spins': {
-      id: '/api/v1/stats/spins'
-      path: '/api/v1/stats/spins'
-      fullPath: '/api/v1/stats/spins'
-      preLoaderRoute: typeof ApiV1StatsSpinsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/v1/audio/$id': {
-      id: '/api/v1/audio/$id'
-      path: '/api/v1/audio/$id'
-      fullPath: '/api/v1/audio/$id'
-      preLoaderRoute: typeof ApiV1AudioIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/v1/admin/moderation': {
-      id: '/api/v1/admin/moderation'
-      path: '/api/v1/admin/moderation'
-      fullPath: '/api/v1/admin/moderation'
-      preLoaderRoute: typeof ApiV1AdminModerationRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/tracks/$id': {
-      id: '/api/public/tracks/$id'
-      path: '/$id'
-      fullPath: '/api/public/tracks/$id'
-      preLoaderRoute: typeof ApiPublicTracksIdRouteImport
-      parentRoute: typeof ApiPublicTracksRoute
-    }
-    '/api/public/stream/$id': {
-      id: '/api/public/stream/$id'
-      path: '/api/public/stream/$id'
-      fullPath: '/api/public/stream/$id'
-      preLoaderRoute: typeof ApiPublicStreamIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/hooks/sync-azuracast': {
-      id: '/api/public/hooks/sync-azuracast'
-      path: '/api/public/hooks/sync-azuracast'
-      fullPath: '/api/public/hooks/sync-azuracast'
-      preLoaderRoute: typeof ApiPublicHooksSyncAzuracastRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/hooks/sweep-azuracast-artwork': {
-      id: '/api/public/hooks/sweep-azuracast-artwork'
-      path: '/api/public/hooks/sweep-azuracast-artwork'
-      fullPath: '/api/public/hooks/sweep-azuracast-artwork'
-      preLoaderRoute: typeof ApiPublicHooksSweepAzuracastArtworkRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/hooks/import-radio-uppsala': {
-      id: '/api/public/hooks/import-radio-uppsala'
-      path: '/api/public/hooks/import-radio-uppsala'
-      fullPath: '/api/public/hooks/import-radio-uppsala'
-      preLoaderRoute: typeof ApiPublicHooksImportRadioUppsalaRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/hooks/audio-processed': {
-      id: '/api/public/hooks/audio-processed'
-      path: '/api/public/hooks/audio-processed'
-      fullPath: '/api/public/hooks/audio-processed'
-      preLoaderRoute: typeof ApiPublicHooksAudioProcessedRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/episodes/$id': {
-      id: '/api/public/episodes/$id'
-      path: '/api/public/episodes/$id'
-      fullPath: '/api/public/episodes/$id'
-      preLoaderRoute: typeof ApiPublicEpisodesIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/artists/$id': {
-      id: '/api/public/artists/$id'
-      path: '/$id'
-      fullPath: '/api/public/artists/$id'
-      preLoaderRoute: typeof ApiPublicArtistsIdRouteImport
-      parentRoute: typeof ApiPublicArtistsRoute
-    }
-    '/api/public/albums/$id': {
-      id: '/api/public/albums/$id'
-      path: '/$id'
-      fullPath: '/api/public/albums/$id'
-      preLoaderRoute: typeof ApiPublicAlbumsIdRouteImport
-      parentRoute: typeof ApiPublicAlbumsRoute
+    '/_authenticated/releases/$releaseId': {
+      id: '/_authenticated/releases/$releaseId'
+      path: '/$releaseId'
+      fullPath: '/releases/$releaseId'
+      preLoaderRoute: typeof AuthenticatedReleasesReleaseIdRouteImport
+      parentRoute: typeof AuthenticatedReleasesRoute
     }
   }
 }
 
-interface AlbumsAlbumIdRouteChildren {
-  AlbumsAlbumIdEditRoute: typeof AlbumsAlbumIdEditRoute
+interface AuthenticatedReleasesRouteChildren {
+  AuthenticatedReleasesReleaseIdRoute: typeof AuthenticatedReleasesReleaseIdRoute
 }
 
-const AlbumsAlbumIdRouteChildren: AlbumsAlbumIdRouteChildren = {
-  AlbumsAlbumIdEditRoute: AlbumsAlbumIdEditRoute,
+const AuthenticatedReleasesRouteChildren: AuthenticatedReleasesRouteChildren = {
+  AuthenticatedReleasesReleaseIdRoute: AuthenticatedReleasesReleaseIdRoute,
 }
 
-const AlbumsAlbumIdRouteWithChildren = AlbumsAlbumIdRoute._addFileChildren(
-  AlbumsAlbumIdRouteChildren,
-)
+const AuthenticatedReleasesRouteWithChildren =
+  AuthenticatedReleasesRoute._addFileChildren(
+    AuthenticatedReleasesRouteChildren,
+  )
 
-interface ApiPublicAlbumsRouteChildren {
-  ApiPublicAlbumsIdRoute: typeof ApiPublicAlbumsIdRoute
+interface AuthenticatedTracksRouteChildren {
+  AuthenticatedTracksTrackIdRoute: typeof AuthenticatedTracksTrackIdRoute
 }
 
-const ApiPublicAlbumsRouteChildren: ApiPublicAlbumsRouteChildren = {
-  ApiPublicAlbumsIdRoute: ApiPublicAlbumsIdRoute,
+const AuthenticatedTracksRouteChildren: AuthenticatedTracksRouteChildren = {
+  AuthenticatedTracksTrackIdRoute: AuthenticatedTracksTrackIdRoute,
 }
 
-const ApiPublicAlbumsRouteWithChildren = ApiPublicAlbumsRoute._addFileChildren(
-  ApiPublicAlbumsRouteChildren,
-)
+const AuthenticatedTracksRouteWithChildren =
+  AuthenticatedTracksRoute._addFileChildren(AuthenticatedTracksRouteChildren)
 
-interface ApiPublicArtistsRouteChildren {
-  ApiPublicArtistsIdRoute: typeof ApiPublicArtistsIdRoute
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAccountRoute: typeof AuthenticatedAccountRoute
+  AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedDistributionRoute: typeof AuthenticatedDistributionRoute
+  AuthenticatedProcessingRoute: typeof AuthenticatedProcessingRoute
+  AuthenticatedReleasesRoute: typeof AuthenticatedReleasesRouteWithChildren
+  AuthenticatedTracksRoute: typeof AuthenticatedTracksRouteWithChildren
+  AuthenticatedUploadRoute: typeof AuthenticatedUploadRoute
 }
 
-const ApiPublicArtistsRouteChildren: ApiPublicArtistsRouteChildren = {
-  ApiPublicArtistsIdRoute: ApiPublicArtistsIdRoute,
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAccountRoute: AuthenticatedAccountRoute,
+  AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedDistributionRoute: AuthenticatedDistributionRoute,
+  AuthenticatedProcessingRoute: AuthenticatedProcessingRoute,
+  AuthenticatedReleasesRoute: AuthenticatedReleasesRouteWithChildren,
+  AuthenticatedTracksRoute: AuthenticatedTracksRouteWithChildren,
+  AuthenticatedUploadRoute: AuthenticatedUploadRoute,
 }
 
-const ApiPublicArtistsRouteWithChildren =
-  ApiPublicArtistsRoute._addFileChildren(ApiPublicArtistsRouteChildren)
-
-interface ApiPublicTracksRouteChildren {
-  ApiPublicTracksIdRoute: typeof ApiPublicTracksIdRoute
-}
-
-const ApiPublicTracksRouteChildren: ApiPublicTracksRouteChildren = {
-  ApiPublicTracksIdRoute: ApiPublicTracksIdRoute,
-}
-
-const ApiPublicTracksRouteWithChildren = ApiPublicTracksRoute._addFileChildren(
-  ApiPublicTracksRouteChildren,
-)
-
-interface ApiV1SubmissionsRouteChildren {
-  ApiV1SubmissionsIdRoute: typeof ApiV1SubmissionsIdRoute
-}
-
-const ApiV1SubmissionsRouteChildren: ApiV1SubmissionsRouteChildren = {
-  ApiV1SubmissionsIdRoute: ApiV1SubmissionsIdRoute,
-}
-
-const ApiV1SubmissionsRouteWithChildren =
-  ApiV1SubmissionsRoute._addFileChildren(ApiV1SubmissionsRouteChildren)
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AboutRoute: AboutRoute,
-  AdminRoute: AdminRoute,
-  ApiDocsRoute: ApiDocsRoute,
-  CatalogRoute: CatalogRoute,
-  LoginRoute: LoginRoute,
-  MySubmissionsRoute: MySubmissionsRoute,
-  NotificationsRoute: NotificationsRoute,
-  SettingsRoute: SettingsRoute,
-  StatsRoute: StatsRoute,
-  UploadRoute: UploadRoute,
-  UploadBatchRoute: UploadBatchRoute,
-  AlbumsAlbumIdRoute: AlbumsAlbumIdRouteWithChildren,
-  AlbumsNewRoute: AlbumsNewRoute,
-  ApiGenerateArtistImageRoute: ApiGenerateArtistImageRoute,
-  ApiGenerateArtworkRoute: ApiGenerateArtworkRoute,
-  ApiOpenapiRoute: ApiOpenapiRoute,
-  ArtistsArtistIdRoute: ArtistsArtistIdRoute,
-  ArtistsNewRoute: ArtistsNewRoute,
-  ReleasesNewRoute: ReleasesNewRoute,
-  ApiPublicAlbumsRoute: ApiPublicAlbumsRouteWithChildren,
-  ApiPublicArtistsRoute: ApiPublicArtistsRouteWithChildren,
-  ApiPublicPodcastsRoute: ApiPublicPodcastsRoute,
-  ApiPublicTracksRoute: ApiPublicTracksRouteWithChildren,
-  ApiV1AlbumsRoute: ApiV1AlbumsRoute,
-  ApiV1SubmissionsRoute: ApiV1SubmissionsRouteWithChildren,
-  ApiPublicEpisodesIdRoute: ApiPublicEpisodesIdRoute,
-  ApiPublicHooksAudioProcessedRoute: ApiPublicHooksAudioProcessedRoute,
-  ApiPublicHooksImportRadioUppsalaRoute: ApiPublicHooksImportRadioUppsalaRoute,
-  ApiPublicHooksSweepAzuracastArtworkRoute:
-    ApiPublicHooksSweepAzuracastArtworkRoute,
-  ApiPublicHooksSyncAzuracastRoute: ApiPublicHooksSyncAzuracastRoute,
-  ApiPublicStreamIdRoute: ApiPublicStreamIdRoute,
-  ApiV1AdminModerationRoute: ApiV1AdminModerationRoute,
-  ApiV1AudioIdRoute: ApiV1AudioIdRoute,
-  ApiV1StatsSpinsRoute: ApiV1StatsSpinsRoute,
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AuthRoute: AuthRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
