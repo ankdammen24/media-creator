@@ -28,18 +28,9 @@ function DashboardPage() {
         {tracks.isLoading ? <p className="mt-3 text-sm text-muted-foreground">Loading tracks…</p> : allTracks.length === 0 ? <p className="mt-3 text-sm text-muted-foreground">No tracks yet. Start with an upload.</p> : <div className="mt-3 divide-y divide-border">{allTracks.slice(0, 5).map((track) => <Link key={track.id} to="/tracks/$trackId" params={{ trackId: track.id }} className="flex items-center justify-between py-3 text-sm hover:text-primary"><span>{track.title || "Untitled track"}</span><span className="text-xs uppercase text-muted-foreground">{track.status}</span></Link>)}</div>}
       </section>
       <p className="mt-8 text-center text-xs text-muted-foreground">{t("footer")}</p>
+}
 
-      <div className="mb-6 rounded-xl border border-border bg-card p-4 text-sm text-muted-foreground">{t("sourceOfTruth")}</div>
-      <div className="grid gap-4 md:grid-cols-3">
-        <Metric icon={Music} label="Spår" value={allTracks.length} />
-        <Metric icon={Activity} label="Bearbetas" value={processing} />
-        <Metric icon={Upload} label="Klara för metadata" value={ready} />
-      </div>
-      <section className="mt-8 rounded-xl border border-border bg-card p-5">
-        <h2 className="font-semibold">Senaste spår</h2>
-        {tracks.isLoading ? <p className="mt-3 text-sm text-muted-foreground">Hämtar spår…</p> : allTracks.length === 0 ? <p className="mt-3 text-sm text-muted-foreground">Inga spår ännu. Börja med en uppladdning.</p> : <div className="mt-3 divide-y divide-border">{allTracks.slice(0, 5).map((track) => <Link key={track.id} to="/tracks/$trackId" params={{ trackId: track.id }} className="flex items-center justify-between py-3 text-sm hover:text-primary"><span>{track.title || "Namnlöst spår"}</span><span className="text-xs uppercase text-muted-foreground">{track.status}</span></Link>)}</div>}
-      </section>
-    </PageContainer>
+
   );
 }
 
