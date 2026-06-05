@@ -104,6 +104,13 @@ export type Database = {
             referencedRelation: "artist_profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "albums_artist_profile_id_fkey"
+            columns: ["artist_profile_id"]
+            isOneToOne: false
+            referencedRelation: "published_tracks_view"
+            referencedColumns: ["artist_id"]
+          },
         ]
       }
       api_keys: {
@@ -150,6 +157,65 @@ export type Database = {
           type?: Database["public"]["Enums"]["api_key_type"]
         }
         Relationships: []
+      }
+      approvals: {
+        Row: {
+          album_id: string | null
+          decided_at: string
+          decided_by: string
+          decision: string
+          id: string
+          reason: string | null
+          submission_id: string | null
+        }
+        Insert: {
+          album_id?: string | null
+          decided_at?: string
+          decided_by: string
+          decision: string
+          id?: string
+          reason?: string | null
+          submission_id?: string | null
+        }
+        Update: {
+          album_id?: string | null
+          decided_at?: string
+          decided_by?: string
+          decision?: string
+          id?: string
+          reason?: string | null
+          submission_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "approvals_album_id_fkey"
+            columns: ["album_id"]
+            isOneToOne: false
+            referencedRelation: "albums"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "approvals_album_id_fkey"
+            columns: ["album_id"]
+            isOneToOne: false
+            referencedRelation: "published_tracks_view"
+            referencedColumns: ["album_id"]
+          },
+          {
+            foreignKeyName: "approvals_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "published_tracks_view"
+            referencedColumns: ["track_id"]
+          },
+          {
+            foreignKeyName: "approvals_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       artist_images: {
         Row: {
@@ -202,6 +268,13 @@ export type Database = {
             referencedRelation: "artist_profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "artist_images_artist_profile_id_fkey"
+            columns: ["artist_profile_id"]
+            isOneToOne: false
+            referencedRelation: "published_tracks_view"
+            referencedColumns: ["artist_id"]
+          },
         ]
       }
       artist_ownership_log: {
@@ -248,6 +321,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "artist_profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "artist_ownership_log_artist_profile_id_fkey"
+            columns: ["artist_profile_id"]
+            isOneToOne: false
+            referencedRelation: "published_tracks_view"
+            referencedColumns: ["artist_id"]
           },
         ]
       }
@@ -448,6 +528,103 @@ export type Database = {
         }
         Relationships: []
       }
+      media_files: {
+        Row: {
+          album_id: string | null
+          artist_profile_id: string | null
+          bucket: string
+          checksum: string | null
+          created_at: string
+          duration_seconds: number | null
+          id: string
+          kind: string
+          metadata: Json
+          mime_type: string | null
+          owner_id: string
+          path: string
+          size_bytes: number | null
+          submission_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          album_id?: string | null
+          artist_profile_id?: string | null
+          bucket: string
+          checksum?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          id?: string
+          kind: string
+          metadata?: Json
+          mime_type?: string | null
+          owner_id: string
+          path: string
+          size_bytes?: number | null
+          submission_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          album_id?: string | null
+          artist_profile_id?: string | null
+          bucket?: string
+          checksum?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          id?: string
+          kind?: string
+          metadata?: Json
+          mime_type?: string | null
+          owner_id?: string
+          path?: string
+          size_bytes?: number | null
+          submission_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "media_files_album_id_fkey"
+            columns: ["album_id"]
+            isOneToOne: false
+            referencedRelation: "albums"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "media_files_album_id_fkey"
+            columns: ["album_id"]
+            isOneToOne: false
+            referencedRelation: "published_tracks_view"
+            referencedColumns: ["album_id"]
+          },
+          {
+            foreignKeyName: "media_files_artist_profile_id_fkey"
+            columns: ["artist_profile_id"]
+            isOneToOne: false
+            referencedRelation: "artist_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "media_files_artist_profile_id_fkey"
+            columns: ["artist_profile_id"]
+            isOneToOne: false
+            referencedRelation: "published_tracks_view"
+            referencedColumns: ["artist_id"]
+          },
+          {
+            foreignKeyName: "media_files_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "published_tracks_view"
+            referencedColumns: ["track_id"]
+          },
+          {
+            foreignKeyName: "media_files_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           body: string
@@ -525,6 +702,13 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "playback_events_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "published_tracks_view"
+            referencedColumns: ["track_id"]
+          },
           {
             foreignKeyName: "playback_events_submission_id_fkey"
             columns: ["submission_id"]
@@ -644,6 +828,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "artist_profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "submission_artists_artist_profile_id_fkey"
+            columns: ["artist_profile_id"]
+            isOneToOne: false
+            referencedRelation: "published_tracks_view"
+            referencedColumns: ["artist_id"]
+          },
+          {
+            foreignKeyName: "submission_artists_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "published_tracks_view"
+            referencedColumns: ["track_id"]
           },
           {
             foreignKeyName: "submission_artists_submission_id_fkey"
@@ -829,11 +1027,25 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "submissions_album_id_fkey"
+            columns: ["album_id"]
+            isOneToOne: false
+            referencedRelation: "published_tracks_view"
+            referencedColumns: ["album_id"]
+          },
+          {
             foreignKeyName: "submissions_artist_profile_id_fkey"
             columns: ["artist_profile_id"]
             isOneToOne: false
             referencedRelation: "artist_profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "submissions_artist_profile_id_fkey"
+            columns: ["artist_profile_id"]
+            isOneToOne: false
+            referencedRelation: "published_tracks_view"
+            referencedColumns: ["artist_id"]
           },
         ]
       }
@@ -860,7 +1072,33 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      published_tracks_view: {
+        Row: {
+          album_artwork_path: string | null
+          album_id: string | null
+          album_title: string | null
+          approved_at: string | null
+          artist_avatar_path: string | null
+          artist_id: string | null
+          artist_name: string | null
+          created_at: string | null
+          duration_seconds: number | null
+          explicit: boolean | null
+          featured_artists: string[] | null
+          genre: string | null
+          isrc: string | null
+          label: string | null
+          media_type: Database["public"]["Enums"]["media_type"] | null
+          preview_path: string | null
+          release_date: string | null
+          title: string | null
+          track_artwork_path: string | null
+          track_id: string | null
+          track_number: number | null
+          upc: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       admin_set_user_disabled: {
