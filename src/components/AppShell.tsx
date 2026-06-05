@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { Link, Outlet, useRouter } from "@tanstack/react-router";
-import { Activity, Disc3, LayoutDashboard, LogOut, Menu, Music, Radio, Upload, UserCircle, X } from "lucide-react";
+import { Activity, Disc3, LayoutDashboard, LogOut, Menu, Music, Radio, Shield, Upload, UserCircle, X } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { t } from "@/lib/i18n";
+import { hasAnyRole, useMyRoles } from "@/lib/roles";
 
 const NAV = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -16,6 +17,10 @@ const NAV = [
   { to: "/account", label: "Account", icon: UserCircle },
 ] as const;
 
+const ADMIN_NAV = [
+  { to: "/admin/users", label: "Users", icon: Shield },
+] as const;
+
 
 export function AppShell() {
   const { user, logout } = useAuth();
@@ -24,7 +29,7 @@ export function AppShell() {
 
   async function handleLogout() {
     await logout();
-    router.navigate({ to: "/auth", replace: true });
+    router.navigate({ to: "/login", replace: true });
   }
 
   return (
@@ -48,6 +53,8 @@ export function AppShell() {
 }
 
 function SidebarContent({ onNavigate, onLogout, email, name }: { onNavigate: () => void; onLogout: () => void; email?: string; name?: string }) {
+  const myRoles = useMyRoles();
+  const showAdmin = hasAnyRole(myRoles.data, ["admin", "super_admin"]);
   return (
     <div className="flex h-full flex-col p-4">
       <div className="mb-6 px-2">
@@ -64,6 +71,16 @@ function SidebarContent({ onNavigate, onLogout, email, name }: { onNavigate: () 
             <Icon className="h-4 w-4" />{label}
           </Link>
         ))}
+        {showAdmin ? (
+          <>
+            <div className="mt-4 px-3 text-[10px] uppercase tracking-wider text-muted-foreground">Admin</div>
+            {ADMIN_NAV.map(({ to, label, icon: Icon }) => (
+              <Link key={to} to={to} onClick={onNavigate} className="group flex items-center gap-3 rounded-md px-3 py-2 text-sm text-sidebar-foreground hover:bg-sidebar-accent" activeProps={{ className: cn("group flex items-center gap-3 rounded-md px-3 py-2 text-sm", "bg-sidebar-primary text-sidebar-primary-foreground") }}>
+                <Icon className="h-4 w-4" />{label}
+              </Link>
+            ))}
+          </>
+        ) : null}
       </nav>
       <div className="mt-4 border-t border-sidebar-border pt-4">
         <div className="mb-3 px-3 text-xs"><div className="truncate font-medium text-sidebar-foreground">{name ?? "—"}</div><div className="truncate text-muted-foreground">{email ?? ""}</div></div>

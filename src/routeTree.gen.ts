@@ -9,6 +9,10 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as RegisterRouteImport } from './routes/register'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
@@ -21,7 +25,28 @@ import { Route as AuthenticatedDashboardRouteImport } from './routes/_authentica
 import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticated/account'
 import { Route as AuthenticatedTracksTrackIdRouteImport } from './routes/_authenticated/tracks.$trackId'
 import { Route as AuthenticatedReleasesReleaseIdRouteImport } from './routes/_authenticated/releases.$releaseId'
+import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin.users'
 
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RegisterRoute = RegisterRouteImport.update({
+  id: '/register',
+  path: '/register',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
@@ -84,10 +109,19 @@ const AuthenticatedReleasesReleaseIdRoute =
     path: '/$releaseId',
     getParentRoute: () => AuthenticatedReleasesRoute,
   } as any)
+const AuthenticatedAdminUsersRoute = AuthenticatedAdminUsersRouteImport.update({
+  id: '/admin/users',
+  path: '/admin/users',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/forgot-password': typeof ForgotPasswordRoute
+  '/login': typeof LoginRoute
+  '/register': typeof RegisterRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/account': typeof AuthenticatedAccountRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/distribution': typeof AuthenticatedDistributionRoute
@@ -95,12 +129,17 @@ export interface FileRoutesByFullPath {
   '/releases': typeof AuthenticatedReleasesRouteWithChildren
   '/tracks': typeof AuthenticatedTracksRouteWithChildren
   '/upload': typeof AuthenticatedUploadRoute
+  '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/releases/$releaseId': typeof AuthenticatedReleasesReleaseIdRoute
   '/tracks/$trackId': typeof AuthenticatedTracksTrackIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/forgot-password': typeof ForgotPasswordRoute
+  '/login': typeof LoginRoute
+  '/register': typeof RegisterRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/account': typeof AuthenticatedAccountRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/distribution': typeof AuthenticatedDistributionRoute
@@ -108,6 +147,7 @@ export interface FileRoutesByTo {
   '/releases': typeof AuthenticatedReleasesRouteWithChildren
   '/tracks': typeof AuthenticatedTracksRouteWithChildren
   '/upload': typeof AuthenticatedUploadRoute
+  '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/releases/$releaseId': typeof AuthenticatedReleasesReleaseIdRoute
   '/tracks/$trackId': typeof AuthenticatedTracksTrackIdRoute
 }
@@ -116,6 +156,10 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/forgot-password': typeof ForgotPasswordRoute
+  '/login': typeof LoginRoute
+  '/register': typeof RegisterRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/account': typeof AuthenticatedAccountRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/distribution': typeof AuthenticatedDistributionRoute
@@ -123,6 +167,7 @@ export interface FileRoutesById {
   '/_authenticated/releases': typeof AuthenticatedReleasesRouteWithChildren
   '/_authenticated/tracks': typeof AuthenticatedTracksRouteWithChildren
   '/_authenticated/upload': typeof AuthenticatedUploadRoute
+  '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
   '/_authenticated/releases/$releaseId': typeof AuthenticatedReleasesReleaseIdRoute
   '/_authenticated/tracks/$trackId': typeof AuthenticatedTracksTrackIdRoute
 }
@@ -131,6 +176,10 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/forgot-password'
+    | '/login'
+    | '/register'
+    | '/reset-password'
     | '/account'
     | '/dashboard'
     | '/distribution'
@@ -138,12 +187,17 @@ export interface FileRouteTypes {
     | '/releases'
     | '/tracks'
     | '/upload'
+    | '/admin/users'
     | '/releases/$releaseId'
     | '/tracks/$trackId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/auth'
+    | '/forgot-password'
+    | '/login'
+    | '/register'
+    | '/reset-password'
     | '/account'
     | '/dashboard'
     | '/distribution'
@@ -151,6 +205,7 @@ export interface FileRouteTypes {
     | '/releases'
     | '/tracks'
     | '/upload'
+    | '/admin/users'
     | '/releases/$releaseId'
     | '/tracks/$trackId'
   id:
@@ -158,6 +213,10 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/forgot-password'
+    | '/login'
+    | '/register'
+    | '/reset-password'
     | '/_authenticated/account'
     | '/_authenticated/dashboard'
     | '/_authenticated/distribution'
@@ -165,6 +224,7 @@ export interface FileRouteTypes {
     | '/_authenticated/releases'
     | '/_authenticated/tracks'
     | '/_authenticated/upload'
+    | '/_authenticated/admin/users'
     | '/_authenticated/releases/$releaseId'
     | '/_authenticated/tracks/$trackId'
   fileRoutesById: FileRoutesById
@@ -173,10 +233,42 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  ForgotPasswordRoute: typeof ForgotPasswordRoute
+  LoginRoute: typeof LoginRoute
+  RegisterRoute: typeof RegisterRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/register': {
+      id: '/register'
+      path: '/register'
+      fullPath: '/register'
+      preLoaderRoute: typeof RegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth': {
       id: '/auth'
       path: '/auth'
@@ -261,6 +353,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedReleasesReleaseIdRouteImport
       parentRoute: typeof AuthenticatedReleasesRoute
     }
+    '/_authenticated/admin/users': {
+      id: '/_authenticated/admin/users'
+      path: '/admin/users'
+      fullPath: '/admin/users'
+      preLoaderRoute: typeof AuthenticatedAdminUsersRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
@@ -296,6 +395,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedReleasesRoute: typeof AuthenticatedReleasesRouteWithChildren
   AuthenticatedTracksRoute: typeof AuthenticatedTracksRouteWithChildren
   AuthenticatedUploadRoute: typeof AuthenticatedUploadRoute
+  AuthenticatedAdminUsersRoute: typeof AuthenticatedAdminUsersRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -306,6 +406,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedReleasesRoute: AuthenticatedReleasesRouteWithChildren,
   AuthenticatedTracksRoute: AuthenticatedTracksRouteWithChildren,
   AuthenticatedUploadRoute: AuthenticatedUploadRoute,
+  AuthenticatedAdminUsersRoute: AuthenticatedAdminUsersRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
@@ -315,6 +416,10 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  ForgotPasswordRoute: ForgotPasswordRoute,
+  LoginRoute: LoginRoute,
+  RegisterRoute: RegisterRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
