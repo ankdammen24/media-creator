@@ -880,7 +880,13 @@ export type Database = {
       album_type: "album" | "ep" | "single" | "compilation" | "podcast_show"
       api_key_type: "user" | "service"
       app_language: "sv" | "en"
-      app_role: "admin" | "moderator" | "user" | "artist"
+      app_role:
+        | "admin"
+        | "moderator"
+        | "user"
+        | "artist"
+        | "super_admin"
+        | "creator"
       artist_approval_status: "pending" | "approved" | "rejected"
       artist_image_kind: "avatar" | "cover" | "press"
       artist_image_visibility: "public" | "link_only"
@@ -1031,7 +1037,14 @@ export const Constants = {
       album_type: ["album", "ep", "single", "compilation", "podcast_show"],
       api_key_type: ["user", "service"],
       app_language: ["sv", "en"],
-      app_role: ["admin", "moderator", "user", "artist"],
+      app_role: [
+        "admin",
+        "moderator",
+        "user",
+        "artist",
+        "super_admin",
+        "creator",
+      ],
       artist_approval_status: ["pending", "approved", "rejected"],
       artist_image_kind: ["avatar", "cover", "press"],
       artist_image_visibility: ["public", "link_only"],
