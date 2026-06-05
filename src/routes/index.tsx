@@ -5,6 +5,6 @@ export const Route = createFileRoute("/")({ component: IndexRedirect });
 
 function IndexRedirect() {
   const { user, loading } = useAuth();
-  if (loading) return <div className="flex min-h-screen items-center justify-center text-sm text-muted-foreground">Laddar…</div>;
-  return <Navigate to={user ? "/dashboard" : "/auth"} replace />;
+  if (loading) return <div className="flex min-h-screen items-center justify-center text-sm text-muted-foreground">Loading…</div>;
+  return <Navigate to={user ? "/dashboard" : "/login"} replace />;
 }
