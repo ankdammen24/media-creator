@@ -1,11 +1,9 @@
 // Thin fetch wrapper for the external Media Rosenqvist API.
 // All requests carry the current Supabase access token as a Bearer header.
 import { supabase } from "@/integrations/supabase/client";
+import { getRuntimeConfig } from "./runtime-config";
 
-const BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "https://api.mediarosenqvist.com").replace(
-  /\/+$/,
-  "",
-);
+const BASE_URL = getRuntimeConfig().VITE_API_BASE_URL.replace(/\/+$/, "");
 
 export class ApiError extends Error {
   status: number;
@@ -76,10 +74,16 @@ export async function apiFetch<T = unknown>(path: string, options: ApiOptions = 
         /* ignore */
       }
     }
+    const apiMessage =
+      isJson && payload && typeof payload === "object"
+        ? "message" in payload
+          ? String((payload as { message: unknown }).message)
+          : "error" in payload
+            ? String((payload as { error: unknown }).error)
+            : null
+        : null;
     const msg =
-      (isJson && payload && typeof payload === "object" && "message" in payload
-        ? String((payload as { message: unknown }).message)
-        : null) ??
+      apiMessage ??
       (typeof payload === "string" && payload.length > 0 ? payload : null) ??
       `Request failed (${res.status})`;
     throw new ApiError(res.status, msg, payload);
