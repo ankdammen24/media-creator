@@ -528,55 +528,117 @@ export type Database = {
         }
         Relationships: []
       }
+      media_file_status_log: {
+        Row: {
+          changed_at: string
+          changed_by: string
+          from_status: string | null
+          id: string
+          media_file_id: string
+          reason: string | null
+          to_status: string
+        }
+        Insert: {
+          changed_at?: string
+          changed_by: string
+          from_status?: string | null
+          id?: string
+          media_file_id: string
+          reason?: string | null
+          to_status: string
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string
+          from_status?: string | null
+          id?: string
+          media_file_id?: string
+          reason?: string | null
+          to_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "media_file_status_log_media_file_id_fkey"
+            columns: ["media_file_id"]
+            isOneToOne: false
+            referencedRelation: "media_files"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       media_files: {
         Row: {
           album_id: string | null
           artist_profile_id: string | null
-          bucket: string
+          bucket: string | null
           checksum: string | null
           created_at: string
           duration_seconds: number | null
+          file_type: string | null
           id: string
-          kind: string
+          kind: string | null
           metadata: Json
           mime_type: string | null
+          original_filename: string | null
           owner_id: string
-          path: string
+          path: string | null
+          project: string | null
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
           size_bytes: number | null
+          status: string
+          storage_key: string | null
           submission_id: string | null
           updated_at: string
         }
         Insert: {
           album_id?: string | null
           artist_profile_id?: string | null
-          bucket: string
+          bucket?: string | null
           checksum?: string | null
           created_at?: string
           duration_seconds?: number | null
+          file_type?: string | null
           id?: string
-          kind: string
+          kind?: string | null
           metadata?: Json
           mime_type?: string | null
+          original_filename?: string | null
           owner_id: string
-          path: string
+          path?: string | null
+          project?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           size_bytes?: number | null
+          status?: string
+          storage_key?: string | null
           submission_id?: string | null
           updated_at?: string
         }
         Update: {
           album_id?: string | null
           artist_profile_id?: string | null
-          bucket?: string
+          bucket?: string | null
           checksum?: string | null
           created_at?: string
           duration_seconds?: number | null
+          file_type?: string | null
           id?: string
-          kind?: string
+          kind?: string | null
           metadata?: Json
           mime_type?: string | null
+          original_filename?: string | null
           owner_id?: string
-          path?: string
+          path?: string | null
+          project?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           size_bytes?: number | null
+          status?: string
+          storage_key?: string | null
           submission_id?: string | null
           updated_at?: string
         }
