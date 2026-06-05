@@ -30,7 +30,7 @@ npm run dev
 
 ## Docker
 
-The Docker image is a static production build served by Nginx. It does not contain `.env` files or backend services. The existing external Nginx reverse proxy handles public domain routing, HTTPS/TLS certificates, and proxying for `creator.mediarosenqvist.com`.
+The Docker image is a static production build served by Nginx. It does not contain `.env` files or backend services. At container startup, Nginx writes a public `/env.js` from container environment variables so deployment config can be supplied without rebuilding the image.
 
 ### Local build
 
@@ -63,7 +63,7 @@ docker compose -f docker-compose.prod.yml pull
 docker compose -f docker-compose.prod.yml up -d
 ```
 
-The production compose file exposes only the container's internal port 80 and attaches to an existing external Docker network named `media-net`. The external Nginx reverse proxy should route `creator.mediarosenqvist.com` to this container and handle HTTPS/TLS.
+The production compose file expects an external Traefik network named `proxy` and routes `creator.mediarosenqvist.com` over the `websecure` entrypoint with the `letsencrypt` resolver.
 
 ## SPA routing
 
