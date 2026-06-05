@@ -1,0 +1,30 @@
+services:
+  backend:
+    build: .
+    env_file: .env
+    ports:
+      - "4000:4000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - /tmp:/tmp
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: media_creator
+      POSTGRES_USER: media_creator
+      POSTGRES_PASSWORD: media_creator
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U media_creator -d media_creator"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres_data:

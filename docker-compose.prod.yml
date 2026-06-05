@@ -1,13 +1,23 @@
 services:
   media-creator:
     image: ghcr.io/mediarosenqvist/media-creator:latest
-    container_name: media-creator
-    restart: unless-stopped
+    environment:
+      VITE_API_BASE_URL: https://api.mediarosenqvist.com
+      VITE_SUPABASE_URL: ${VITE_SUPABASE_URL:-}
+      VITE_SUPABASE_PUBLISHABLE_KEY: ${VITE_SUPABASE_PUBLISHABLE_KEY:-}
     expose:
       - "80"
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.media-creator.rule=Host(`creator.mediarosenqvist.com`)
+      - traefik.http.routers.media-creator.entrypoints=websecure
+      - traefik.http.routers.media-creator.tls=true
+      - traefik.http.routers.media-creator.tls.certresolver=letsencrypt
+      - traefik.http.services.media-creator.loadbalancer.server.port=80
     networks:
-      - media-net
+      - proxy
+    restart: unless-stopped
 
 networks:
-  media-net:
+  proxy:
     external: true
