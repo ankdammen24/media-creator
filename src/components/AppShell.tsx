@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, Outlet, useRouter } from "@tanstack/react-router";
-import { Activity, Disc3, LayoutDashboard, LogOut, Menu, Music, Radio, Shield, Upload, UserCircle, X } from "lucide-react";
+import { Activity, Cloud, Disc3, LayoutDashboard, LogOut, Menu, Music, Radio, Shield, Upload, UserCircle, X } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -10,6 +10,7 @@ import { hasAnyRole, useMyRoles } from "@/lib/roles";
 const NAV = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/upload", label: "Upload Music", icon: Upload },
+  { to: "/upload-cloud", label: "Upload to Cloud", icon: Cloud },
   { to: "/processing", label: "Processing", icon: Activity },
   { to: "/tracks", label: "My Tracks", icon: Music },
   { to: "/releases", label: "My Releases", icon: Disc3 },

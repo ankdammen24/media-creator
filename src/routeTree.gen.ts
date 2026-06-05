@@ -18,6 +18,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as CatalogTrackIdRouteImport } from './routes/catalog.$trackId'
+import { Route as AuthenticatedUploadCloudRouteImport } from './routes/_authenticated/upload-cloud'
 import { Route as AuthenticatedUploadRouteImport } from './routes/_authenticated/upload'
 import { Route as AuthenticatedTracksRouteImport } from './routes/_authenticated/tracks'
 import { Route as AuthenticatedReleasesRouteImport } from './routes/_authenticated/releases'
@@ -73,6 +74,12 @@ const CatalogTrackIdRoute = CatalogTrackIdRouteImport.update({
   path: '/$trackId',
   getParentRoute: () => CatalogRoute,
 } as any)
+const AuthenticatedUploadCloudRoute =
+  AuthenticatedUploadCloudRouteImport.update({
+    id: '/upload-cloud',
+    path: '/upload-cloud',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedUploadRoute = AuthenticatedUploadRouteImport.update({
   id: '/upload',
   path: '/upload',
@@ -142,6 +149,7 @@ export interface FileRoutesByFullPath {
   '/releases': typeof AuthenticatedReleasesRouteWithChildren
   '/tracks': typeof AuthenticatedTracksRouteWithChildren
   '/upload': typeof AuthenticatedUploadRoute
+  '/upload-cloud': typeof AuthenticatedUploadCloudRoute
   '/catalog/$trackId': typeof CatalogTrackIdRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/releases/$releaseId': typeof AuthenticatedReleasesReleaseIdRoute
@@ -162,6 +170,7 @@ export interface FileRoutesByTo {
   '/releases': typeof AuthenticatedReleasesRouteWithChildren
   '/tracks': typeof AuthenticatedTracksRouteWithChildren
   '/upload': typeof AuthenticatedUploadRoute
+  '/upload-cloud': typeof AuthenticatedUploadCloudRoute
   '/catalog/$trackId': typeof CatalogTrackIdRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/releases/$releaseId': typeof AuthenticatedReleasesReleaseIdRoute
@@ -184,6 +193,7 @@ export interface FileRoutesById {
   '/_authenticated/releases': typeof AuthenticatedReleasesRouteWithChildren
   '/_authenticated/tracks': typeof AuthenticatedTracksRouteWithChildren
   '/_authenticated/upload': typeof AuthenticatedUploadRoute
+  '/_authenticated/upload-cloud': typeof AuthenticatedUploadCloudRoute
   '/catalog/$trackId': typeof CatalogTrackIdRoute
   '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
   '/_authenticated/releases/$releaseId': typeof AuthenticatedReleasesReleaseIdRoute
@@ -206,6 +216,7 @@ export interface FileRouteTypes {
     | '/releases'
     | '/tracks'
     | '/upload'
+    | '/upload-cloud'
     | '/catalog/$trackId'
     | '/admin/users'
     | '/releases/$releaseId'
@@ -226,6 +237,7 @@ export interface FileRouteTypes {
     | '/releases'
     | '/tracks'
     | '/upload'
+    | '/upload-cloud'
     | '/catalog/$trackId'
     | '/admin/users'
     | '/releases/$releaseId'
@@ -247,6 +259,7 @@ export interface FileRouteTypes {
     | '/_authenticated/releases'
     | '/_authenticated/tracks'
     | '/_authenticated/upload'
+    | '/_authenticated/upload-cloud'
     | '/catalog/$trackId'
     | '/_authenticated/admin/users'
     | '/_authenticated/releases/$releaseId'
@@ -328,6 +341,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/catalog/$trackId'
       preLoaderRoute: typeof CatalogTrackIdRouteImport
       parentRoute: typeof CatalogRoute
+    }
+    '/_authenticated/upload-cloud': {
+      id: '/_authenticated/upload-cloud'
+      path: '/upload-cloud'
+      fullPath: '/upload-cloud'
+      preLoaderRoute: typeof AuthenticatedUploadCloudRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/upload': {
       id: '/_authenticated/upload'
@@ -434,6 +454,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedReleasesRoute: typeof AuthenticatedReleasesRouteWithChildren
   AuthenticatedTracksRoute: typeof AuthenticatedTracksRouteWithChildren
   AuthenticatedUploadRoute: typeof AuthenticatedUploadRoute
+  AuthenticatedUploadCloudRoute: typeof AuthenticatedUploadCloudRoute
   AuthenticatedAdminUsersRoute: typeof AuthenticatedAdminUsersRoute
 }
 
@@ -445,6 +466,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedReleasesRoute: AuthenticatedReleasesRouteWithChildren,
   AuthenticatedTracksRoute: AuthenticatedTracksRouteWithChildren,
   AuthenticatedUploadRoute: AuthenticatedUploadRoute,
+  AuthenticatedUploadCloudRoute: AuthenticatedUploadCloudRoute,
   AuthenticatedAdminUsersRoute: AuthenticatedAdminUsersRoute,
 }
 
