@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.self_approve_artist_account(uuid, text, text, text, text, uuid) FROM PUBLIC, anon, authenticated;
