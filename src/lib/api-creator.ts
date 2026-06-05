@@ -1,233 +1,144 @@
-// Typed wrappers for the external Media Rosenqvist creator endpoints.
-// Shapes are best-effort based on the spec described in the project brief.
-// If the real API differs, only this file needs to change.
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "./api-client";
 
-// ---------- Types ----------
-
 export type TrackStatus =
-  | "pending_upload"
+  | "draft"
+  | "uploading"
   | "uploaded"
   | "processing"
   | "processed"
-  | "failed"
+  | "metadata_required"
   | "submitted"
+  | "reviewing"
   | "approved"
   | "rejected"
-  | "distributed";
+  | "mastering"
+  | "mastered"
+  | "distributed"
+  | "published"
+  | "failed";
 
-export type ReleaseStatus =
-  | "draft"
-  | "submitted"
-  | "approved"
-  | "rejected"
-  | "scheduled"
-  | "distributed";
+export type ReleaseStatus = "draft" | "submitted" | "reviewing" | "approved" | "rejected" | "distributed" | "published" | "failed";
 
-export type DistributionPlatformStatus =
-  | "pending"
-  | "submitted"
-  | "live"
-  | "rejected"
-  | "takedown";
+export type UploadSessionFile = { filename: string; contentType: string; size: number };
+export type UploadSessionUpload = { trackId: string; fileId: string; uploadUrl: string; r2Key: string };
+export type UploadSessionResponse = { uploads: UploadSessionUpload[] };
 
-export type UploadSessionFile = {
+export type TrackFile = {
+  id: string;
+  track_id?: string;
+  trackId?: string;
+  file_type?: string;
+  fileType?: string;
   filename: string;
-  size: number;
-  contentType: string;
+  content_type?: string;
+  contentType?: string;
+  status?: string;
+  r2_key?: string;
+  r2Key?: string;
+  created_at?: string;
+  createdAt?: string;
 };
 
-export type UploadSessionTrack = {
-  trackId: string;
-  filename: string;
-  /** Pre-signed Cloudflare R2 PUT URL. */
-  putUrl: string;
-  /** Headers the client MUST set on the PUT (e.g. Content-Type). */
-  headers?: Record<string, string>;
-  /** Optional R2 object key for reference. */
-  key?: string;
-};
-
-export type UploadSessionResponse = {
-  sessionId?: string;
-  uploads: UploadSessionTrack[];
-};
-
-export type TrackStatusResponse = {
-  trackId: string;
-  status: TrackStatus;
-  /** 0..100 — processing progress if known. */
-  progress?: number;
-  loudness?: { i?: number; tp?: number; lra?: number } | null;
-  durationSeconds?: number | null;
-  message?: string | null;
-  error?: string | null;
+export type ProcessingJob = {
+  id: string;
+  track_id?: string;
+  trackId?: string;
+  status: "queued" | "running" | "completed" | "failed";
+  error_message?: string | null;
+  errorMessage?: string | null;
+  created_at?: string;
+  createdAt?: string;
+  updated_at?: string;
+  updatedAt?: string;
 };
 
 export type Track = {
   id: string;
-  title: string;
+  title?: string | null;
   status: TrackStatus;
-  durationSeconds?: number | null;
-  artist?: string | null;
+  artist_id?: string | null;
+  artistId?: string | null;
+  album_id?: string | null;
   albumId?: string | null;
-  releaseId?: string | null;
-  artworkUrl?: string | null;
   isrc?: string | null;
-  explicit?: boolean;
-  language?: string | null;
-  primaryGenre?: string | null;
-  secondaryGenre?: string | null;
+  upc?: string | null;
+  metadata?: Record<string, unknown> | null;
+  technical_metadata?: Record<string, unknown> | null;
+  technicalMetadata?: Record<string, unknown> | null;
+  created_at?: string;
   createdAt?: string;
+  updated_at?: string;
   updatedAt?: string;
 };
 
-export type TrackMetadataPatch = Partial<
-  Pick<
-    Track,
-    | "title"
-    | "artist"
-    | "isrc"
-    | "explicit"
-    | "language"
-    | "primaryGenre"
-    | "secondaryGenre"
-  >
-> & {
-  featuredArtists?: string[];
-  songwriters?: string[];
-  producers?: string[];
-  description?: string | null;
+export type TrackStatusResponse = {
+  track: Track;
+  files?: TrackFile[];
+  processingJobs?: ProcessingJob[];
+  processing_jobs?: ProcessingJob[];
+};
+
+export type TrackMetadataPatch = {
+  title?: string;
+  artistId?: string | null;
+  albumId?: string | null;
+  isrc?: string | null;
+  upc?: string | null;
+  metadata?: Record<string, unknown>;
 };
 
 export type Release = {
   id: string;
-  title: string;
-  status: ReleaseStatus;
-  releaseType?: "single" | "ep" | "album" | "podcast";
-  artist?: string | null;
-  artworkUrl?: string | null;
+  title?: string | null;
+  status: ReleaseStatus | string;
+  releaseType?: string | null;
   releaseDate?: string | null;
-  upc?: string | null;
   trackIds?: string[];
-  distributionPlatforms?: string[];
-  submittedAt?: string | null;
-  approvedAt?: string | null;
-  rejectionReason?: string | null;
   createdAt?: string;
   updatedAt?: string;
 };
 
-export type CreateReleasePayload = {
-  title: string;
-  releaseType: "single" | "ep" | "album" | "podcast";
-  trackIds: string[];
-  releaseDate?: string;
-  distributionPlatforms?: string[];
-};
-
-export type DistributionEntry = {
-  platform: string;
-  status: DistributionPlatformStatus;
-  externalUrl?: string | null;
-  externalId?: string | null;
-  submittedAt?: string | null;
-  liveAt?: string | null;
-  rejectionReason?: string | null;
-};
-
-export type DistributionStatus = {
-  releaseId: string;
-  platforms: DistributionEntry[];
-};
-
-export type DashboardSummary = {
-  trackCounts: Partial<Record<TrackStatus, number>>;
-  releaseCounts: Partial<Record<ReleaseStatus, number>>;
-  recentTracks?: Track[];
-  recentReleases?: Release[];
-};
-
-export type AccountInfo = {
-  id: string;
-  email: string;
-  displayName?: string | null;
-  avatarUrl?: string | null;
-  createdAt?: string;
-};
-
-// ---------- Uploads ----------
+export type AccountInfo = { id: string; email: string; displayName?: string | null; avatarUrl?: string | null };
 
 export function createUploadSession(files: UploadSessionFile[]) {
   return api.post<UploadSessionResponse>("/creator/uploads/session", { files });
 }
 
-export function completeUpload(trackId: string) {
-  return api.post<{ trackId: string; status: TrackStatus }>("/creator/uploads/complete", {
-    trackId,
-  });
+export function completeUpload(input: { trackId: string; fileId: string; r2Key: string }) {
+  return api.post<{ track?: Track; status?: TrackStatus }>("/creator/uploads/complete", input);
 }
 
 export function getTrackStatus(trackId: string) {
   return api.get<TrackStatusResponse>(`/creator/tracks/${encodeURIComponent(trackId)}/status`);
 }
 
-// ---------- Tracks ----------
-
-export function listTracks(params?: { status?: TrackStatus | "all" }) {
-  const qs = params?.status && params.status !== "all" ? `?status=${params.status}` : "";
-  return api.get<{ tracks: Track[] }>(`/creator/tracks${qs}`);
-}
-
-export function getTrack(trackId: string) {
-  return api.get<{ track: Track }>(`/creator/tracks/${encodeURIComponent(trackId)}`);
+export function listTracks() {
+  return api.get<{ tracks: Track[] }>("/creator/tracks");
 }
 
 export function updateTrackMetadata(trackId: string, patch: TrackMetadataPatch) {
-  return api.patch<{ track: Track }>(
-    `/creator/tracks/${encodeURIComponent(trackId)}`,
-    patch,
-  );
+  return api.patch<{ track: Track }>(`/creator/tracks/${encodeURIComponent(trackId)}/metadata`, patch);
 }
 
 export function submitTrack(trackId: string) {
-  return api.post<{ track: Track }>(
-    `/creator/tracks/${encodeURIComponent(trackId)}/submit`,
-  );
+  return api.post<{ track: Track }>(`/creator/tracks/${encodeURIComponent(trackId)}/submit`);
 }
-
-// ---------- Releases ----------
 
 export function listReleases() {
   return api.get<{ releases: Release[] }>("/creator/releases");
 }
 
 export function getRelease(releaseId: string) {
-  return api.get<{ release: Release; tracks: Track[] }>(
-    `/creator/releases/${encodeURIComponent(releaseId)}`,
-  );
+  return api.get<{ release: Release; tracks?: Track[] }>(`/creator/releases/${encodeURIComponent(releaseId)}`);
 }
 
-export function createRelease(payload: CreateReleasePayload) {
-  return api.post<{ release: Release }>("/creator/releases", payload);
+export function getDistributionStatus() {
+  return api.get<{ releases?: Release[]; tracks?: Track[] }>("/creator/distribution");
 }
-
-export function submitRelease(releaseId: string) {
-  return api.post<{ release: Release }>(
-    `/creator/releases/${encodeURIComponent(releaseId)}/submit`,
-  );
-}
-
-export function getDistributionStatus(releaseId: string) {
-  return api.get<DistributionStatus>(
-    `/creator/releases/${encodeURIComponent(releaseId)}/distribution`,
-  );
-}
-
-// ---------- Dashboard / Account ----------
 
 export function getDashboard() {
-  return api.get<DashboardSummary>("/creator/dashboard");
+  return api.get<{ tracks?: Track[]; releases?: Release[]; summary?: Record<string, unknown> }>("/creator/dashboard");
 }
 
 export function getMe() {
@@ -236,4 +147,52 @@ export function getMe() {
 
 export function updateAccount(patch: { displayName?: string }) {
   return api.patch<AccountInfo>("/creator/me", patch);
+}
+
+export const creatorQueryKeys = {
+  dashboard: ["creator", "dashboard"] as const,
+  tracks: ["creator", "tracks"] as const,
+  trackStatus: (trackId: string) => ["creator", "tracks", trackId, "status"] as const,
+  releases: ["creator", "releases"] as const,
+  release: (releaseId: string) => ["creator", "releases", releaseId] as const,
+  distribution: ["creator", "distribution"] as const,
+  me: ["creator", "me"] as const,
+};
+
+export function useCreatorTracks() {
+  return useQuery({ queryKey: creatorQueryKeys.tracks, queryFn: listTracks });
+}
+
+export function useTrackStatus(trackId: string, enabled = true) {
+  return useQuery({
+    queryKey: creatorQueryKeys.trackStatus(trackId),
+    queryFn: () => getTrackStatus(trackId),
+    enabled,
+    refetchInterval: (query) => {
+      const status = query.state.data?.track.status;
+      return status === "uploading" || status === "uploaded" || status === "processing" ? 3000 : false;
+    },
+  });
+}
+
+export function useUpdateTrackMetadata(trackId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (patch: TrackMetadataPatch) => updateTrackMetadata(trackId, patch),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: creatorQueryKeys.tracks });
+      void qc.invalidateQueries({ queryKey: creatorQueryKeys.trackStatus(trackId) });
+    },
+  });
+}
+
+export function useSubmitTrack(trackId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => submitTrack(trackId),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: creatorQueryKeys.tracks });
+      void qc.invalidateQueries({ queryKey: creatorQueryKeys.trackStatus(trackId) });
+    },
+  });
 }

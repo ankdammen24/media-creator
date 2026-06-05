@@ -1,0 +1,13 @@
+services:
+  media-creator:
+    image: ghcr.io/mediarosenqvist/media-creator:latest
+    container_name: media-creator
+    restart: unless-stopped
+    expose:
+      - "80"
+    networks:
+      - media-net
+
+networks:
+  media-net:
+    external: true
