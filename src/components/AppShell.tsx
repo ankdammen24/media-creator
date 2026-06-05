@@ -69,7 +69,10 @@ function SidebarContent({ onNavigate, onLogout, email, name }: { onNavigate: () 
         <div className="mb-3 px-3 text-xs"><div className="truncate font-medium text-sidebar-foreground">{name ?? "—"}</div><div className="truncate text-muted-foreground">{email ?? ""}</div></div>
         <div className="flex items-center gap-2 px-1">
           <ThemeToggle />
-          <button type="button" onClick={onLogout} className="ml-auto inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"><LogOut className="h-3.5 w-3.5" />Logga ut</button>
+          <button type="button" onClick={onLogout} className="ml-auto inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"><LogOut className="h-3.5 w-3.5" />Sign out</button>
+        </div>
+        <p className="mt-4 px-1 text-[10px] leading-relaxed text-muted-foreground">{t("footer")}</p>
+
         </div>
       </div>
     </div>
