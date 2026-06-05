@@ -1,11 +1,9 @@
 // Thin fetch wrapper for the external Media Rosenqvist API.
 // All requests carry the current Supabase access token as a Bearer header.
 import { supabase } from "@/integrations/supabase/client";
+import { getRuntimeConfig } from "./runtime-config";
 
-const BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "https://api.mediarosenqvist.com").replace(
-  /\/+$/,
-  "",
-);
+const BASE_URL = getRuntimeConfig().VITE_API_BASE_URL.replace(/\/+$/, "");
 
 export class ApiError extends Error {
   status: number;
