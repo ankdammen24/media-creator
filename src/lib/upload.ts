@@ -1,7 +1,7 @@
 import type { UploadSessionUpload } from "./api-creator";
 
-export const AUDIO_ACCEPT = "audio/wav,audio/mpeg,audio/flac,audio/aiff,audio/x-aiff";
-export const ALLOWED_AUDIO_TYPES = new Set(["audio/wav", "audio/mpeg", "audio/flac", "audio/aiff", "audio/x-aiff"]);
+export const AUDIO_ACCEPT = "audio/wav,audio/x-wav,audio/wave,audio/vnd.wave,audio/mpeg,audio/mp3,audio/flac,audio/x-flac,audio/aiff,audio/x-aiff,.wav,.mp3,.flac,.aif,.aiff";
+export const ALLOWED_AUDIO_TYPES = new Set(["audio/wav", "audio/x-wav", "audio/wave", "audio/vnd.wave", "audio/mpeg", "audio/mp3", "audio/flac", "audio/x-flac", "audio/aiff", "audio/x-aiff"]);
 export const MAX_FILE_BYTES = 500 * 1024 * 1024;
 
 export function formatBytes(bytes: number) {
