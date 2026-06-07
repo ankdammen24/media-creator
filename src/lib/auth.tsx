@@ -71,13 +71,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signInWithGoogle = async () => {
+    const { lovable } = await import("@/integrations/lovable");
     const redirectTo =
       typeof window !== "undefined" ? `${window.location.origin}/dashboard` : undefined;
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo },
+    const result = await lovable.auth.signInWithOAuth("google", {
+      redirect_uri: redirectTo,
     });
-    if (error) throw new Error(error.message);
+    if (result.error) {
+      throw result.error instanceof Error ? result.error : new Error(String(result.error));
+    }
   };
 
   const logout = async () => {
