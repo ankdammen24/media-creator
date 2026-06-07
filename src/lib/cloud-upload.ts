@@ -1,6 +1,7 @@
-// Direct-to-Supabase upload helpers for the Creator app.
-// Writes audio to `audio-originals/<user_id>/...` and cover art to `cover-art/<user_id>/...`,
-// records each file in `media_files`, and creates a `submissions` row.
+// Direct-to-R2 upload helpers for the Creator app.
+// 1) Asks the `r2-presign` edge function for presigned PUT URLs.
+// 2) Uploads audio + cover directly to Cloudflare R2 via XHR (with progress).
+// 3) Inserts media_files + submissions rows in the database.
 
 import { supabase } from "@/integrations/supabase/client";
 
@@ -40,12 +41,47 @@ export function validateCover(file: File): string | null {
   return null;
 }
 
-function safeName(name: string) {
-  return name.replace(/[^a-zA-Z0-9._-]+/g, "_").slice(0, 120);
+type PresignResponse = {
+  uploadUrl: string;
+  key: string;
+  bucket: string;
+  publicUrl: string | null;
+};
+
+async function presign(kind: "audio" | "cover", file: File): Promise<PresignResponse> {
+  const { data, error } = await supabase.functions.invoke<PresignResponse>("r2-presign", {
+    body: {
+      kind,
+      filename: file.name,
+      contentType: file.type,
+      size: file.size,
+    },
+  });
+  if (error || !data) {
+    throw new Error(`Could not get upload URL: ${error?.message ?? "unknown error"}`);
+  }
+  return data;
 }
 
-function ownedPath(userId: string, file: File) {
-  return `${userId}/${crypto.randomUUID()}-${safeName(file.name)}`;
+function putToR2(uploadUrl: string, file: File, onProgress?: (pct: number) => void) {
+  return new Promise<void>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("PUT", uploadUrl, true);
+    xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable && onProgress) onProgress(Math.round((e.loaded / e.total) * 100));
+    };
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        onProgress?.(100);
+        resolve();
+      } else {
+        reject(new Error(`R2 upload failed (${xhr.status})`));
+      }
+    };
+    xhr.onerror = () => reject(new Error("Network error during upload"));
+    xhr.send(file);
+  });
 }
 
 export type CreateSubmissionInput = {
@@ -57,6 +93,8 @@ export type CreateSubmissionInput = {
   audioFile: File;
   coverFile: File;
   albumId?: string | null;
+  onAudioProgress?: (pct: number) => void;
+  onCoverProgress?: (pct: number) => void;
 };
 
 export type CreateSubmissionResult = {
@@ -65,12 +103,6 @@ export type CreateSubmissionResult = {
   artworkPath: string;
 };
 
-/**
- * Uploads the audio + cover art to the shared Supabase buckets and creates a
- * submission row plus matching media_files rows. RLS enforces that:
- *  - files are written under `<user_id>/...`
- *  - the user owns the chosen artist_profile
- */
 export async function uploadAndCreateSubmission(
   input: CreateSubmissionInput,
 ): Promise<CreateSubmissionResult> {
@@ -81,32 +113,19 @@ export async function uploadAndCreateSubmission(
   if (!input.title.trim()) throw new Error("Title is required");
   if (!input.artistProfileId) throw new Error("Please choose an artist");
 
-  const audioPath = ownedPath(input.userId, input.audioFile);
-  const coverPath = ownedPath(input.userId, input.coverFile);
+  // 1. Presign both URLs in parallel
+  const [audioPresign, coverPresign] = await Promise.all([
+    presign("audio", input.audioFile),
+    presign("cover", input.coverFile),
+  ]);
 
-  // 1. Upload audio (private bucket)
-  const audioUp = await supabase.storage
-    .from("audio-originals")
-    .upload(audioPath, input.audioFile, {
-      contentType: input.audioFile.type,
-      upsert: false,
-    });
-  if (audioUp.error) throw new Error(`Audio upload failed: ${audioUp.error.message}`);
+  // 2. Upload audio + cover to R2 in parallel
+  await Promise.all([
+    putToR2(audioPresign.uploadUrl, input.audioFile, input.onAudioProgress),
+    putToR2(coverPresign.uploadUrl, input.coverFile, input.onCoverProgress),
+  ]);
 
-  // 2. Upload cover (private bucket; anon-readable via RLS)
-  const coverUp = await supabase.storage
-    .from("cover-art")
-    .upload(coverPath, input.coverFile, {
-      contentType: input.coverFile.type,
-      upsert: false,
-    });
-  if (coverUp.error) {
-    // best-effort rollback of audio
-    await supabase.storage.from("audio-originals").remove([audioPath]);
-    throw new Error(`Cover upload failed: ${coverUp.error.message}`);
-  }
-
-  // 3. Create submission row (status defaults to 'pending_review')
+  // 3. Create submission row
   const submissionInsert = await supabase
     .from("submissions")
     .insert({
@@ -116,15 +135,13 @@ export async function uploadAndCreateSubmission(
       title: input.title.trim(),
       description: input.description?.trim() || null,
       media_type: input.mediaType ?? "music",
-      audio_path: audioPath,
-      artwork_path: coverPath,
+      audio_path: audioPresign.key,
+      artwork_path: coverPresign.key,
     })
     .select("id")
     .single();
 
   if (submissionInsert.error || !submissionInsert.data) {
-    await supabase.storage.from("audio-originals").remove([audioPath]);
-    await supabase.storage.from("cover-art").remove([coverPath]);
     throw new Error(
       `Could not create submission: ${submissionInsert.error?.message ?? "unknown error"}`,
     );
@@ -132,31 +149,41 @@ export async function uploadAndCreateSubmission(
 
   const submissionId = submissionInsert.data.id as string;
 
-  // 4. Record both files in media_files (best-effort; submission already exists)
+  // 4. Record both files in media_files (best-effort)
   await supabase.from("media_files").insert([
     {
       owner_id: input.userId,
-      bucket: "audio-originals",
-      path: audioPath,
+      bucket: audioPresign.bucket,
+      path: audioPresign.key,
+      storage_key: audioPresign.key,
       kind: "audio_original",
+      file_type: "audio_original",
       mime_type: input.audioFile.type,
       size_bytes: input.audioFile.size,
+      original_filename: input.audioFile.name,
       submission_id: submissionId,
       album_id: input.albumId ?? null,
       artist_profile_id: input.artistProfileId,
     },
     {
       owner_id: input.userId,
-      bucket: "cover-art",
-      path: coverPath,
+      bucket: coverPresign.bucket,
+      path: coverPresign.key,
+      storage_key: coverPresign.key,
       kind: "cover_art",
+      file_type: "cover_art",
       mime_type: input.coverFile.type,
       size_bytes: input.coverFile.size,
+      original_filename: input.coverFile.name,
       submission_id: submissionId,
       album_id: input.albumId ?? null,
       artist_profile_id: input.artistProfileId,
     },
   ]);
 
-  return { submissionId, audioPath, artworkPath: coverPath };
+  return {
+    submissionId,
+    audioPath: audioPresign.key,
+    artworkPath: coverPresign.key,
+  };
 }
